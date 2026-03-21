@@ -1,0 +1,4 @@
+interface:
+  display_name: "Effect TS"
+  short_description: "Guidance for Effect TS HTTP and Layer patterns"
+  default_prompt: "Use $effect-ts to implement or review Effect TS code with HttpClient or HttpApiClient instead of raw fetch."
