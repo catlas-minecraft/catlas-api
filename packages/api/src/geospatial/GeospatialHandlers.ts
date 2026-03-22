@@ -1,6 +1,6 @@
 import { Api } from "@catlas/domain/Api";
 import type { BBox2D } from "@catlas/domain/GeospatialApi";
-import { CurrentActor, ValidationError } from "@catlas/domain/GeospatialApi";
+import { BBox2D as BBox2DSchema, CurrentActor, ValidationError } from "@catlas/domain/GeospatialApi";
 import { HttpApiBuilder } from "@effect/platform";
 import { Effect, Layer } from "effect";
 import { AuthSessionManagerLive } from "../auth/AuthSessionManager.js";
@@ -28,7 +28,7 @@ const parseBbox = (raw: string): Effect.Effect<BBox2D, ValidationError> => {
     );
   }
 
-  return Effect.succeed({ minX, minY, maxX, maxY });
+  return Effect.succeed(new BBox2DSchema({ minX, minY, maxX, maxY }));
 };
 
 export const ViewportApiLive = HttpApiBuilder.group(Api, "viewport", (handlers) =>

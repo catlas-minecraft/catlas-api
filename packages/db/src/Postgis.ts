@@ -14,16 +14,6 @@ export interface BBox2DInput {
   maxY: number
 }
 
-export const makePointZ = ({ x, y, z }: Point3DInput) =>
-  sql<GeometryValue>`ST_SetSRID(ST_MakePoint(${x}, ${y}, ${z}), 0)`
-
-export const selectPointZJson = (column: string) =>
-  sql<Point3DInput>`json_build_object(
-    'x', ST_X(${sql.ref(column)}),
-    'y', ST_Y(${sql.ref(column)}),
-    'z', COALESCE(ST_Z(${sql.ref(column)}), 0)
-  )`
-
 export const intersectsBBox2D = (column: string, bbox: BBox2DInput) =>
   sql<boolean>`ST_Intersects(
     ST_Force2D(${sql.ref(column)}),
@@ -34,7 +24,7 @@ const makeWayLineGeometry = (wayId: number) =>
   sql<GeometryValue>`(
     SELECT ST_MakeLine(node_geom ORDER BY seq)
     FROM (
-      SELECT way_nodes.seq, nodes.geom AS node_geom
+      SELECT way_nodes.seq, nodes.geom_2d AS node_geom
       FROM core.way_nodes
       INNER JOIN core.nodes ON nodes.id = way_nodes.node_id
       WHERE way_nodes.way_id = ${wayId}
@@ -49,7 +39,7 @@ export const makeWayGeometry = (wayId: number, geometryKind: GeometryKind) =>
         FROM (
           SELECT ST_MakeLine(node_geom ORDER BY seq) AS line_geom
           FROM (
-            SELECT way_nodes.seq, nodes.geom AS node_geom
+            SELECT way_nodes.seq, nodes.geom_2d AS node_geom
             FROM core.way_nodes
             INNER JOIN core.nodes ON nodes.id = way_nodes.node_id
             WHERE way_nodes.way_id = ${wayId}

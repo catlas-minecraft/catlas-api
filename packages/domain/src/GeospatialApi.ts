@@ -1,31 +1,25 @@
 import { HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware, HttpApiSchema, HttpApiSecurity } from "@effect/platform"
 import { Context, Schema } from "effect"
+import * as GeospatialSchema from "@catlas/schema/Geospatial"
 import { UnauthorizedError } from "./AuthApi.js"
 
-export const EntityId = Schema.Number
-export type EntityId = typeof EntityId.Type
+export const EntityId = GeospatialSchema.EntityId
+export type EntityId = typeof GeospatialSchema.EntityId.Type
 
-export const EntityIdFromString = Schema.NumberFromString
-export type EntityIdFromString = typeof EntityIdFromString.Type
+export const EntityIdFromString = GeospatialSchema.EntityIdFromString
+export type EntityIdFromString = typeof GeospatialSchema.EntityIdFromString.Type
 
-export const Tags = Schema.Record({ key: Schema.String, value: Schema.String })
-export type Tags = typeof Tags.Type
+export const Tags = GeospatialSchema.Tags
+export type Tags = typeof GeospatialSchema.Tags.Type
 
-export const GeometryKind = Schema.Literal("line", "area")
-export type GeometryKind = typeof GeometryKind.Type
+export const GeometryKind = GeospatialSchema.GeometryKind
+export type GeometryKind = typeof GeospatialSchema.GeometryKind.Type
 
-export class Point3D extends Schema.Class<Point3D>("Point3D")({
-  x: Schema.Number,
-  y: Schema.Number,
-  z: Schema.Number
-}) {}
+export const Point3D = GeospatialSchema.Point3D
+export type Point3D = InstanceType<typeof GeospatialSchema.Point3D>
 
-export class BBox2D extends Schema.Class<BBox2D>("BBox2D")({
-  minX: Schema.Number,
-  minY: Schema.Number,
-  maxX: Schema.Number,
-  maxY: Schema.Number
-}) {}
+export const BBox2D = GeospatialSchema.BBox2D
+export type BBox2D = InstanceType<typeof GeospatialSchema.BBox2D>
 
 export class ChangesetSnapshot extends Schema.Class<ChangesetSnapshot>("ChangesetSnapshot")({
   id: Schema.Number,

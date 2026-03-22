@@ -1,11 +1,12 @@
 import { HttpApiEndpoint, HttpApiGroup } from "@effect/platform"
 import { Schema } from "effect"
+import * as AuthSchema from "@catlas/schema/Auth"
 
-export const UserId = Schema.NonEmptyTrimmedString
-export type UserId = typeof UserId.Type
+export const UserId = AuthSchema.UserId
+export type UserId = typeof AuthSchema.UserId.Type
 
-export const SessionJwtToken = Schema.String
-export type SessionJwtToken = typeof SessionJwtToken.Type
+export const SessionJwtToken = AuthSchema.SessionJwtToken
+export type SessionJwtToken = typeof AuthSchema.SessionJwtToken.Type
 
 export class AuthSession extends Schema.Class<AuthSession>("AuthSession")({
   sessionId: Schema.String,

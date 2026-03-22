@@ -6,8 +6,6 @@ import {
   makeGeometryBBox,
   makeMultipolygonRelationGeometry,
   makeWayGeometry,
-  type NodeRow,
-  type Point3DInput,
   type RelationGeometryRow,
   RESERVED_TAG_KEYS,
   type RelationMemberRow,
@@ -16,8 +14,6 @@ import {
   type WayNodeRow,
   type WayRow,
   intersectsBBox2D,
-  makePointZ,
-  selectPointZJson,
   withCoreSchema,
   withDerivedSchema,
   withHistorySchema,
@@ -44,7 +40,22 @@ import {
 } from "@catlas/domain/GeospatialApi";
 import { Context, Effect, Layer } from "effect";
 
-type NodeSelectRow = Omit<NodeRow, "geom"> & { geom_json: Point3DInput };
+type NodeSelectRow = {
+  id: number;
+  mc_x: number;
+  mc_y: number;
+  mc_z: number;
+  feature_type: string;
+  tags: Record<string, string>;
+  version: number;
+  created_changeset_id: number;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string;
+  updated_by: string;
+  deleted_at: Date | null;
+  changeset_id: number;
+};
 
 export interface GeospatialRepositoryService {
   createChangeset: (
@@ -267,12 +278,19 @@ const mergeExpectedVersions = (
   }
 };
 
-const toPoint3D = (value: Point3DInput) =>
+const toPoint3D = (value: { x: number; y: number; z: number }) =>
   new Point3D({
     x: value.x,
     y: value.y,
     z: value.z,
   });
+
+const toBBox2DInput = (value: BBox2D): BBox2DInput => ({
+  minX: value.minX,
+  minY: value.minY,
+  maxX: value.maxX,
+  maxY: value.maxY,
+});
 
 const toChangesetSnapshot = (row: ChangeSetRow) =>
   new ChangesetSnapshot({
@@ -287,7 +305,11 @@ const toChangesetSnapshot = (row: ChangeSetRow) =>
 const toNodeSnapshot = (row: NodeSelectRow) =>
   new NodeSnapshot({
     id: row.id,
-    geom: toPoint3D(row.geom_json),
+    geom: toPoint3D({
+      x: row.mc_x,
+      y: row.mc_y,
+      z: row.mc_z,
+    }),
     featureType: row.feature_type,
     tags: row.tags,
     version: row.version,
@@ -458,16 +480,19 @@ export const GeospatialRepositoryLive = Layer.effect(
         .selectFrom("nodes")
         .select([
           "id",
+          "mc_x",
+          "mc_y",
+          "mc_z",
           "feature_type",
           "tags",
           "version",
+          "created_changeset_id",
           "created_at",
           "updated_at",
           "created_by",
           "updated_by",
           "deleted_at",
           "changeset_id",
-          selectPointZJson("geom").as("geom_json"),
         ])
         .where("id", "=", id)
         .where("deleted_at", "is", null)
@@ -1195,23 +1220,31 @@ export const GeospatialRepositoryLive = Layer.effect(
     };
 
     const restoreNodeSnapshot = (snapshot: any) =>
-      coreDb
-        .updateTable("nodes")
-        .set({
-          geom: makePointZ(snapshot.geom_json),
-          feature_type: snapshot.feature_type,
-          tags: snapshot.tags,
-          version: snapshot.version,
-          created_changeset_id: snapshot.created_changeset_id,
-          created_at: new Date(snapshot.created_at),
-          updated_at: new Date(snapshot.updated_at),
-          created_by: snapshot.created_by,
-          updated_by: snapshot.updated_by,
-          deleted_at: snapshot.deleted_at === null ? null : new Date(snapshot.deleted_at),
-          changeset_id: snapshot.changeset_id,
-        })
-        .where("id", "=", snapshot.id)
-        .pipe(runQuery, Effect.asVoid);
+      {
+        const mcX = snapshot.mc_x ?? snapshot.geom_json?.x;
+        const mcY = snapshot.mc_y ?? snapshot.geom_json?.y;
+        const mcZ = snapshot.mc_z ?? snapshot.geom_json?.z;
+
+        return coreDb
+          .updateTable("nodes")
+          .set({
+            mc_x: mcX,
+            mc_y: mcY,
+            mc_z: mcZ,
+            feature_type: snapshot.feature_type,
+            tags: snapshot.tags,
+            version: snapshot.version,
+            created_changeset_id: snapshot.created_changeset_id,
+            created_at: new Date(snapshot.created_at),
+            updated_at: new Date(snapshot.updated_at),
+            created_by: snapshot.created_by,
+            updated_by: snapshot.updated_by,
+            deleted_at: snapshot.deleted_at === null ? null : new Date(snapshot.deleted_at),
+            changeset_id: snapshot.changeset_id,
+          })
+          .where("id", "=", snapshot.id)
+          .pipe(runQuery, Effect.asVoid);
+      };
 
     const restoreWaySnapshot = (snapshot: any) =>
       coreDb
@@ -1574,7 +1607,9 @@ export const GeospatialRepositoryLive = Layer.effect(
           coreDb
             .insertInto("nodes")
             .values({
-              geom: makePointZ(input.geom),
+              mc_x: input.geom.x,
+              mc_y: input.geom.y,
+              mc_z: input.geom.z,
               feature_type: input.featureType,
               tags: input.tags,
               version: 1,
@@ -1614,7 +1649,9 @@ export const GeospatialRepositoryLive = Layer.effect(
                   coreDb
                     .updateTable("nodes")
                     .set({
-                      geom: makePointZ(input.geom),
+                      mc_x: input.geom.x,
+                      mc_y: input.geom.y,
+                      mc_z: input.geom.z,
                       feature_type: input.featureType,
                       tags: input.tags,
                       version: current.version + 1,
@@ -1946,7 +1983,7 @@ export const GeospatialRepositoryLive = Layer.effect(
 
     const loadViewport = (input: { bbox: BBox2D; includeRelations: boolean }) =>
       Effect.gen(function* () {
-        const bbox: BBox2DInput = input.bbox;
+        const bbox = toBBox2DInput(input.bbox);
         const publishedStatus = "published" as const;
 
         const wayIds = yield* derivedDb
@@ -1970,13 +2007,15 @@ export const GeospatialRepositoryLive = Layer.effect(
                 .where("ways.id", "in", wayIds)
                 .pipe(runQuery);
 
+        const publishedWayIds = ways.map((row) => row.id);
+
         const wayNodes =
-          wayIds.length === 0
+          publishedWayIds.length === 0
             ? []
             : yield* coreDb
                 .selectFrom("way_nodes")
                 .selectAll()
-                .where("way_id", "in", wayIds)
+                .where("way_id", "in", publishedWayIds)
                 .orderBy("way_id", "asc")
                 .orderBy("seq", "asc")
                 .pipe(runQuery);
@@ -1986,20 +2025,23 @@ export const GeospatialRepositoryLive = Layer.effect(
           .innerJoin("changesets", "changesets.id", "nodes.changeset_id")
           .select([
             "nodes.id",
+            "nodes.mc_x",
+            "nodes.mc_y",
+            "nodes.mc_z",
             "nodes.feature_type",
             "nodes.tags",
             "nodes.version",
+            "nodes.created_changeset_id",
             "nodes.created_at",
             "nodes.updated_at",
             "nodes.created_by",
             "nodes.updated_by",
             "nodes.deleted_at",
             "nodes.changeset_id",
-            selectPointZJson("nodes.geom").as("geom_json"),
           ])
           .where("nodes.deleted_at", "is", null)
           .where("changesets.status", "=", publishedStatus)
-          .where(intersectsBBox2D("nodes.geom", bbox))
+          .where(intersectsBBox2D("nodes.geom_2d", bbox))
           .pipe(runQuery);
 
         const nodeIds = new Set<number>([
@@ -2019,16 +2061,19 @@ export const GeospatialRepositoryLive = Layer.effect(
                 .innerJoin("changesets", "changesets.id", "nodes.changeset_id")
                 .select([
                   "nodes.id",
+                  "nodes.mc_x",
+                  "nodes.mc_y",
+                  "nodes.mc_z",
                   "nodes.feature_type",
                   "nodes.tags",
                   "nodes.version",
+                  "nodes.created_changeset_id",
                   "nodes.created_at",
                   "nodes.updated_at",
                   "nodes.created_by",
                   "nodes.updated_by",
                   "nodes.deleted_at",
                   "nodes.changeset_id",
-                  selectPointZJson("nodes.geom").as("geom_json"),
                 ])
                 .where("nodes.deleted_at", "is", null)
                 .where("changesets.status", "=", publishedStatus)
@@ -2039,11 +2084,11 @@ export const GeospatialRepositoryLive = Layer.effect(
         const wayNodeIds = [...new Set(wayNodes.map((row) => row.node_id))];
 
         const relationMembers =
-          !input.includeRelations || (wayIds.length === 0 && wayNodeIds.length === 0)
+          !input.includeRelations || (publishedWayIds.length === 0 && wayNodeIds.length === 0)
             ? []
             : yield* Effect.gen(function* () {
                 const byWay =
-                  wayIds.length === 0
+                  publishedWayIds.length === 0
                     ? []
                     : yield* coreDb
                         .selectFrom("relation_members")
@@ -2053,7 +2098,7 @@ export const GeospatialRepositoryLive = Layer.effect(
                         .where("relations.deleted_at", "is", null)
                         .where("changesets.status", "=", publishedStatus)
                         .where("relation_members.member_type", "=", "way")
-                        .where("relation_members.member_id", "in", wayIds)
+                        .where("relation_members.member_id", "in", publishedWayIds)
                         .pipe(runQuery);
 
                 const byNode =

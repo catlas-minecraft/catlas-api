@@ -5,6 +5,7 @@
     { "path": "packages/api/tsconfig.build.json" },
     { "path": "packages/db/tsconfig.build.json" },
     { "path": "packages/domain/tsconfig.build.json" },
-    { "path": "packages/louis/tsconfig.build.json" }
+    { "path": "packages/louis/tsconfig.build.json" },
+    { "path": "packages/schema/tsconfig.build.json" }
   ]
 }

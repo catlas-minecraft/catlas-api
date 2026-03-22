@@ -1,13 +1,13 @@
 {
-  "name": "@catlas/domain",
+  "name": "@catlas/schema",
   "version": "0.0.0",
   "type": "module",
   "license": "MIT",
-  "description": "The domain template",
+  "description": "Shared schema package for Catlas",
   "repository": {
     "type": "git",
     "url": "<PLACEHOLDER>",
-    "directory": "packages/domain"
+    "directory": "packages/schema"
   },
   "publishConfig": {
     "access": "public",
@@ -24,9 +24,6 @@
     "coverage": "vitest --coverage"
   },
   "dependencies": {
-    "@effect/platform": "latest",
-    "@effect/sql": "latest",
-    "@catlas/schema": "workspace:^",
     "effect": "latest"
   },
   "effect": {

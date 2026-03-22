@@ -42,7 +42,10 @@ export interface ChangesetsTable {
 
 export interface NodesTable {
   id: Generated<number>
-  geom: Geometry
+  mc_x: number
+  mc_y: number
+  mc_z: number
+  geom_2d: ColumnType<GeometryValue, never, never>
   feature_type: string
   tags: JsonTags
   version: number

@@ -78,6 +78,15 @@
       "@catlas/louis/*": [
         "./packages/louis/src/*.js"
       ],
+      "@catlas/schema": [
+        "./packages/schema/src/index.js"
+      ],
+      "@catlas/schema/*": [
+        "./packages/schema/src/*.js"
+      ],
+      "@catlas/schema/test/*": [
+        "./packages/schema/test/*.js"
+      ],
       "@catlas/louis/test/*": [
         "./packages/louis/test/*.js"
       ]
