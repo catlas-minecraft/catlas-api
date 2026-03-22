@@ -1,5 +1,6 @@
 export * from "./Api.js"
-export * from "./TodosRepository.js"
 export * from "./auth/AuthHandlers.js"
 export * from "./auth/AuthSessionManager.js"
 export * from "./auth/KyselySessionRepository.js"
+export * from "./geospatial/GeospatialHandlers.js"
+export * from "./geospatial/GeospatialRepository.js"

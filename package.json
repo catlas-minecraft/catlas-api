@@ -6,11 +6,16 @@
     "packages/*"
   ],
   "scripts": {
+    "api:dev": "DATABASE_URL=postgresql://catlas:catlas@127.0.0.1:5432/catlas JWT_SECRET=dev-secret node --import tsx/esm packages/api/src/server.ts",
     "clean": "node scripts/clean.mjs",
     "codegen": "pnpm --recursive --parallel run codegen",
+    "db:down": "docker compose down",
+    "db:down:volumes": "docker compose down -v",
+    "db:up": "docker compose up -d",
     "build": "tsc -b tsconfig.build.json && pnpm --recursive --parallel run build",
     "check": "tsc -b tsconfig.json",
     "check-recursive": "pnpm --recursive exec tsc -b tsconfig.json",
+    "db:migrate": "pnpm --filter @catlas/db migrate",
     "test": "vitest",
     "coverage": "vitest --coverage"
   },

@@ -4,7 +4,10 @@ import * as PgClient from "@effect/sql-pg/PgClient"
 import * as Config from "effect/Config"
 import * as Context from "effect/Context"
 import * as Layer from "effect/Layer"
+import { types } from "pg"
 import type { CatlasDatabase } from "./Database.js"
+
+types.setTypeParser(20, (value) => Number(value))
 
 export const CORE_SCHEMA = "core"
 export const AUTH_SCHEMA = "auth"

@@ -24,9 +24,6 @@ const getErrorMessage = (error: unknown) => {
   return "Auth operation failed"
 }
 
-const isUnauthorizedError = (error: unknown): error is UnauthorizedError =>
-  typeof error === "object" && error !== null && "_tag" in error && error._tag === "UnauthorizedError"
-
 const toLouisSessionJwt = (sessionJwt: string) => sessionJwt as SessionJwt
 
 export const AuthApiLive = HttpApiBuilder.group(Api, "auth", (handlers) =>
@@ -61,32 +58,31 @@ export const AuthApiLive = HttpApiBuilder.group(Api, "auth", (handlers) =>
                     : sessionResult.value.sessionJwt.value
                 })
           ),
-          Effect.catchAll((error) =>
-            Effect.fail(
-              typeof error === "object" && error !== null && "_tag" in error
-                ? error._tag === "InvalidSessionTokenError" || error._tag === "JwtInvalidError" || error._tag === "JwtVerifyError"
-                  ? toUnauthorizedError(getErrorMessage(error))
-                  : isUnauthorizedError(error)
-                    ? error
-                    : toAuthOperationError(getErrorMessage(error))
-                : toAuthOperationError(getErrorMessage(error))
-            )
-          )
+          Effect.mapError((error) => {
+            switch (error._tag) {
+              case "InvalidSessionTokenError":
+              case "JwtInvalidError":
+              case "JwtVerifyError":
+                return toUnauthorizedError(getErrorMessage(error))
+              case "UnauthorizedError":
+                return error
+              default:
+                return toAuthOperationError(getErrorMessage(error))
+            }
+          })
         )
       )
       .handle("revokeSession", ({ payload: { sessionJwt } }) =>
         auth.revokeSessionWithJwt(toLouisSessionJwt(sessionJwt)).pipe(
-          Effect.catchAll((error) =>
-            Effect.fail(
-              typeof error === "object" && error !== null && "_tag" in error
-                ? error._tag === "InvalidSessionTokenError" || error._tag === "JwtInvalidError"
-                  ? toUnauthorizedError(getErrorMessage(error))
-                  : isUnauthorizedError(error)
-                    ? error
-                    : toAuthOperationError(getErrorMessage(error))
-                : toAuthOperationError(getErrorMessage(error))
-            )
-          )
+          Effect.mapError((error) => {
+            switch (error._tag) {
+              case "InvalidSessionTokenError":
+              case "JwtInvalidError":
+                return toUnauthorizedError(getErrorMessage(error))
+              default:
+                return toAuthOperationError(getErrorMessage(error))
+            }
+          })
         )
       )
   }))

@@ -33,23 +33,24 @@ export class AuthOperationError extends Schema.TaggedError<AuthOperationError>()
 
 export class AuthApiGroup extends HttpApiGroup.make("auth")
   .add(
-    HttpApiEndpoint.post("createSession", "/auth/sessions")
+    HttpApiEndpoint.post("createSession", "/sessions")
       .addSuccess(AuthSession)
       .addError(AuthOperationError, { status: 500 })
       .setPayload(Schema.Struct({ userId: UserId }))
   )
   .add(
-    HttpApiEndpoint.post("verifySession", "/auth/sessions/verify")
+    HttpApiEndpoint.post("verifySession", "/sessions/verify")
       .addSuccess(VerifiedAuthSession)
       .addError(UnauthorizedError, { status: 401 })
       .addError(AuthOperationError, { status: 500 })
       .setPayload(Schema.Struct({ sessionJwt: SessionJwtToken }))
   )
   .add(
-    HttpApiEndpoint.post("revokeSession", "/auth/sessions/revoke")
+    HttpApiEndpoint.post("revokeSession", "/sessions/revoke")
       .addSuccess(Schema.Void)
       .addError(UnauthorizedError, { status: 401 })
       .addError(AuthOperationError, { status: 500 })
       .setPayload(Schema.Struct({ sessionJwt: SessionJwtToken }))
   )
+  .prefix("/auth")
 {}

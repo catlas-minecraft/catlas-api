@@ -1,41 +1,58 @@
-# Effect Monorepo Template - Server Package
+# Catlas API
 
-Run the `dev` script in `@template/server` package to start the server
+Run the server package in development to start the API on `http://localhost:3000`.
 
-The server will start on `http://localhost:3000` by default.
+## Local Development
 
-## TODOs API Endpoints
-
-The server provides few endpoints
-
-### Create a new TODO
+Start PostGIS:
 
 ```sh
-curl -X POST http://localhost:3000/todos \
+pnpm db:up
+```
+
+Apply migrations:
+
+```sh
+pnpm db:migrate
+```
+
+Start the API:
+
+```sh
+pnpm api:dev
+```
+
+## Auth API
+
+Create a session JWT:
+
+```sh
+curl -X POST http://localhost:3000/auth/sessions \
   -H "Content-Type: application/json" \
-  -d '{"text": "my first effect todo"}'
+  -d '{"userId":"demo-user"}'
 ```
 
-### List all TODOs
+Verify a session JWT:
 
 ```sh
-curl -X GET http://localhost:3000/todos
+curl -X POST http://localhost:3000/auth/sessions/verify \
+  -H "Content-Type: application/json" \
+  -d '{"sessionJwt":"<jwt>"}'
 ```
 
-### Get a specific TODO by ID
+Revoke a session JWT:
 
 ```sh
-curl -X GET http://localhost:3000/todos/0
+curl -X POST http://localhost:3000/auth/sessions/revoke \
+  -H "Content-Type: application/json" \
+  -d '{"sessionJwt":"<jwt>"}'
 ```
 
-### Mark TODO completed
+## Authenticated Geospatial Requests
 
-```sh
-curl -X PATCH http://localhost:3000/todos/0
-```
+Geospatial write APIs require authentication and read the actor from either:
 
-### Delete a specific TODO by ID
+- `Authorization: Bearer <session-jwt>`
+- `session_jwt` cookie
 
-```sh
-curl -X DELETE http://localhost:3000/todos/0
-```
+The resolved user id is stored into `changesets.created_by` and entity `created_by` / `updated_by`.

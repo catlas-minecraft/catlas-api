@@ -27,6 +27,7 @@
     "@catlas/db": "workspace:^",
     "@catlas/domain": "workspace:^",
     "@catlas/louis": "workspace:^",
+    "@effect/experimental": "^0.60.0",
     "@effect/platform": "latest",
     "@effect/platform-node": "latest",
     "@effect/sql-kysely": "latest",

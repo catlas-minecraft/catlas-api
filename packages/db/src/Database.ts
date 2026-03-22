@@ -35,7 +35,7 @@ export interface ChangesetsTable {
   id: Generated<number>
   status: ChangesetStatus
   comment: string | null
-  created_by: string | null
+  created_by: string
   created_at: Timestamp
   published_at: Timestamp | null
 }
@@ -46,10 +46,11 @@ export interface NodesTable {
   feature_type: string
   tags: JsonTags
   version: number
+  created_changeset_id: number
   created_at: Timestamp
   updated_at: Timestamp
-  created_by: string | null
-  updated_by: string | null
+  created_by: string
+  updated_by: string
   deleted_at: Timestamp | null
   changeset_id: number
 }
@@ -61,10 +62,11 @@ export interface WaysTable {
   is_closed: boolean
   tags: JsonTags
   version: number
+  created_changeset_id: number
   created_at: Timestamp
   updated_at: Timestamp
-  created_by: string | null
-  updated_by: string | null
+  created_by: string
+  updated_by: string
   deleted_at: Timestamp | null
   changeset_id: number
 }
@@ -83,10 +85,11 @@ export interface RelationsTable {
   relation_type: string
   tags: JsonTags
   version: number
+  created_changeset_id: number
   created_at: Timestamp
   updated_at: Timestamp
-  created_by: string | null
-  updated_by: string | null
+  created_by: string
+  updated_by: string
   deleted_at: Timestamp | null
   changeset_id: number
 }
@@ -184,12 +187,22 @@ export type AuthSessionRow = Selectable<AuthSessionsTable>
 export type AuthSessionInsert = Insertable<AuthSessionsTable>
 export type AuthSessionUpdate = Updateable<AuthSessionsTable>
 export type ChangeSetRow = Selectable<ChangesetsTable>
+export type ChangeSetInsert = Insertable<ChangesetsTable>
+export type ChangeSetUpdate = Updateable<ChangesetsTable>
 export type NodeRow = Selectable<NodesTable>
 export type NodeInsert = Insertable<NodesTable>
 export type NodeUpdate = Updateable<NodesTable>
 export type WayRow = Selectable<WaysTable>
 export type WayInsert = Insertable<WaysTable>
 export type WayUpdate = Updateable<WaysTable>
+export type WayNodeRow = Selectable<WayNodesTable>
+export type WayNodeInsert = Insertable<WayNodesTable>
+export type WayNodeUpdate = Updateable<WayNodesTable>
 export type RelationRow = Selectable<RelationsTable>
 export type RelationInsert = Insertable<RelationsTable>
 export type RelationUpdate = Updateable<RelationsTable>
+export type RelationMemberRow = Selectable<RelationMembersTable>
+export type RelationMemberInsert = Insertable<RelationMembersTable>
+export type RelationMemberUpdate = Updateable<RelationMembersTable>
+export type WayGeometryRow = Selectable<WayGeometriesTable>
+export type RelationGeometryRow = Selectable<RelationGeometriesTable>

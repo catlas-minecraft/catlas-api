@@ -24,7 +24,7 @@ export class AuthSessionManager extends Context.Tag("@catlas/api/auth/AuthSessio
 
 export const AuthSessionManagerLive = Layer.effect(
   AuthSessionManager,
-  makeJwtLouisSessionManager<string>({
+  makeJwtLouisSessionManager({
     SessionRepository: SessionRepository,
   }),
 );

@@ -1,0 +1,20 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: catlas-postgis
+    environment:
+      POSTGRES_DB: catlas
+      POSTGRES_USER: catlas
+      POSTGRES_PASSWORD: catlas
+    ports:
+      - "5432:5432"
+    volumes:
+      - catlas-postgis-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catlas -d catlas"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  catlas-postgis-data:

@@ -78,6 +78,7 @@
   - changeset
   - version
   - 履歴
+- Node / Way / Relation は `created_changeset_id` を持ち、初出 changeset を判定できるようにする
   - 論理削除
 - OSM 本家のような「upload ごとに即反映」より、
   - **保存 / 公開時に changeset を確定**
