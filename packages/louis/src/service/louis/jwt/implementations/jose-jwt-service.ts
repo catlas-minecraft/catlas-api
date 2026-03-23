@@ -1,4 +1,4 @@
-import { Console, DateTime, type Duration, Effect, Layer, Redacted } from "effect";
+import { DateTime, type Duration, Effect, Layer, Redacted } from "effect";
 import * as Jose from "jose";
 import type { SessionJwt } from "../../../../domain/model/session/value-object/session-jwt.ts";
 import {
@@ -62,7 +62,10 @@ const make = (params: {
             cause: error,
           });
         }
-        if (error instanceof Jose.errors.JWTInvalid) {
+        if (
+          error instanceof Jose.errors.JWTInvalid ||
+          error instanceof Jose.errors.JWSSignatureVerificationFailed
+        ) {
           return new JwtInvalidError({ message: error.message });
         }
         return new JwtVerifyError({
