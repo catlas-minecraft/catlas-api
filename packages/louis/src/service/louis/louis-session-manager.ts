@@ -88,94 +88,97 @@ export const make: Make = <
   Effect.gen(function* () {
     const sessionRepository = yield* SessionRepository;
 
-    const createSession: LouisSessionManager<UserId>["createSession"] = (userId) =>
-      Effect.gen(function* () {
-        const sessionId = SessionId.generate();
-        const sessionSecret = SessionSecret.generate();
-        const sessionToken = SessionToken.createFrom(sessionId, sessionSecret);
-        const now = yield* DateTime.now;
-        const expiresAt = now.pipe(DateTime.addDuration(sessionExpireDuration));
-        const nextVerifiedAt = now.pipe(DateTime.addDuration(sessionRefreshDuration));
+    const createSession: LouisSessionManager<UserId>["createSession"] = Effect.fn(
+      "LouisSessionManager.createSession",
+    )(function* (userId) {
+      const sessionId = SessionId.generate();
+      const sessionSecret = SessionSecret.generate();
+      const sessionToken = SessionToken.createFrom(sessionId, sessionSecret);
+      const now = yield* DateTime.now;
+      const expiresAt = now.pipe(DateTime.addDuration(sessionExpireDuration));
+      const nextVerifiedAt = now.pipe(DateTime.addDuration(sessionRefreshDuration));
 
-        yield* sessionRepository.setSession(
-          sessionId,
-          sessionSecret,
-          userId,
-          now,
-          expiresAt,
-          nextVerifiedAt,
-        );
+      yield* sessionRepository.setSession(
+        sessionId,
+        sessionSecret,
+        userId,
+        now,
+        expiresAt,
+        nextVerifiedAt,
+      );
 
-        return {
-          sessionId,
-          userId,
-          createdAt: now,
-          expiresAt,
-          sessionToken,
-        } satisfies BaseSessionContextWithToken<UserId>;
-      });
+      return {
+        sessionId,
+        userId,
+        createdAt: now,
+        expiresAt,
+        sessionToken,
+      } satisfies BaseSessionContextWithToken<UserId>;
+    });
 
-    const useSession: LouisSessionManager<UserId>["useSession"] = (sessionToken) =>
-      Effect.gen(function* () {
-        const incomingSession = yield* parseSessionToken(sessionToken);
+    const useSession: LouisSessionManager<UserId>["useSession"] = Effect.fn(
+      "LouisSessionManager.useSession",
+    )(function* (sessionToken) {
+      const incomingSession = yield* parseSessionToken(sessionToken);
 
-        const sessionOption = yield* sessionRepository.getSessionAndUser(incomingSession.sessionId);
+      const sessionOption = yield* sessionRepository.getSessionAndUser(incomingSession.sessionId);
 
-        if (Option.isNone(sessionOption)) return Option.none();
-        const databaseSession = sessionOption.value;
+      if (Option.isNone(sessionOption)) return Option.none();
+      const databaseSession = sessionOption.value;
 
-        const incomingSecretHashHex = yield* hash(incomingSession.sessionSecret).pipe(
-          InternalError.from((error) => error.message),
-        );
+      const incomingSecretHashHex = yield* hash(incomingSession.sessionSecret).pipe(
+        InternalError.from((error) => error.message),
+      );
 
-        const incomingSecretHash = yield* decodeHex(incomingSecretHashHex).pipe(
-          InternalError.from(
-            (error) => (error as { message: string }).message ?? "Invalid hex string",
-          ),
-        );
+      const incomingSecretHash = yield* decodeHex(incomingSecretHashHex).pipe(
+        InternalError.from(
+          (error) => (error as { message: string }).message ?? "Invalid hex string",
+        ),
+      );
 
-        // Secret Hashが一致しない場合は削除する
-        // databaseSession.secretHash is Uint8Array
-        if (!constantTimeEqual(databaseSession.secretHash, incomingSecretHash)) {
-          yield* sessionRepository.deleteSession(databaseSession.id);
-          return yield* new InvalidSessionTokenError({
-            message: "Session secret unmatched",
-          });
-        }
-
-        // 有効期限切れ
-        if (yield* DateTime.isPast(databaseSession.expiresAt)) {
-          yield* sessionRepository.deleteSession(databaseSession.id);
-
-          return Option.none();
-        }
-
-        // 次回検証日時が過ぎている場合は更新する
-        if (yield* DateTime.isPast(databaseSession.nextVerifiedAt)) {
-          const now = yield* DateTime.now;
-          const nextVerifiedAt = now.pipe(DateTime.addDuration(sessionRefreshDuration));
-          const expiresAt = now.pipe(DateTime.addDuration(sessionExpireDuration));
-
-          yield* sessionRepository.updateSession(databaseSession.id, {
-            nextVerifiedAt,
-            expiresAt,
-          });
-        }
-
-        return Option.some({
-          sessionId: databaseSession.id,
-          userId: databaseSession.userId,
-          createdAt: databaseSession.createdAt,
-          expiresAt: databaseSession.expiresAt,
+      // Secret Hashが一致しない場合は削除する
+      // databaseSession.secretHash is Uint8Array
+      if (!constantTimeEqual(databaseSession.secretHash, incomingSecretHash)) {
+        yield* sessionRepository.deleteSession(databaseSession.id);
+        return yield* new InvalidSessionTokenError({
+          message: "Session secret unmatched",
         });
-      });
+      }
 
-    const revokeSession: LouisSessionManager<UserId>["revokeSession"] = (sessionToken) =>
-      Effect.gen(function* () {
-        const incomingSession = yield* parseSessionToken(sessionToken);
+      // 有効期限切れ
+      if (yield* DateTime.isPast(databaseSession.expiresAt)) {
+        yield* sessionRepository.deleteSession(databaseSession.id);
 
-        yield* sessionRepository.deleteSession(incomingSession.sessionId);
+        return Option.none();
+      }
+
+      // 次回検証日時が過ぎている場合は更新する
+      if (yield* DateTime.isPast(databaseSession.nextVerifiedAt)) {
+        const now = yield* DateTime.now;
+        const nextVerifiedAt = now.pipe(DateTime.addDuration(sessionRefreshDuration));
+        const expiresAt = now.pipe(DateTime.addDuration(sessionExpireDuration));
+
+        yield* sessionRepository.updateSession(databaseSession.id, {
+          nextVerifiedAt,
+          expiresAt,
+        });
+      }
+
+      return Option.some({
+        sessionId: databaseSession.id,
+        userId: databaseSession.userId,
+        createdAt: databaseSession.createdAt,
+        expiresAt: databaseSession.expiresAt,
       });
+    });
+
+    const revokeSession: LouisSessionManager<UserId>["revokeSession"] = Effect.fn(
+      "LouisSessionManager.revokeSession",
+    )(function* (sessionToken) {
+      const incomingSession = yield* parseSessionToken(sessionToken);
+
+      yield* sessionRepository.deleteSession(incomingSession.sessionId);
+    });
 
     return {
       createSession,

@@ -18,7 +18,7 @@ const make = (params: {
 }) => {
   const secretKey = Redacted.value(params.secret);
 
-  const sign: JwtServiceInterface["sign"] = Effect.fn(function* (payload) {
+  const sign: JwtServiceInterface["sign"] = Effect.fn("JoseJwtService.sign")(function* (payload) {
     const now = yield* DateTime.now;
 
     return yield* Effect.tryPromise({
@@ -45,7 +45,7 @@ const make = (params: {
     }).pipe(Effect.map((token) => token as SessionJwt));
   });
 
-  const verify: JwtServiceInterface["verify"] = Effect.fn(function* (jwt) {
+  const verify: JwtServiceInterface["verify"] = Effect.fn("JoseJwtService.verify")(function* (jwt) {
     const currentDate = yield* DateTime.nowAsDate;
 
     return yield* Effect.tryPromise({
@@ -83,7 +83,7 @@ const make = (params: {
         new JwtInvalidError({
           message: error instanceof Error ? error.message : "Failed to decode JWT",
         }),
-    });
+    }).pipe(Effect.withSpan("JoseJwtService.unsafeDecode"));
 
   return {
     sign,
