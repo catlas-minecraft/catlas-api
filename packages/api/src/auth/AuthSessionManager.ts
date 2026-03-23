@@ -12,7 +12,7 @@ export const JwtServiceLive = Layer.unwrapEffect(
   Config.map(jwtSecretConfig, (secret) =>
     JoseJwtService.layer({
       secret,
-      defaultExpiration: Duration.weeks(1),
+      defaultExpiration: Duration.minutes(5),
     }),
   ),
 );
