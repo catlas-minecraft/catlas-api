@@ -18,6 +18,7 @@ export class JwtInvalidError extends Data.TaggedError("JwtInvalidError")<{
 
 export class JwtExpiredError extends Data.TaggedError("JwtExpiredError")<{
   readonly expiredAt: number;
+  readonly cause?: unknown;
 }> {}
 
 export type JwtPayload = {

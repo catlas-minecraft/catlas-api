@@ -1,4 +1,4 @@
-import { DateTime, type Duration, Effect, Layer, Redacted } from "effect";
+import { Console, DateTime, type Duration, Effect, Layer, Redacted } from "effect";
 import * as Jose from "jose";
 import type { SessionJwt } from "../../../../domain/model/session/value-object/session-jwt.ts";
 import {
@@ -20,11 +20,12 @@ const make = (params: {
 
   const sign: JwtServiceInterface["sign"] = Effect.fn(function* (payload) {
     const now = yield* DateTime.now;
+
     return yield* Effect.tryPromise({
       try: async () => {
         const builder = new Jose.SignJWT(payload)
           .setProtectedHeader({ alg: "HS256" })
-          .setIssuedAt();
+          .setIssuedAt(now.pipe(dateTime2Epoch));
 
         if (params.defaultExpiration) {
           const expirationTime = now.pipe(
@@ -45,12 +46,12 @@ const make = (params: {
   });
 
   const verify: JwtServiceInterface["verify"] = Effect.fn(function* (jwt) {
-    const clockTolerance = (yield* DateTime.now).pipe(dateTime2Epoch);
+    const currentDate = yield* DateTime.nowAsDate;
 
     return yield* Effect.tryPromise({
       try: async () => {
         const { payload } = await Jose.jwtVerify(jwt, secretKey, {
-          clockTolerance,
+          currentDate,
         });
         return payload as JwtPayload;
       },
@@ -58,6 +59,7 @@ const make = (params: {
         if (error instanceof Jose.errors.JWTExpired) {
           return new JwtExpiredError({
             expiredAt: error.claim === "exp" ? 0 : 0,
+            cause: error,
           });
         }
         if (error instanceof Jose.errors.JWTInvalid) {

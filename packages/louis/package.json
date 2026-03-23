@@ -42,5 +42,9 @@
         "**/*.ts"
       ]
     }
+  },
+  "devDependencies": {
+    "@effect/vitest": "^0.29.0",
+    "vitest": "^3.2.4"
   }
 }
