@@ -6,13 +6,18 @@ import {
   makeGeometryBBox,
   makeMultipolygonRelationGeometry,
   makeWayGeometry,
+  type NodeVersionSnapshot as NodeVersionSnapshotRecord,
+  type RelationMemberVersionSnapshot as RelationMemberVersionSnapshotRecord,
   type RelationGeometryRow,
   RESERVED_TAG_KEYS,
   type RelationMemberRow,
   type RelationRow,
+  type RelationVersionSnapshot as RelationVersionSnapshotRecord,
+  type WayNodeVersionSnapshot as WayNodeVersionSnapshotRecord,
   type WayGeometryRow,
   type WayNodeRow,
   type WayRow,
+  type WayVersionSnapshot as WayVersionSnapshotRecord,
   intersectsBBox2D,
   withCoreSchema,
   withDerivedSchema,
@@ -1219,10 +1224,16 @@ export const GeospatialRepositoryLive = Layer.effect(
       return [...earliest.values()];
     };
 
-    const restoreNodeSnapshot = (snapshot: any) => {
+    const getSnapshotNodeCoordinates = (snapshot: NodeVersionSnapshotRecord) => {
       const mcX = snapshot.mc_x ?? snapshot.geom_json?.x;
       const mcY = snapshot.mc_y ?? snapshot.geom_json?.y;
       const mcZ = snapshot.mc_z ?? snapshot.geom_json?.z;
+
+      return { mcX, mcY, mcZ };
+    };
+
+    const restoreNodeSnapshot = (snapshot: NodeVersionSnapshotRecord) => {
+      const { mcX, mcY, mcZ } = getSnapshotNodeCoordinates(snapshot);
 
       return coreDb
         .updateTable("nodes")
@@ -1245,7 +1256,7 @@ export const GeospatialRepositoryLive = Layer.effect(
         .pipe(runQuery, Effect.asVoid);
     };
 
-    const restoreWaySnapshot = (snapshot: any) =>
+    const restoreWaySnapshot = (snapshot: WayVersionSnapshotRecord) =>
       coreDb
         .updateTable("ways")
         .set({
@@ -1265,7 +1276,10 @@ export const GeospatialRepositoryLive = Layer.effect(
         .where("id", "=", snapshot.id)
         .pipe(runQuery, Effect.asVoid);
 
-    const restoreWayNodeSnapshots = (wayId: number, snapshots: ReadonlyArray<any>) =>
+    const restoreWayNodeSnapshots = (
+      wayId: number,
+      snapshots: ReadonlyArray<WayNodeVersionSnapshotRecord>,
+    ) =>
       coreDb
         .deleteFrom("way_nodes")
         .where("way_id", "=", wayId)
@@ -1291,7 +1305,7 @@ export const GeospatialRepositoryLive = Layer.effect(
           ),
         );
 
-    const restoreRelationSnapshot = (snapshot: any) =>
+    const restoreRelationSnapshot = (snapshot: RelationVersionSnapshotRecord) =>
       coreDb
         .updateTable("relations")
         .set({
@@ -1309,7 +1323,10 @@ export const GeospatialRepositoryLive = Layer.effect(
         .where("id", "=", snapshot.id)
         .pipe(runQuery, Effect.asVoid);
 
-    const restoreRelationMemberSnapshots = (relationId: number, snapshots: ReadonlyArray<any>) =>
+    const restoreRelationMemberSnapshots = (
+      relationId: number,
+      snapshots: ReadonlyArray<RelationMemberVersionSnapshotRecord>,
+    ) =>
       coreDb
         .deleteFrom("relation_members")
         .where("relation_id", "=", relationId)
@@ -1442,7 +1459,7 @@ export const GeospatialRepositoryLive = Layer.effect(
                   relationVersionRows,
                   (row) => row.relation_id,
                 )
-                  .map((row) => row.snapshot as any)
+                  .map((row) => row.snapshot)
                   .filter((snapshot) => !createdRelationIds.has(snapshot.id));
 
                 const relationMemberVersionRows = yield* historyDb
@@ -1454,7 +1471,7 @@ export const GeospatialRepositoryLive = Layer.effect(
                   relationMemberVersionRows,
                   (row) => row.relation_member_id,
                 )
-                  .map((row) => row.snapshot as any)
+                  .map((row) => row.snapshot)
                   .filter((snapshot) => snapshot.changeset_id !== id);
 
                 const wayVersionRows = yield* historyDb
@@ -1463,7 +1480,7 @@ export const GeospatialRepositoryLive = Layer.effect(
                   .where("changeset_id", "=", id)
                   .pipe(runQuery);
                 const waySnapshots = pickEarliestSnapshots(wayVersionRows, (row) => row.way_id)
-                  .map((row) => row.snapshot as any)
+                  .map((row) => row.snapshot)
                   .filter((snapshot) => !createdWayIds.has(snapshot.id));
 
                 const wayNodeVersionRows = yield* historyDb
@@ -1475,7 +1492,7 @@ export const GeospatialRepositoryLive = Layer.effect(
                   wayNodeVersionRows,
                   (row) => row.way_node_id,
                 )
-                  .map((row) => row.snapshot as any)
+                  .map((row) => row.snapshot)
                   .filter((snapshot) => snapshot.changeset_id !== id);
 
                 const nodeVersionRows = yield* historyDb
@@ -1484,7 +1501,7 @@ export const GeospatialRepositoryLive = Layer.effect(
                   .where("changeset_id", "=", id)
                   .pipe(runQuery);
                 const nodeSnapshots = pickEarliestSnapshots(nodeVersionRows, (row) => row.node_id)
-                  .map((row) => row.snapshot as any)
+                  .map((row) => row.snapshot)
                   .filter((snapshot) => !createdNodeIds.has(snapshot.id));
 
                 const relationIdsToReset = [

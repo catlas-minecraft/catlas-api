@@ -17,6 +17,7 @@ export type GeometryValue = unknown
 type Timestamp = ColumnType<Date, Date | string, Date | string>
 type JsonTags = ColumnType<TagMap, TagMap, TagMap>
 type Geometry = ColumnType<GeometryValue, GeometryValue, GeometryValue>
+type JsonSnapshot<T> = ColumnType<T, T, T>
 
 export type ChangesetStatus = "open" | "published" | "abandoned"
 export type GeometryKind = "line" | "area"
@@ -124,11 +125,79 @@ export interface RelationGeometriesTable {
   refreshed_at: Timestamp
 }
 
+interface VersionedEntitySnapshotBase {
+  id: number
+  version: number
+  created_changeset_id: number
+  created_at: string
+  updated_at: string
+  created_by: string
+  updated_by: string
+  deleted_at: string | null
+  changeset_id: number
+}
+
+interface LegacyPoint3DJson {
+  x: number
+  y: number
+  z: number
+}
+
+export type NodeVersionSnapshot =
+  | (VersionedEntitySnapshotBase & {
+      mc_x: number
+      mc_y: number
+      mc_z: number
+      feature_type: string
+      tags: TagMap
+      geom_json?: never
+    })
+  | (VersionedEntitySnapshotBase & {
+      feature_type: string
+      tags: TagMap
+      geom_json: LegacyPoint3DJson
+      mc_x?: never
+      mc_y?: never
+      mc_z?: never
+    })
+
+export interface WayVersionSnapshot extends VersionedEntitySnapshotBase {
+  feature_type: string
+  geometry_kind: GeometryKind
+  is_closed: boolean
+  tags: TagMap
+}
+
+export interface WayNodeVersionSnapshot {
+  id: number
+  way_id: number
+  node_id: number
+  seq: number
+  version: number
+  changeset_id: number
+}
+
+export interface RelationVersionSnapshot extends VersionedEntitySnapshotBase {
+  relation_type: string
+  tags: TagMap
+}
+
+export interface RelationMemberVersionSnapshot {
+  id: number
+  relation_id: number
+  member_type: RelationMemberType
+  member_id: number
+  seq: number
+  role: string | null
+  version: number
+  changeset_id: number
+}
+
 export interface NodeVersionsTable {
   id: Generated<number>
   node_id: number
   version: number
-  snapshot: unknown
+  snapshot: JsonSnapshot<NodeVersionSnapshot>
   changeset_id: number
   recorded_at: Timestamp
 }
@@ -137,7 +206,7 @@ export interface WayVersionsTable {
   id: Generated<number>
   way_id: number
   version: number
-  snapshot: unknown
+  snapshot: JsonSnapshot<WayVersionSnapshot>
   changeset_id: number
   recorded_at: Timestamp
 }
@@ -146,7 +215,7 @@ export interface WayNodeVersionsTable {
   id: Generated<number>
   way_node_id: number
   version: number
-  snapshot: unknown
+  snapshot: JsonSnapshot<WayNodeVersionSnapshot>
   changeset_id: number
   recorded_at: Timestamp
 }
@@ -155,7 +224,7 @@ export interface RelationVersionsTable {
   id: Generated<number>
   relation_id: number
   version: number
-  snapshot: unknown
+  snapshot: JsonSnapshot<RelationVersionSnapshot>
   changeset_id: number
   recorded_at: Timestamp
 }
@@ -164,7 +233,7 @@ export interface RelationMemberVersionsTable {
   id: Generated<number>
   relation_member_id: number
   version: number
-  snapshot: unknown
+  snapshot: JsonSnapshot<RelationMemberVersionSnapshot>
   changeset_id: number
   recorded_at: Timestamp
 }
