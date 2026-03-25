@@ -73,6 +73,7 @@ export const NodesApiLive = HttpApiBuilder.group(Api, "nodes", (handlers) =>
     const repository = yield* GeospatialRepository;
 
     return handlers
+      .handle("getNode", ({ path: { id } }) => repository.getNode(id))
       .handle("createNode", ({ payload }) =>
         CurrentActor.pipe(
           Effect.flatMap(({ actorId }) => repository.createNode({ ...payload, actorId })),
@@ -96,6 +97,7 @@ export const WaysApiLive = HttpApiBuilder.group(Api, "ways", (handlers) =>
     const repository = yield* GeospatialRepository;
 
     return handlers
+      .handle("getWay", ({ path: { id } }) => repository.getWay(id))
       .handle("createWay", ({ payload }) =>
         CurrentActor.pipe(
           Effect.flatMap(({ actorId }) => repository.createWay({ ...payload, actorId })),
@@ -119,6 +121,7 @@ export const RelationsApiLive = HttpApiBuilder.group(Api, "relations", (handlers
     const repository = yield* GeospatialRepository;
 
     return handlers
+      .handle("getRelation", ({ path: { id } }) => repository.getRelation(id))
       .handle("createRelation", ({ payload }) =>
         CurrentActor.pipe(
           Effect.flatMap(({ actorId }) => repository.createRelation({ ...payload, actorId })),

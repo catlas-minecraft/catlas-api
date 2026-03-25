@@ -92,6 +92,23 @@ export class RelationMemberSnapshot extends Schema.Class<RelationMemberSnapshot>
   changesetId: Schema.Number
 }) {}
 
+export class NodeDetailSnapshot extends Schema.Class<NodeDetailSnapshot>("NodeDetailSnapshot")({
+  node: NodeSnapshot
+}) {}
+
+export class WayDetailSnapshot extends Schema.Class<WayDetailSnapshot>("WayDetailSnapshot")({
+  way: WaySnapshot,
+  nodes: Schema.Array(NodeSnapshot),
+  wayNodes: Schema.Array(WayNodeSnapshot)
+}) {}
+
+export class RelationDetailSnapshot extends Schema.Class<RelationDetailSnapshot>(
+  "RelationDetailSnapshot"
+)({
+  relation: RelationSnapshot,
+  relationMembers: Schema.Array(RelationMemberSnapshot)
+}) {}
+
 export class RelationMemberInput extends Schema.Class<RelationMemberInput>("RelationMemberInput")({
   memberType: Schema.Literal("node", "way", "relation"),
   memberId: Schema.Number,
@@ -223,6 +240,12 @@ export class ChangesetsApiGroup extends HttpApiGroup.make("changesets")
 
 export class NodesApiGroup extends HttpApiGroup.make("nodes")
   .add(
+    HttpApiEndpoint.get("getNode")`/${HttpApiSchema.param("id", EntityIdFromString)}`
+      .addSuccess(NodeDetailSnapshot)
+      .addError(NotFoundError, { status: 404 })
+      .addError(GeospatialOperationError, { status: 500 })
+  )
+  .add(
     HttpApiEndpoint.post("createNode", "/")
       .addSuccess(NodeSnapshot)
       .addError(UnauthorizedError, { status: 401 })
@@ -239,6 +262,7 @@ export class NodesApiGroup extends HttpApiGroup.make("nodes")
           tags: Tags
         })
       )
+      .middleware(WriteAuthorization)
   )
   .add(
     HttpApiEndpoint.patch("updateNode")`/${HttpApiSchema.param("id", EntityIdFromString)}`
@@ -259,6 +283,7 @@ export class NodesApiGroup extends HttpApiGroup.make("nodes")
           tags: Tags
         })
       )
+      .middleware(WriteAuthorization)
   )
   .add(
     HttpApiEndpoint.del("deleteNode")`/${HttpApiSchema.param("id", EntityIdFromString)}`
@@ -275,9 +300,9 @@ export class NodesApiGroup extends HttpApiGroup.make("nodes")
           changesetId: EntityId
         })
       )
+      .middleware(WriteAuthorization)
   )
   .prefix("/nodes")
-  .middleware(WriteAuthorization)
 {}
 
 const wayPayload = Schema.Struct({
@@ -290,6 +315,12 @@ const wayPayload = Schema.Struct({
 
 export class WaysApiGroup extends HttpApiGroup.make("ways")
   .add(
+    HttpApiEndpoint.get("getWay")`/${HttpApiSchema.param("id", EntityIdFromString)}`
+      .addSuccess(WayDetailSnapshot)
+      .addError(NotFoundError, { status: 404 })
+      .addError(GeospatialOperationError, { status: 500 })
+  )
+  .add(
     HttpApiEndpoint.post("createWay", "/")
       .addSuccess(WaySnapshot)
       .addError(UnauthorizedError, { status: 401 })
@@ -301,6 +332,7 @@ export class WaysApiGroup extends HttpApiGroup.make("ways")
       .addError(ValidationError, { status: 400 })
       .addError(GeospatialOperationError, { status: 500 })
       .setPayload(wayPayload)
+      .middleware(WriteAuthorization)
   )
   .add(
     HttpApiEndpoint.patch("updateWay")`/${HttpApiSchema.param("id", EntityIdFromString)}`
@@ -324,6 +356,7 @@ export class WaysApiGroup extends HttpApiGroup.make("ways")
           tags: Tags
         })
       )
+      .middleware(WriteAuthorization)
   )
   .add(
     HttpApiEndpoint.del("deleteWay")`/${HttpApiSchema.param("id", EntityIdFromString)}`
@@ -340,9 +373,9 @@ export class WaysApiGroup extends HttpApiGroup.make("ways")
           changesetId: EntityId
         })
       )
+      .middleware(WriteAuthorization)
   )
   .prefix("/ways")
-  .middleware(WriteAuthorization)
 {}
 
 const relationPayload = Schema.Struct({
@@ -354,6 +387,12 @@ const relationPayload = Schema.Struct({
 
 export class RelationsApiGroup extends HttpApiGroup.make("relations")
   .add(
+    HttpApiEndpoint.get("getRelation")`/${HttpApiSchema.param("id", EntityIdFromString)}`
+      .addSuccess(RelationDetailSnapshot)
+      .addError(NotFoundError, { status: 404 })
+      .addError(GeospatialOperationError, { status: 500 })
+  )
+  .add(
     HttpApiEndpoint.post("createRelation", "/")
       .addSuccess(RelationSnapshot)
       .addError(UnauthorizedError, { status: 401 })
@@ -364,6 +403,7 @@ export class RelationsApiGroup extends HttpApiGroup.make("relations")
       .addError(ValidationError, { status: 400 })
       .addError(GeospatialOperationError, { status: 500 })
       .setPayload(relationPayload)
+      .middleware(WriteAuthorization)
   )
   .add(
     HttpApiEndpoint.patch("updateRelation")`/${HttpApiSchema.param("id", EntityIdFromString)}`
@@ -385,6 +425,7 @@ export class RelationsApiGroup extends HttpApiGroup.make("relations")
           tags: Tags
         })
       )
+      .middleware(WriteAuthorization)
   )
   .add(
     HttpApiEndpoint.del("deleteRelation")`/${HttpApiSchema.param("id", EntityIdFromString)}`
@@ -401,7 +442,7 @@ export class RelationsApiGroup extends HttpApiGroup.make("relations")
           changesetId: EntityId
         })
       )
+      .middleware(WriteAuthorization)
   )
   .prefix("/relations")
-  .middleware(WriteAuthorization)
 {}

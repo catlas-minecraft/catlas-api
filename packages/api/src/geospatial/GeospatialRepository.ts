@@ -32,14 +32,17 @@ import {
   InvalidGeometryStateError,
   InvalidTagError,
   InvalidTopologyError,
+  NodeDetailSnapshot,
   NodeSnapshot,
   NotFoundError,
   Point3D,
   type RelationMemberInput,
+  RelationDetailSnapshot,
   RelationMemberSnapshot,
   RelationSnapshot,
   VersionConflictError,
   ViewportSnapshot,
+  WayDetailSnapshot,
   WayNodeSnapshot,
   WaySnapshot,
 } from "@catlas/domain/GeospatialApi";
@@ -63,6 +66,11 @@ type NodeSelectRow = {
 };
 
 export interface GeospatialRepositoryService {
+  getNode: (id: number) => Effect.Effect<NodeDetailSnapshot, NotFoundError | GeospatialOperationError>;
+  getWay: (id: number) => Effect.Effect<WayDetailSnapshot, NotFoundError | GeospatialOperationError>;
+  getRelation: (
+    id: number,
+  ) => Effect.Effect<RelationDetailSnapshot, NotFoundError | GeospatialOperationError>;
   createChangeset: (
     comment: string | null,
     actorId: string,
@@ -1371,6 +1379,43 @@ export const GeospatialRepositoryLive = Layer.effect(
           ),
     );
 
+    const getNode = Effect.fn("repository.getNode")((id: number) =>
+      loadNodeById(id).pipe(
+        Effect.map((node) => new NodeDetailSnapshot({ node: toNodeSnapshot(node) })),
+      ),
+    );
+
+    const getWay = Effect.fn("repository.getWay")((id: number) =>
+      Effect.gen(function* () {
+        const way = yield* loadWayById(id);
+        const wayNodes = yield* loadWayNodesByWayId(id);
+        const orderedNodeIds = [
+          ...new Set(
+            [...wayNodes].sort((a, b) => a.seq - b.seq).map((wayNode) => wayNode.node_id),
+          ),
+        ];
+        const nodes = yield* Effect.forEach(orderedNodeIds, (nodeId) => loadNodeById(nodeId));
+
+        return new WayDetailSnapshot({
+          way: toWaySnapshot(way),
+          nodes: nodes.map(toNodeSnapshot),
+          wayNodes: wayNodes.map(toWayNodeSnapshot),
+        });
+      }),
+    );
+
+    const getRelation = Effect.fn("repository.getRelation")((id: number) =>
+      Effect.gen(function* () {
+        const relation = yield* loadRelationById(id);
+        const relationMembers = yield* loadRelationMembersByRelationId(id);
+
+        return new RelationDetailSnapshot({
+          relation: toRelationSnapshot(relation),
+          relationMembers: relationMembers.map(toRelationMemberSnapshot),
+        });
+      }),
+    );
+
     const publishChangeset = Effect.fn("repository.publishChangeset")((id: number) =>
       db
         .withTransaction(
@@ -2203,6 +2248,9 @@ export const GeospatialRepositoryLive = Layer.effect(
     });
 
     return {
+      getNode,
+      getWay,
+      getRelation,
       createChangeset,
       publishChangeset,
       abandonChangeset,
