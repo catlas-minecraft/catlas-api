@@ -5,6 +5,11 @@
       "source": "tsutoringo/skills",
       "sourceType": "github",
       "computedHash": "1d66cf82f78d60a21b90375ebe4fa03a202ffb77819def2cd371e629398adf59"
+    },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "computedHash": "507f011a70e8b3ae242bdc0bb5b39fd91a1d4049a0f3c281991ccf84973d591c"
     }
   }
 }
