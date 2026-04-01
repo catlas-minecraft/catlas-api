@@ -1,5 +1,5 @@
 import type { ViewportSnapshot } from "@catlas/domain";
-import { useLeaflet } from "@catlas/leaflet";
+import { useLeaflet, useLeafletMapEvent } from "@catlas/leaflet";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapEditor, type EditorChanges } from "@/lib/editor/editor";
@@ -51,6 +51,7 @@ export const ViewportMapEditor = ({
 }: ViewportMapEditorProps) => {
   const { map } = useLeaflet();
   const editorRef = useRef<MapEditor | null>(null);
+  const interactionModeRef = useRef(interactionMode);
   const [bbox, setBbox] = useState<readonly [number, number, number, number]>(() =>
     formatBbox(map),
   );
@@ -60,10 +61,13 @@ export const ViewportMapEditor = ({
     dirtyWays: [],
   });
 
+  interactionModeRef.current = interactionMode;
+
   useEffect(() => {
     const editor = new MapEditor(map, {
       onSelectionChange: setSelectedEntity,
       onChangesChange: setChanges,
+      getInteractionMode: () => interactionModeRef.current,
     });
     editorRef.current = editor;
     onRerenderReady?.(() => editor.rerender());
@@ -80,52 +84,50 @@ export const ViewportMapEditor = ({
     };
   }, [map, onRerenderReady, onWayCreationReady]);
 
-  useEffect(() => {
-    const handleViewportChange = () => {
-      setBbox(formatBbox(map));
-    };
-    const handleMapClick = (event: L.LeafletMouseEvent) => {
-      if (interactionMode === "add-node") {
-        editorRef.current?.createNodeAt({
-          x: event.latlng.lng,
-          z: event.latlng.lat,
-        });
-        return;
-      }
+  useLeafletMapEvent(
+    {
+      click: (event) => {
+        if (interactionMode === "add-node") {
+          editorRef.current?.createNodeAt({
+            x: event.latlng.lng,
+            z: event.latlng.lat,
+          });
+          return;
+        }
 
-      if (interactionMode === "add-way") {
-        editorRef.current?.addWayVertexAt({
-          x: event.latlng.lng,
-          z: event.latlng.lat,
-        }, "line");
-        return;
-      }
+        if (interactionMode === "add-way") {
+          editorRef.current?.addWayVertexAt(
+            {
+              x: event.latlng.lng,
+              z: event.latlng.lat,
+            },
+            "line",
+          );
+          return;
+        }
 
-      if (interactionMode === "add-area") {
-        editorRef.current?.addWayVertexAt({
-          x: event.latlng.lng,
-          z: event.latlng.lat,
-        }, "area");
-        return;
-      }
+        if (interactionMode === "add-area") {
+          editorRef.current?.addWayVertexAt(
+            {
+              x: event.latlng.lng,
+              z: event.latlng.lat,
+            },
+            "area",
+          );
+          return;
+        }
 
-      editorRef.current?.clearSelection();
-    };
-
-    map.on({
-      click: handleMapClick,
-      moveend: handleViewportChange,
-      resize: handleViewportChange,
-    });
-
-    return () => {
-      map.off({
-        click: handleMapClick,
-        moveend: handleViewportChange,
-        resize: handleViewportChange,
-      });
-    };
-  }, [interactionMode, map]);
+        editorRef.current?.clearSelection();
+      },
+      moveend: () => {
+        setBbox(formatBbox(map));
+      },
+      resize: () => {
+        setBbox(formatBbox(map));
+      },
+    },
+    [interactionMode, map],
+  );
 
   const viewportQuery = useQuery({
     queryKey: ["editor-viewport", bbox],

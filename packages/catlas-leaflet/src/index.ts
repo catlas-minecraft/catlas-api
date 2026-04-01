@@ -12,3 +12,4 @@ export * from "./leaflet/layer/path/polyline.tsx";
 export * from "./leaflet/layer/tile-layer.tsx";
 export * from "./leaflet/layer/context/layerGroup.ts";
 export * from "./leaflet/context/map.ts";
+export * from "./leaflet/hooks/useLeafletEvent.ts";

@@ -33,6 +33,7 @@ type ActiveNodeDrag = {
 type LocalWayDraft = {
   id: number;
   nodeIds: number[];
+  ownedNodeIds: number[];
   way: WaySnapshot;
 };
 
@@ -134,18 +135,21 @@ export class MapEditor {
   private readonly store: LeafletViewportStore;
   private readonly onSelectionChange?: (selection: SelectedEntity) => void;
   private readonly onChangesChange?: (changes: EditorChanges) => void;
+  private readonly getInteractionMode?: () => "browse" | "add-node" | "add-way" | "add-area";
 
   constructor(
     public readonly leafletMap: LeafletMap,
     options?: {
       onSelectionChange?: (selection: SelectedEntity) => void;
       onChangesChange?: (changes: EditorChanges) => void;
+      getInteractionMode?: () => "browse" | "add-node" | "add-way" | "add-area";
     },
   ) {
     this.onSelectionChange = options?.onSelectionChange;
     this.onChangesChange = options?.onChangesChange;
+    this.getInteractionMode = options?.getInteractionMode;
     this.store = new LeafletViewportStore(leafletMap, {
-      onNodeSelect: (id) => this.selectNode(id),
+      onNodeSelect: (id) => this.handleNodeSelect(id),
       onWaySelect: (id) => this.selectWay(id),
       onNodeDragStart: (id) => this.startNodeDrag(id),
       onNodeDragMove: (id, coordinate) => this.moveNodeDrag(id, coordinate),
@@ -235,7 +239,63 @@ export class MapEditor {
       this.creatingWay = {
         id: wayId,
         nodeIds: [nodeId],
+        ownedNodeIds: [nodeId],
         way: createLocalWaySnapshot(wayId, geometryKind),
+      };
+    } else {
+      this.creatingWay = {
+        ...this.creatingWay,
+        nodeIds: [...this.creatingWay.nodeIds, nodeId],
+        ownedNodeIds: [...this.creatingWay.ownedNodeIds, nodeId],
+      };
+    }
+
+    const nextSelection: SelectedEntity = { type: "way", id: this.creatingWay.id };
+
+    if (this.serverData) {
+      const previousData = this.normalizedData;
+      const nextData = this.buildDisplayData(this.serverData);
+      const previousVisibleSelection = this.visibleSelection;
+
+      this.patchWaysFromViewport(
+        previousData,
+        nextData,
+        previousVisibleSelection,
+        nextSelection,
+      );
+      this.patchNodesFromViewport(
+        previousData,
+        nextData,
+        previousVisibleSelection,
+        nextSelection,
+      );
+
+      this.normalizedData = nextData;
+      this.visibleSelection = this.resolveSelection(nextData, nextSelection);
+    } else {
+      this.visibleSelection = nextSelection;
+    }
+
+    this.selectedEntity = nextSelection;
+    this.onSelectionChange?.(nextSelection);
+    this.emitChangesChange();
+  }
+
+  private addExistingNodeToWay(nodeId: number) {
+    if (!this.normalizedData?.nodesById.has(nodeId)) {
+      return;
+    }
+
+    this.pinNode(nodeId);
+
+    if (!this.creatingWay) {
+      const wayId = this.nextLocalWayId;
+      this.nextLocalWayId -= 1;
+      this.creatingWay = {
+        id: wayId,
+        nodeIds: [nodeId],
+        ownedNodeIds: [],
+        way: createLocalWaySnapshot(wayId, "line"),
       };
     } else {
       this.creatingWay = {
@@ -321,7 +381,7 @@ export class MapEditor {
       return;
     }
 
-    for (const nodeId of this.creatingWay.nodeIds) {
+    for (const nodeId of this.creatingWay.ownedNodeIds) {
       this.createdNodesById.delete(nodeId);
       this.editedNodeCoordinates.delete(nodeId);
     }
@@ -418,6 +478,23 @@ export class MapEditor {
     this.selectedEntity = nextSelection;
     this.onSelectionChange?.(nextSelection);
     this.emitChangesChange();
+  }
+
+  private handleNodeSelect(id: number) {
+    const interactionMode = this.getInteractionMode?.() ?? "browse";
+    const lastCreatedNodeId = this.creatingWay?.nodeIds.at(-1) ?? null;
+
+    if ((interactionMode === "add-way" || interactionMode === "add-area") && lastCreatedNodeId === id) {
+      this.finishWayCreation();
+      return;
+    }
+
+    if (interactionMode === "add-way") {
+      this.addExistingNodeToWay(id);
+      return;
+    }
+
+    this.selectNode(id);
   }
 
   selectNode(id: number) {
