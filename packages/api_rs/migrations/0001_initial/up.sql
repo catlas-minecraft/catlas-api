@@ -232,3 +232,7 @@ CREATE INDEX IF NOT EXISTS way_geometries_geom_gist_idx
 CREATE INDEX IF NOT EXISTS relation_geometries_geom_gist_idx
   ON derived.relation_geometries
   USING gist (geom);
+
+CREATE INDEX IF NOT EXISTS changesets_published_id_desc_idx
+  ON core.changesets (id DESC)
+  WHERE status = 'published';

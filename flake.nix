@@ -31,6 +31,11 @@
           "rust-src"
         ];
       };
+      dieselCli = pkgs.diesel-cli.override {
+        postgresqlSupport = true;
+        sqliteSupport = false;
+        mysqlSupport = false;
+      };
       vp = vp-nix.packages.${system}.default;
     in
     {
@@ -38,19 +43,24 @@
         packages = with pkgs; [
           nodejs
           rustToolchain
+          dieselCli
           vp
           pnpm_10
 
           git
           jq
+          libpq
+          pkg-config
         ];
 
         shellHook = ''
           export PATH="$PWD/node_modules/.bin:$PATH"
 
-          echo "Node: $(node -v)"
-          echo "pnpm:  $(pnpm -v)"
-          echo "Rust: $(rustc --version)"
+          if [[ -t 1 ]]; then
+            echo "Node: $(node -v)"
+            echo "pnpm:  $(pnpm -v)"
+            echo "Rust: $(rustc --version)"
+          fi
         '';
       };
     };

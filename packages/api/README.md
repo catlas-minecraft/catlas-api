@@ -4,13 +4,19 @@ Run the server package in development to start the API on `http://localhost:3000
 
 ## Local Development
 
+Enter the Nix development shell so the PostgreSQL-only Diesel CLI is available:
+
+```sh
+direnv allow
+```
+
 Start PostGIS:
 
 ```sh
 vp run -w db:up
 ```
 
-Apply migrations:
+Set `DATABASE_URL` in the repository root `.env`, then apply Diesel migrations:
 
 ```sh
 vp run -w db:migrate

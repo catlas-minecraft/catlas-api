@@ -21,6 +21,12 @@
     }
   },
   "languages": {
+    "Rust": {
+      "format_on_save": "on"
+    },
+    "TOML": {
+      "format_on_save": "on"
+    },
     "CSS": {
       "format_on_save": "on",
       "prettier": {

@@ -18,3 +18,8 @@ scratchpad/*
 .cache
 
 packages/*/public/tiles
+
+
+# Added by cargo
+
+/target
