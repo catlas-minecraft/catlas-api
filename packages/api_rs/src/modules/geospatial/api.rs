@@ -41,6 +41,9 @@ fn db_error(error: database::DatabaseError) -> poem::Error {
 
 #[OpenApi(prefix_path = "/", tag = CatlasTags::Entities)]
 impl GeospatialModule {
+    /// Changesetを作成する
+    ///
+    /// 認証中のユーザーを所有者として、編集内容を一時保存するopen状態のChangesetを作成する。
     #[oai(path = "/changesets", method = "post", tag = CatlasTags::Changesets)]
     async fn create_changeset(
         &self,
@@ -78,6 +81,10 @@ impl GeospatialModule {
             .into(),
         ))
     }
+
+    /// 公開済みのChangeset一覧を取得する
+    ///
+    /// published状態のChangesetをIDの降順で返す。
     #[oai(path = "/changesets", method = "get", tag = CatlasTags::Changesets)]
     async fn list_changesets(
         &self,
@@ -112,6 +119,10 @@ impl GeospatialModule {
                 .collect(),
         ))
     }
+
+    /// Changesetを公開する
+    ///
+    /// 認証中のユーザーが所有するopen状態のChangesetを検証し、Draftの編集内容を一括で公開する。
     #[oai(path = "/changesets/:id/publish", method = "post", tag = CatlasTags::Changesets)]
     async fn publish(
         &self,
@@ -129,6 +140,10 @@ impl GeospatialModule {
         .map_err(db_error)?;
         Ok(Json(row.into()))
     }
+
+    /// Changesetを破棄する
+    ///
+    /// 認証中のユーザーが所有するopen状態のChangesetからDraftを削除し、abandoned状態に変更する。
     #[oai(path = "/changesets/:id/abandon", method = "post", tag = CatlasTags::Changesets)]
     async fn abandon(
         &self,
@@ -159,6 +174,9 @@ impl GeospatialModule {
         Ok(ApiResponse::new(()).status(poem::http::StatusCode::NO_CONTENT))
     }
 
+    /// Nodeを取得する
+    ///
+    /// 指定したIDの公開済みかつ削除されていないNodeを返す。
     #[oai(path = "/nodes/:id", method = "get")]
     async fn get_node(
         &self,
@@ -185,6 +203,10 @@ impl GeospatialModule {
         .map_err(db_error)?;
         Ok(Json(node_json(row)))
     }
+
+    /// Wayを取得する
+    ///
+    /// 指定したIDの公開済みかつ削除されていないWayを、順序付けされたNode参照とともに返す。
     #[oai(path = "/ways/:id", method = "get")]
     async fn get_way(
         &self,
@@ -214,6 +236,10 @@ impl GeospatialModule {
         .map_err(db_error)?;
         Ok(Json(way_json(row)))
     }
+
+    /// Relationを取得する
+    ///
+    /// 指定したIDの公開済みかつ削除されていないRelationを返す。メンバーはレスポンスに含まれない。
     #[oai(path = "/relations/:id", method = "get")]
     async fn get_relation(
         &self,
@@ -238,6 +264,9 @@ impl GeospatialModule {
         Ok(Json(relation_json(row)))
     }
 
+    /// Nodeを作成する
+    ///
+    /// 認証中のユーザーが所有するopen状態のChangesetに、新しいNodeをDraftとして追加する。
     #[oai(path = "/nodes", method = "post")]
     async fn create_node(
         &self,
@@ -260,6 +289,9 @@ impl GeospatialModule {
         Ok(Json(r.into()))
     }
 
+    /// Nodeを更新する
+    ///
+    /// expectedVersionを検証し、Nodeの座標、種別、タグを指定したChangesetのDraftに保存する。
     #[oai(path = "/nodes/:id", method = "patch")]
     async fn patch_node(
         &self,
@@ -282,6 +314,10 @@ impl GeospatialModule {
         .map_err(db_error)?;
         Ok(Json(r.into()))
     }
+
+    /// Nodeを削除する
+    ///
+    /// expectedVersionを検証し、指定したChangesetにNodeの削除をDraftとして保存する。
     #[oai(path = "/nodes/:id", method = "delete")]
     async fn delete_node(
         &self,
@@ -302,6 +338,9 @@ impl GeospatialModule {
         Ok(ApiResponse::new(()).status(poem::http::StatusCode::NO_CONTENT))
     }
 
+    /// Wayを作成する
+    ///
+    /// Node参照とgeometryKindを検証し、指定したChangesetに新しいWayをDraftとして追加する。geometryKindはlineまたはareaを指定する。
     #[oai(path = "/ways", method = "post")]
     async fn create_way(
         &self,
@@ -322,6 +361,10 @@ impl GeospatialModule {
         .map_err(db_error)?;
         Ok(Json(r.into()))
     }
+
+    /// Wayを更新する
+    ///
+    /// expectedVersion、Node参照、geometryKindを検証し、Wayの内容を指定したChangesetのDraftに保存する。
     #[oai(path = "/ways/:id", method = "patch")]
     async fn patch_way(
         &self,
@@ -343,6 +386,10 @@ impl GeospatialModule {
         .map_err(db_error)?;
         Ok(Json(r.into()))
     }
+
+    /// Wayを削除する
+    ///
+    /// expectedVersionを検証し、指定したChangesetにWayの削除をDraftとして保存する。
     #[oai(path = "/ways/:id", method = "delete")]
     async fn delete_way(
         &self,
@@ -363,6 +410,9 @@ impl GeospatialModule {
         Ok(ApiResponse::new(()).status(poem::http::StatusCode::NO_CONTENT))
     }
 
+    /// Relationを作成する
+    ///
+    /// Wayメンバーを検証し、指定したChangesetに新しいmultipolygon RelationをDraftとして追加する。メンバーのroleにはouter、inner、または未指定を使用できる。
     #[oai(path = "/relations", method = "post")]
     async fn create_relation(
         &self,
@@ -388,6 +438,10 @@ impl GeospatialModule {
         .map_err(db_error)?;
         Ok(Json(r.into()))
     }
+
+    /// Relationを更新する
+    ///
+    /// expectedVersionとWayメンバーを検証し、multipolygon Relationの内容を指定したChangesetのDraftに保存する。
     #[oai(path = "/relations/:id", method = "patch")]
     async fn patch_relation(
         &self,
@@ -414,6 +468,10 @@ impl GeospatialModule {
         .map_err(db_error)?;
         Ok(Json(r.into()))
     }
+
+    /// Relationを削除する
+    ///
+    /// expectedVersionを検証し、指定したChangesetにRelationの削除をDraftとして保存する。
     #[oai(path = "/relations/:id", method = "delete")]
     async fn delete_relation(
         &self,
@@ -434,6 +492,9 @@ impl GeospatialModule {
         Ok(ApiResponse::new(()).status(poem::http::StatusCode::NO_CONTENT))
     }
 
+    /// Viewport内の地物を取得する
+    ///
+    /// bboxに`minX,minZ,maxX,maxZ`を指定し、範囲内のNodeとWay、およびWayが参照するNodeを返す。includeRelationsがtrueの場合は、範囲と交差するRelationとそのメンバーも含める。
     #[oai(path = "/viewport", method = "get", tag = CatlasTags::Viewport)]
     async fn viewport(
         &self,
