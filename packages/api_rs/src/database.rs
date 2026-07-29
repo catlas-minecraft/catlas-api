@@ -1,17 +1,19 @@
 use std::error::Error;
 
 use diesel::{
-    PgConnection, QueryableByName, RunQueryDsl,
+    QueryableByName, RunQueryDsl,
     r2d2::{ConnectionManager, Pool},
     sql_query,
     sql_types::{BigInt, Bool},
 };
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
+use diesel_tracing::pg::InstrumentedPgConnection;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 const MIGRATION_LOCK_ID: i64 = 0x43_61_74_6c_61_73;
 
-pub type DatabasePool = Pool<ConnectionManager<PgConnection>>;
+pub type DatabaseConnection = InstrumentedPgConnection;
+pub type DatabasePool = Pool<ConnectionManager<DatabaseConnection>>;
 pub type DatabaseError = Box<dyn Error + Send + Sync>;
 
 /// Diesel is deliberately kept off the async executor.  All API database work
@@ -19,12 +21,15 @@ pub type DatabaseError = Box<dyn Error + Send + Sync>;
 pub async fn blocking<T, F>(pool: &DatabasePool, work: F) -> Result<T, DatabaseError>
 where
     T: Send + 'static,
-    F: FnOnce(&mut PgConnection) -> Result<T, DatabaseError> + Send + 'static,
+    F: FnOnce(&mut DatabaseConnection) -> Result<T, DatabaseError> + Send + 'static,
 {
     let pool = pool.clone();
+    let span = tracing::Span::current();
     tokio::task::spawn_blocking(move || {
-        let mut connection = pool.get()?;
-        work(&mut connection)
+        span.in_scope(|| {
+            let mut connection = pool.get()?;
+            work(&mut connection)
+        })
     })
     .await
     .map_err(|error| std::io::Error::other(error.to_string()))?
@@ -37,7 +42,7 @@ struct AdvisoryLockResult {
 }
 
 pub fn connect_and_migrate(database_url: String) -> Result<DatabasePool, DatabaseError> {
-    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let manager = ConnectionManager::<DatabaseConnection>::new(database_url);
     let pool = Pool::builder()
         .max_size(10)
         .min_idle(Some(1))
@@ -55,7 +60,7 @@ pub fn connect_and_migrate(database_url: String) -> Result<DatabasePool, Databas
     Ok(pool)
 }
 
-fn acquire_migration_lock(connection: &mut PgConnection) -> Result<(), DatabaseError> {
+fn acquire_migration_lock(connection: &mut DatabaseConnection) -> Result<(), DatabaseError> {
     let result = sql_query("SELECT true AS locked FROM pg_advisory_lock($1)")
         .bind::<BigInt, _>(MIGRATION_LOCK_ID)
         .get_result::<AdvisoryLockResult>(connection)?;
@@ -63,7 +68,7 @@ fn acquire_migration_lock(connection: &mut PgConnection) -> Result<(), DatabaseE
     Ok(())
 }
 
-fn release_migration_lock(connection: &mut PgConnection) -> Result<(), DatabaseError> {
+fn release_migration_lock(connection: &mut DatabaseConnection) -> Result<(), DatabaseError> {
     let result = sql_query("SELECT pg_advisory_unlock($1) AS locked")
         .bind::<BigInt, _>(MIGRATION_LOCK_ID)
         .get_result::<AdvisoryLockResult>(connection)?;

@@ -28,7 +28,7 @@ fn parse_geometry_kind(value: String) -> Result<GeometryKind, database::Database
 }
 
 pub(super) fn viewport_typed(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     bbox: [f64; 4],
     include_relations: bool,
 ) -> Result<Viewport, database::DatabaseError> {

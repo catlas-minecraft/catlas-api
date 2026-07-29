@@ -116,7 +116,7 @@ impl fmt::Display for DomainFailure {
 impl Error for DomainFailure {}
 
 pub(super) fn validate_publication_topology(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     id: i64,
 ) -> Result<(), database::DatabaseError> {
     let draft_nodes = draft::nodes::table

@@ -16,7 +16,7 @@ use diesel::{
 use serde_json::Value;
 
 pub(super) fn check_node_version_conflicts(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     changeset_id: i64,
 ) -> Result<(), database::DatabaseError> {
     let rows = draft::nodes::table
@@ -37,7 +37,7 @@ pub(super) fn check_node_version_conflicts(
     Ok(())
 }
 pub(super) fn check_way_version_conflicts(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     changeset_id: i64,
 ) -> Result<(), database::DatabaseError> {
     let rows = draft::ways::table
@@ -58,7 +58,7 @@ pub(super) fn check_way_version_conflicts(
     Ok(())
 }
 pub(super) fn check_relation_version_conflicts(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     changeset_id: i64,
 ) -> Result<(), database::DatabaseError> {
     let rows = draft::relations::table
@@ -79,7 +79,7 @@ pub(super) fn check_relation_version_conflicts(
     Ok(())
 }
 pub(super) fn check_node_id_conflicts(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     changeset_id: i64,
 ) -> Result<(), database::DatabaseError> {
     if draft::nodes::table
@@ -96,7 +96,7 @@ pub(super) fn check_node_id_conflicts(
     Ok(())
 }
 pub(super) fn check_way_id_conflicts(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     changeset_id: i64,
 ) -> Result<(), database::DatabaseError> {
     if draft::ways::table
@@ -113,7 +113,7 @@ pub(super) fn check_way_id_conflicts(
     Ok(())
 }
 pub(super) fn check_relation_id_conflicts(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     changeset_id: i64,
 ) -> Result<(), database::DatabaseError> {
     if draft::relations::table
@@ -131,7 +131,7 @@ pub(super) fn check_relation_id_conflicts(
 }
 
 pub(super) fn publish_sync(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     id: i64,
     user: &str,
 ) -> Result<ChangesetRow, database::DatabaseError> {

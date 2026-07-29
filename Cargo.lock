@@ -129,6 +129,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "diesel",
+ "diesel-tracing",
  "diesel_migrations",
  "dotenvy",
  "opentelemetry",
@@ -363,10 +364,23 @@ dependencies = [
  "chrono",
  "diesel_derives",
  "downcast-rs",
+ "ipnetwork",
  "itoa",
+ "libc",
  "pq-sys",
  "r2d2",
  "serde_json",
+]
+
+[[package]]
+name = "diesel-tracing"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683891cbcbb9abeaec7289e926d78ab3e605f2ebe918711d82de48555127e503"
+dependencies = [
+ "diesel",
+ "ipnetwork",
+ "tracing",
 ]
 
 [[package]]
@@ -945,6 +959,12 @@ name = "ipnet"
 version = "2.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d98f6fed1fde3f8c21bc40a1abb88dd75e67924f9cffc3ef95607bad8017f8e2"
+
+[[package]]
+name = "ipnetwork"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf370abdafd54d13e54a620e8c3e1145f28e46cc9d704bc6d94414559df41763"
 
 [[package]]
 name = "itertools"

@@ -20,7 +20,7 @@ pub(super) fn node_json(row: (i64, i32, f64, f64, f64, String, DbJson)) -> Value
 }
 
 pub(super) fn create_node_typed(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     input: NodeInput,
     tags: DbJson,
     user: &str,
@@ -47,7 +47,7 @@ pub(super) fn create_node_typed(
 }
 
 pub(super) fn patch_node_typed(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     node_id: i64,
     input: NodePatch,
     tags: DbJson,
@@ -111,7 +111,7 @@ pub(super) fn patch_node_typed(
 }
 
 pub(super) fn delete_node_typed(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     node_id: i64,
     input: DeleteInput,
     user: &str,
@@ -174,7 +174,7 @@ pub(super) fn relation_json(row: (i64, i32, String, DbJson)) -> Value {
 macro_rules! state_helper {
     ($name:ident, $draft:ident, $core:ident, $message:literal) => {
         pub(super) fn $name(
-            c: &mut diesel::PgConnection,
+            c: &mut database::DatabaseConnection,
             changeset_id: i64,
             id: i64,
         ) -> Result<EntityState, database::DatabaseError> {
@@ -238,7 +238,7 @@ pub(super) fn proposed_version(state: &EntityState) -> Result<i32, database::Dat
 }
 
 pub(super) fn lock_owned_changeset(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     changeset_id: i64,
     user: &str,
 ) -> Result<(), database::DatabaseError> {
@@ -254,7 +254,7 @@ pub(super) fn lock_owned_changeset(
 }
 
 pub(super) fn create_way_typed(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     input: WayInput,
     user: &str,
 ) -> Result<IdRow, database::DatabaseError> {
@@ -299,7 +299,7 @@ pub(super) fn create_way_typed(
 }
 
 pub(super) fn patch_way_typed(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     way_id: i64,
     input: WayPatch,
     user: &str,
@@ -378,7 +378,7 @@ pub(super) fn patch_way_typed(
 }
 
 pub(super) fn delete_way_typed(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     way_id: i64,
     input: DeleteInput,
     user: &str,
@@ -427,7 +427,7 @@ pub(super) fn delete_way_typed(
 }
 
 pub(super) fn create_relation_typed(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     input: RelationInput,
     user: &str,
 ) -> Result<IdRow, database::DatabaseError> {
@@ -474,7 +474,7 @@ pub(super) fn create_relation_typed(
 }
 
 pub(super) fn patch_relation_typed(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     relation_id: i64,
     input: RelationPatch,
     user: &str,
@@ -553,7 +553,7 @@ pub(super) fn patch_relation_typed(
 }
 
 pub(super) fn delete_relation_typed(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     relation_id: i64,
     input: DeleteInput,
     user: &str,
@@ -598,7 +598,7 @@ pub(super) fn delete_relation_typed(
 }
 
 pub(super) fn effective_nodes_exist(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     changeset_id: i64,
     refs: &[i64],
 ) -> Result<bool, database::DatabaseError> {
@@ -631,7 +631,7 @@ pub(super) fn effective_nodes_exist(
 }
 
 pub(super) fn member_exists(
-    c: &mut diesel::PgConnection,
+    c: &mut database::DatabaseConnection,
     changeset_id: i64,
     member: &RelationMember,
 ) -> Result<bool, database::DatabaseError> {
