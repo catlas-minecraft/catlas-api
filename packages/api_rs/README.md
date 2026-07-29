@@ -17,6 +17,10 @@ vp run -w db:migrate
 vp run -w db:schema
 ```
 
+The `db:up` command also starts Jaeger with its local OTLP receiver. Open the
+Jaeger UI at `http://127.0.0.1:16686`. The Rust API exports traces to
+`http://127.0.0.1:4318/v1/traces` when `OTEL_ENABLED=true`.
+
 Start the API on `http://127.0.0.1:3000`:
 
 ```sh
@@ -28,6 +32,15 @@ under `/api`; interactive Scalar documentation is at `/docs` and the OpenAPI
 document is `/api/openapi.json`. Sessions use an HttpOnly, SameSite=Lax cookie
 and the in-memory Poem session store. `POST /api/auth/session` accepts a
 non-empty `username` and `DELETE` logs out.
+
+Regenerate the Editor's `openapi-fetch` types directly from the Rust service:
+
+```sh
+vp run -w api:codegen
+```
+
+The OpenAPI JSON is streamed from `print-openapi` to `openapi-typescript`; no
+intermediate specification file is written.
 
 The API also applies pending embedded migrations before binding the HTTP server.
 The `db:migrate` task uses the same migration runner and PostgreSQL advisory lock.

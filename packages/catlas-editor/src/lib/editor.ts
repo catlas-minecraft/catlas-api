@@ -1,8 +1,7 @@
 import * as d3 from "d3";
-import { Cause, Effect, Exit, ManagedRuntime, Option } from "effect";
 import type { Graph } from "./graph";
 import { addEntities, insertNodeIntoWay, moveNode, updateEntityProperties } from "./editor/actions";
-import { EditorApi, EditorApiError, EditorApiLive } from "./editor/api-client";
+import { createEditorApi, type EditorApiService } from "./editor/api-client";
 import { buildChangesetReview, type ChangesetReview } from "./editor/changeset";
 import { History } from "./editor/history";
 import { getOperation, type Operation, type OperationId } from "./editor/operations";
@@ -97,7 +96,7 @@ const errorMessage = (error: unknown) => {
 };
 
 export class CatlasEditor {
-  readonly #apiRuntime;
+  readonly #api: EditorApiService;
   readonly #history = new History();
   readonly #listeners = new Set<() => void>();
   readonly #overlay: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -136,9 +135,7 @@ export class CatlasEditor {
   constructor(root: HTMLDivElement, options: CatlasEditorOptions = {}) {
     this.#root = root;
     this.#presets = options.presets ?? DEFAULT_PRESETS;
-    this.#apiRuntime = ManagedRuntime.make(
-      EditorApiLive(options.apiBaseUrl ?? window.location.origin),
-    );
+    this.#api = createEditorApi(options.apiBaseUrl ?? window.location.origin);
     this.#tiles = new TileCanvasLayer(root, options.tileUrl);
 
     const overlay = createSvgElement();
@@ -228,7 +225,7 @@ export class CatlasEditor {
   }
 
   async listChangesets(input: { readonly beforeId?: number | undefined; readonly limit: number }) {
-    return this.#runApi(EditorApi.pipe(Effect.flatMap((api) => api.listChangesets(input))));
+    return this.#api.listChangesets(input);
   }
 
   previewChange(ref: EntityRef | null) {
@@ -336,9 +333,7 @@ export class CatlasEditor {
     this.#authState = { status: "authenticating" };
     this.#emit();
     try {
-      const session = await this.#runApi(
-        EditorApi.pipe(Effect.flatMap((api) => api.createSession(normalizedUsername))),
-      );
+      const session = await this.#api.createSession(normalizedUsername);
       if (!session.username) throw new Error("The API did not create a session.");
       this.#authState = { status: "authenticated", username: session.username };
       this.#saveState = this.#saveState.status === "error" ? { status: "idle" } : this.#saveState;
@@ -354,7 +349,7 @@ export class CatlasEditor {
     this.#emit();
 
     try {
-      await this.#runApi(EditorApi.pipe(Effect.flatMap((api) => api.deleteSession())));
+      await this.#api.deleteSession();
     } catch {
       // The local state is cleared even when the development session store is unavailable.
     }
@@ -468,7 +463,6 @@ export class CatlasEditor {
       this.#saveState = {
         status: "error",
         message: "Sign in before publishing changes.",
-        conflict: false,
       };
       this.#emit();
       return;
@@ -478,7 +472,6 @@ export class CatlasEditor {
       this.#saveState = {
         status: "error",
         message: "Resolve validation errors before saving.",
-        conflict: false,
       };
       this.#emit();
       return;
@@ -489,15 +482,15 @@ export class CatlasEditor {
     const review = this.getChangesetReview();
     this.#emit();
     try {
-      const session = await this.#runApi(EditorApi.pipe(Effect.flatMap((api) => api.getSession())));
+      const session = await this.#api.getSession();
       if (!session.username) {
-        throw new EditorApiError("Authentication required", false, true, null);
+        this.#authState = {
+          status: "error",
+          message: "Your session expired. Sign in again to publish these changes.",
+        };
+        throw new Error("Authentication required");
       }
-      const saved = await this.#runApi(
-        EditorApi.pipe(
-          Effect.flatMap((api) => saveGraph(api, this.#history.graph, review.payload, comment)),
-        ),
-      );
+      const saved = await saveGraph(this.#api, this.#history.graph, review.payload, comment);
       if (this.#selection) {
         const remap = saved.remaps.get(entityKey(this.#selection));
         if (remap) this.#selection = { ...this.#selection, id: remap.id };
@@ -507,8 +500,7 @@ export class CatlasEditor {
       this.#emit();
       await this.#loadViewport();
     } catch (error) {
-      const apiError = error as EditorApiError;
-      if (apiError?.unauthorized === true) {
+      if (error instanceof Error && error.cause instanceof Response && error.cause.status === 401) {
         this.#authState = {
           status: "error",
           message: "Your session expired. Sign in again to publish these changes.",
@@ -517,7 +509,6 @@ export class CatlasEditor {
       this.#saveState = {
         status: "error",
         message: errorMessage(error),
-        conflict: apiError?.conflict === true,
       };
       this.#emit();
     }
@@ -538,7 +529,6 @@ export class CatlasEditor {
     this.#overlay.remove();
     this.#tiles.destroy();
     this.#listeners.clear();
-    void this.#apiRuntime.dispose();
   }
 
   #clearChangePreview() {
@@ -885,9 +875,7 @@ export class CatlasEditor {
     const bbox = getViewportBbox(this.#transform, getElementSize(this.#root));
 
     try {
-      const viewport = await this.#runApi(
-        EditorApi.pipe(Effect.flatMap((api) => loadViewportEntities(api, bbox))),
-      );
+      const viewport = await loadViewportEntities(this.#api, bbox);
       if (this.#disposed || requestId !== this.#requestId) return;
       this.#history.rebase(viewport.entities);
       this.#changePreview = null;
@@ -927,7 +915,7 @@ export class CatlasEditor {
 
   async #checkSession() {
     try {
-      const session = await this.#runApi(EditorApi.pipe(Effect.flatMap((api) => api.getSession())));
+      const session = await this.#api.getSession();
       this.#authState = session.username
         ? { status: "authenticated", username: session.username }
         : { status: "anonymous" };
@@ -937,15 +925,6 @@ export class CatlasEditor {
       this.#authState = { status: "error", message: errorMessage(error) };
       this.#emit();
     }
-  }
-
-  async #runApi<A>(effect: Effect.Effect<A, EditorApiError, EditorApi>) {
-    const exit = await this.#apiRuntime.runPromiseExit(effect);
-    if (Exit.isSuccess(exit)) return exit.value;
-
-    const failure = Cause.failureOption(exit.cause);
-    if (Option.isSome(failure)) throw failure.value;
-    throw new Error(Cause.pretty(exit.cause));
   }
 
   #render() {

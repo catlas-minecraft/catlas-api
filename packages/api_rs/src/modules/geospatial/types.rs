@@ -1,6 +1,32 @@
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use std::collections::BTreeMap;
+
+use crate::modules::Nullable;
+
+#[derive(Debug, poem_openapi::Enum, Serialize, Deserialize, Clone)]
+#[oai(rename_all = "lowercase")]
+pub enum GeometryKind {
+    Line,
+    Area,
+}
+
+impl GeometryKind {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Line => "line",
+            Self::Area => "area",
+        }
+    }
+}
+
+#[derive(Debug, poem_openapi::Enum, Serialize, Deserialize, Clone)]
+#[oai(rename_all = "lowercase")]
+pub enum ChangesetStatus {
+    Open,
+    Published,
+    Abandoned,
+}
 
 #[derive(Debug, Object, Serialize, Deserialize, Clone)]
 #[oai(rename_all = "camelCase")]
@@ -45,7 +71,7 @@ pub struct IdVersion {
 pub struct WayInput {
     pub changeset_id: i64,
     pub feature_type: String,
-    pub geometry_kind: String,
+    pub geometry_kind: GeometryKind,
     pub node_refs: Vec<i64>,
     pub tags: std::collections::BTreeMap<String, String>,
 }
@@ -55,7 +81,7 @@ pub struct WayPatch {
     pub changeset_id: i64,
     pub expected_version: i32,
     pub feature_type: String,
-    pub geometry_kind: String,
+    pub geometry_kind: GeometryKind,
     pub node_refs: Vec<i64>,
     pub tags: std::collections::BTreeMap<String, String>,
 }
@@ -93,16 +119,74 @@ pub struct ChangesetInput {
 #[oai(rename_all = "camelCase")]
 pub struct Changeset {
     pub id: i64,
-    pub status: String,
-    pub comment: Option<String>,
+    pub status: ChangesetStatus,
+    pub comment: Nullable<String>,
     pub created_by: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub published_at: Nullable<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ViewportNode {
+    pub id: i64,
+    pub version: i32,
+    pub geom: Point,
+    pub feature_type: String,
+    pub tags: BTreeMap<String, String>,
+    pub deleted_at: Nullable<chrono::DateTime<chrono::Utc>>,
+    pub changeset_id: i64,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ViewportWay {
+    pub id: i64,
+    pub version: i32,
+    pub feature_type: String,
+    pub geometry_kind: GeometryKind,
+    pub tags: BTreeMap<String, String>,
+    pub is_closed: bool,
+    pub deleted_at: Nullable<chrono::DateTime<chrono::Utc>>,
+    pub changeset_id: i64,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ViewportWayNode {
+    pub way_id: i64,
+    pub seq: i32,
+    pub node_id: i64,
+    pub changeset_id: i64,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ViewportRelation {
+    pub id: i64,
+    pub version: i32,
+    pub relation_type: String,
+    pub tags: BTreeMap<String, String>,
+    pub deleted_at: Nullable<chrono::DateTime<chrono::Utc>>,
+    pub changeset_id: i64,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ViewportRelationMember {
+    pub relation_id: i64,
+    pub seq: i32,
+    pub member_type: String,
+    pub member_id: i64,
+    pub role: Nullable<String>,
+    pub changeset_id: i64,
 }
 #[derive(Debug, Object, Serialize, Deserialize)]
 #[oai(rename_all = "camelCase")]
 pub struct Viewport {
-    pub nodes: Vec<Value>,
-    pub ways: Vec<Value>,
-    pub way_nodes: Vec<Value>,
-    pub relations: Vec<Value>,
-    pub relation_members: Vec<Value>,
+    pub nodes: Vec<ViewportNode>,
+    pub ways: Vec<ViewportWay>,
+    pub way_nodes: Vec<ViewportWayNode>,
+    pub relations: Vec<ViewportRelation>,
+    pub relation_members: Vec<ViewportRelationMember>,
 }

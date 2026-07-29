@@ -15,8 +15,8 @@ mod viewport;
 
 #[allow(unused_imports)]
 pub use types::{
-    Changeset, ChangesetInput, DeleteInput, IdVersion, NodeInput, NodePatch, Point, RelationInput,
-    RelationMember, RelationPatch, Viewport, WayInput, WayPatch,
+    Changeset, ChangesetInput, DeleteInput, GeometryKind, IdVersion, NodeInput, NodePatch, Point,
+    RelationInput, RelationMember, RelationPatch, Viewport, WayInput, WayPatch,
 };
 
 pub struct GeospatialModule;

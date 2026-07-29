@@ -1,11 +1,6 @@
-import { Cause, Effect, Exit, Option } from "effect";
 import { describe, expect, test } from "vite-plus/test";
 import { Graph } from "../src/lib/graph";
-import {
-  EditorApiError,
-  type EditorApiService,
-  toEditorApiError,
-} from "../src/lib/editor/api-client";
+import type { EditorApiService } from "../src/lib/editor/api-client";
 import { toChangesetUpload } from "../src/lib/editor/changeset";
 import { getOperation } from "../src/lib/editor/operations";
 import { loadViewportEntities, saveGraph } from "../src/lib/editor/sync";
@@ -19,11 +14,15 @@ const emptyViewport = {
   relationMembers: [],
 };
 
-const unusedAuth = {
-  createSession: () => Effect.die("not used"),
-  listChangesets: () => Effect.die("not used"),
-  verifySession: () => Effect.die("not used"),
-  revokeSession: () => Effect.die("not used"),
+const notUsed = async (): Promise<never> => {
+  throw new Error("not used");
+};
+
+const unusedApi = {
+  getSession: notUsed,
+  createSession: notUsed,
+  deleteSession: notUsed,
+  listChangesets: notUsed,
 };
 
 describe("operations", () => {
@@ -43,30 +42,25 @@ describe("operations", () => {
 describe("API synchronization", () => {
   test("loads viewport entities through the service boundary", async () => {
     const api: EditorApiService = {
-      ...unusedAuth,
-      loadViewport: () =>
-        Effect.succeed({
-          ...emptyViewport,
-          nodes: [
-            {
-              id: 7,
-              geom: { x: 1, y: 2, z: 3 },
-              featureType: "landmark",
-              tags: {},
-              version: 4,
-              createdAt: 1,
-              updatedAt: 1,
-              createdBy: "test",
-              updatedBy: "test",
-              deletedAt: null,
-              changesetId: 1,
-            },
-          ],
-        }),
-      save: () => Effect.die("not used"),
+      ...unusedApi,
+      loadViewport: async () => ({
+        ...emptyViewport,
+        nodes: [
+          {
+            id: 7,
+            geom: { x: 1, y: 2, z: 3 },
+            featureType: "landmark",
+            tags: {},
+            version: 4,
+            deletedAt: null,
+            changesetId: 1,
+          },
+        ],
+      }),
+      save: notUsed,
     };
 
-    const viewport = await Effect.runPromise(loadViewportEntities(api, [0, 0, 10, 10]));
+    const viewport = await loadViewportEntities(api, [0, 0, 10, 10]);
     expect(viewport.entities).toHaveLength(1);
     expect(viewport.entities[0]?.id).toBe(7);
   });
@@ -74,54 +68,40 @@ describe("API synchronization", () => {
   test("uploads a graph and applies returned ids and versions", async () => {
     let uploadedNodeId: number | undefined;
     const api: EditorApiService = {
-      ...unusedAuth,
-      loadViewport: () => Effect.succeed(emptyViewport),
-      save: (payload) => {
+      ...unusedApi,
+      loadViewport: async () => emptyViewport,
+      save: async (payload) => {
         uploadedNodeId = payload.create.nodes[0]?.id;
-        return Effect.succeed({
+        return {
           nodes: [{ oldId: -1, newId: 101, newVersion: 1 }],
           ways: [{ oldId: -1, newId: 201, newVersion: 1 }],
           relations: [],
-        });
+        };
       },
     };
     const base = new Graph();
     const current = new Graph([node(-1), line(-1, [-1, -1])]);
 
-    const saved = await Effect.runPromise(
-      saveGraph(api, current, toChangesetUpload(base, current), "test"),
-    );
+    const saved = await saveGraph(api, current, toChangesetUpload(base, current), "test");
     expect(uploadedNodeId).toBe(-1);
     expect(saved.graph.node(101)?.version).toBe(1);
     expect(saved.graph.way(201)?.nodeIds).toEqual([101, 101]);
   });
 
-  test("preserves typed conflict failures for the editor", async () => {
-    const conflict = new EditorApiError("Version conflict", true, false, null);
+  test("preserves API failures for the editor", async () => {
+    const failure = new Error("Version conflict");
     const api: EditorApiService = {
-      ...unusedAuth,
-      loadViewport: () => Effect.succeed(emptyViewport),
-      save: () => Effect.fail(conflict),
+      ...unusedApi,
+      loadViewport: async () => emptyViewport,
+      save: async () => {
+        throw failure;
+      },
     };
 
     const base = new Graph();
     const current = new Graph([node(-1)]);
-    const exit = await Effect.runPromiseExit(
-      saveGraph(api, current, toChangesetUpload(base, current), null),
+    await expect(saveGraph(api, current, toChangesetUpload(base, current), null)).rejects.toBe(
+      failure,
     );
-    expect(Exit.isFailure(exit)).toBe(true);
-    if (Exit.isFailure(exit)) {
-      const failure = Cause.failureOption(exit.cause);
-      expect(Option.isSome(failure)).toBe(true);
-      if (Option.isSome(failure)) expect(failure.value).toBe(conflict);
-    }
-  });
-
-  test("classifies unauthorized API failures", () => {
-    const error = toEditorApiError({ _tag: "UnauthorizedError", message: "Session expired" });
-
-    expect(error.unauthorized).toBe(true);
-    expect(error.conflict).toBe(false);
-    expect(error.message).toBe("Session expired");
   });
 });

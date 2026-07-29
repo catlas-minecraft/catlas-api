@@ -12,7 +12,6 @@ use crate::{
 };
 use diesel::{Connection, ExpressionMethods, RunQueryDsl, insert_into};
 use postgis_diesel::types::Point as PostgisPoint;
-use serde_json::Value;
 
 #[test]
 fn validates_way_topology() {
@@ -186,8 +185,8 @@ fn publishes_and_queries_a_spatial_graph() {
         assert_eq!(viewport.way_nodes.len(), 5);
         assert_eq!(viewport.relations.len(), 1);
         assert_eq!(viewport.relation_members.len(), 1);
-        assert_eq!(viewport.ways[0]["deletedAt"], Value::Null);
-        assert_eq!(viewport.ways[0]["changesetId"], changeset_id);
+        assert!(viewport.ways[0].deleted_at.is_null());
+        assert_eq!(viewport.ways[0].changeset_id, changeset_id);
 
         Ok(())
     });

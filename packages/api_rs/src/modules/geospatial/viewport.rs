@@ -1,4 +1,7 @@
-use super::types::Viewport;
+use super::types::{
+    GeometryKind, Viewport, ViewportNode, ViewportRelation, ViewportRelationMember, ViewportWay,
+    ViewportWayNode,
+};
 use crate::{
     database,
     schema::{core, derived},
@@ -7,7 +10,22 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use postgis_diesel::types::{Point as PostgisPoint, Polygon};
 use postgis_diesel::{functions::st_intersects, functions_nullable, operators::intersects_2d};
 use serde_json::Value;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
+
+fn string_tags(value: Value) -> Result<BTreeMap<String, String>, database::DatabaseError> {
+    Ok(serde_json::from_value(value)?)
+}
+
+fn parse_geometry_kind(value: String) -> Result<GeometryKind, database::DatabaseError> {
+    match value.as_str() {
+        "line" => Ok(GeometryKind::Line),
+        "area" => Ok(GeometryKind::Area),
+        value => Err(std::io::Error::other(format!(
+            "invalid geometry kind from database: {value}"
+        ))
+        .into()),
+    }
+}
 
 pub(super) fn viewport_typed(
     c: &mut diesel::PgConnection,
@@ -151,11 +169,87 @@ pub(super) fn viewport_typed(
         ))
         .load::<(i64, i32, String, i64, Option<String>, i64)>(c)?;
     Ok(Viewport {
-        nodes: nodes.into_iter().map(|(id, version, x, y, z, feature_type, tags, deleted_at, changeset_id)| serde_json::json!({"id":id,"version":version,"geom":{"x":x,"y":y,"z":z},"featureType":feature_type,"tags":tags,"deletedAt":deleted_at,"changesetId":changeset_id})).collect(),
-        ways: ways.into_iter().map(|(id, version, feature_type, geometry_kind, tags, is_closed, deleted_at, changeset_id)| serde_json::json!({"id":id,"version":version,"featureType":feature_type,"geometryKind":geometry_kind,"tags":tags,"isClosed":is_closed,"deletedAt":deleted_at,"changesetId":changeset_id})).collect(),
-        way_nodes: way_nodes.into_iter().map(|(way_id, seq, node_id, changeset_id)| serde_json::json!({"wayId":way_id,"seq":seq,"nodeId":node_id,"changesetId":changeset_id})).collect(),
-        relations: relations.into_iter().map(|(id, version, relation_type, tags, deleted_at, changeset_id)| serde_json::json!({"id":id,"version":version,"relationType":relation_type,"tags":tags,"deletedAt":deleted_at,"changesetId":changeset_id})).collect(),
-        relation_members: relation_members.into_iter().map(|(relation_id, seq, member_type, member_id, role, changeset_id)| serde_json::json!({"relationId":relation_id,"seq":seq,"memberType":member_type,"memberId":member_id,"role":role,"changesetId":changeset_id})).collect(),
+        nodes: nodes
+            .into_iter()
+            .map(
+                |(id, version, x, y, z, feature_type, value, deleted_at, changeset_id)| {
+                    Ok(ViewportNode {
+                        id,
+                        version,
+                        geom: super::types::Point { x, y, z },
+                        feature_type,
+                        tags: string_tags(value)?,
+                        deleted_at: deleted_at.into(),
+                        changeset_id,
+                    })
+                },
+            )
+            .collect::<Result<Vec<_>, database::DatabaseError>>()?,
+        ways: ways
+            .into_iter()
+            .map(
+                |(
+                    id,
+                    version,
+                    feature_type,
+                    geometry_kind,
+                    value,
+                    is_closed,
+                    deleted_at,
+                    changeset_id,
+                )| {
+                    Ok(ViewportWay {
+                        id,
+                        version,
+                        feature_type,
+                        geometry_kind: parse_geometry_kind(geometry_kind)?,
+                        tags: string_tags(value)?,
+                        is_closed,
+                        deleted_at: deleted_at.into(),
+                        changeset_id,
+                    })
+                },
+            )
+            .collect::<Result<Vec<_>, database::DatabaseError>>()?,
+        way_nodes: way_nodes
+            .into_iter()
+            .map(|(way_id, seq, node_id, changeset_id)| ViewportWayNode {
+                way_id,
+                seq,
+                node_id,
+                changeset_id,
+            })
+            .collect(),
+        relations: relations
+            .into_iter()
+            .map(
+                |(id, version, relation_type, value, deleted_at, changeset_id)| {
+                    Ok(ViewportRelation {
+                        id,
+                        version,
+                        relation_type,
+                        tags: string_tags(value)?,
+                        deleted_at: deleted_at.into(),
+                        changeset_id,
+                    })
+                },
+            )
+            .collect::<Result<Vec<_>, database::DatabaseError>>()?,
+        relation_members: relation_members
+            .into_iter()
+            .map(
+                |(relation_id, seq, member_type, member_id, role, changeset_id)| {
+                    ViewportRelationMember {
+                        relation_id,
+                        seq,
+                        member_type,
+                        member_id,
+                        role: role.into(),
+                        changeset_id,
+                    }
+                },
+            )
+            .collect(),
     })
 }
 

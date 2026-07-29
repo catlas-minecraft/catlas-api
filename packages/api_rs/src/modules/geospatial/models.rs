@@ -14,6 +14,8 @@ pub(super) struct ChangesetRow {
     pub(super) status: String,
     pub(super) comment: Option<String>,
     pub(super) created_by: String,
+    pub(super) created_at: chrono::DateTime<chrono::Utc>,
+    pub(super) published_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 #[derive(Insertable)]
 #[diesel(table_name = draft::nodes)]

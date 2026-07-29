@@ -1,18 +1,12 @@
+use catlas_api::{database, openapi_service};
 use poem::{
     EndpointExt, Route, Server,
     listener::TcpListener,
     session::{CookieConfig, MemoryStorage, ServerSession},
 };
-use poem_openapi::OpenApiService;
-
-use catlas_api::{database, schema};
 
 use crate::middleware::RequestTracing;
-use crate::modules::{auth::AuthModule, geospatial::GeospatialModule};
-
 mod middleware;
-mod modules;
-mod tags;
 mod telemetry;
 
 #[tokio::main]
@@ -30,13 +24,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let database =
         tokio::task::spawn_blocking(move || database::connect_and_migrate(database_url)).await??;
 
-    let apis = (AuthModule, GeospatialModule);
-
-    let api_service =
-        OpenApiService::new(apis, "Catlas API", "1.0.0").server("http://localhost:3000/api");
+    let api_service = openapi_service();
 
     // api_serviceをRouteに移動する前に生成する
     let swagger_ui = api_service.scalar();
+    let spec_endpoint = api_service.spec_endpoint();
 
     let secure_cookie = std::env::var("COOKIE_SECURE")
         .map(|value| value.eq_ignore_ascii_case("true"))
@@ -50,6 +42,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let app = Route::new()
         .nest("/api", api_service)
+        .at("/api/openapi.json", spec_endpoint)
         .nest("/docs", swagger_ui)
         .with(RequestTracing)
         .with(server_session)

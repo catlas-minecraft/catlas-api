@@ -18,9 +18,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          run-install: false
       - name: Install dependencies
         uses: ./.github/actions/setup
-      - run: pnpm codegen
+      - name: Install PostgreSQL client library
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
+      - run: vp run codegen
       - name: Check source state
         run: git add packages/*/src && git diff-index --cached HEAD --exit-code
           packages/*/src

@@ -715,12 +715,23 @@ pub(super) fn publish_sync(
             core::changesets::status,
             core::changesets::comment,
             core::changesets::created_by,
+            core::changesets::created_at,
+            core::changesets::published_at,
         ))
-        .get_result::<(i64, String, Option<String>, String)>(c)?;
+        .get_result::<(
+            i64,
+            String,
+            Option<String>,
+            String,
+            chrono::DateTime<chrono::Utc>,
+            Option<chrono::DateTime<chrono::Utc>>,
+        )>(c)?;
     Ok(ChangesetRow {
         id: row.0,
         status: row.1,
         comment: row.2,
         created_by: row.3,
+        created_at: row.4,
+        published_at: row.5,
     })
 }

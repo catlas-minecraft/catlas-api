@@ -18,7 +18,7 @@
     "directory": "dist"
   },
   "scripts": {
-    "dev": "portless --name api.catlas node --env-file-if-exists=.env --import tsx/esm src/bin/dev.ts",
+    "aadev": "portless --name api.catlas node --env-file-if-exists=.env --import tsx/esm src/bin/dev.ts",
     "codegen": "build-utils prepare-v2",
     "build": "vp pack",
     "build-esm": "tsc -b tsconfig.build.json",
@@ -29,7 +29,6 @@
     "coverage": "vp test --coverage"
   },
   "dependencies": {
-    "@catlas/db": "workspace:^",
     "@catlas/domain": "workspace:^",
     "@catlas/louis": "workspace:^",
     "@effect/experimental": "^0.60.0",

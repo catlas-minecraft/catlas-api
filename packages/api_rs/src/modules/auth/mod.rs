@@ -1,16 +1,14 @@
 use poem::session::Session;
-use poem_openapi::{
-    Object, OpenApi,
-    payload::{Json, Response as ApiResponse},
-};
+use poem_openapi::{Object, OpenApi, payload::Json};
 use serde::Deserialize;
 
+use crate::modules::{NoContent, Nullable};
 use crate::tags::CatlasTags;
 
 /// 新規セッションの内容
 #[derive(Object)]
 pub struct SessionInfo {
-    pub username: Option<String>,
+    pub username: Nullable<String>,
 }
 
 #[derive(Object, Deserialize)]
@@ -26,7 +24,7 @@ impl AuthModule {
     #[oai(path = "/session", method = "get")]
     async fn get_session(&self, session: &Session) -> Json<SessionInfo> {
         Json(SessionInfo {
-            username: session.get("username"),
+            username: Nullable(session.get("username")),
         })
     }
 
@@ -48,13 +46,13 @@ impl AuthModule {
         session.renew();
         session.set("username", username.to_owned());
         Ok(Json(SessionInfo {
-            username: Some(username.to_owned()),
+            username: Nullable(Some(username.to_owned())),
         }))
     }
 
     #[oai(path = "/session", method = "delete")]
-    async fn delete_session(&self, session: &Session) -> poem::Result<ApiResponse<()>> {
+    async fn delete_session(&self, session: &Session) -> poem::Result<NoContent> {
         session.purge();
-        Ok(ApiResponse::new(()).status(poem::http::StatusCode::NO_CONTENT))
+        Ok(NoContent::NoContent)
     }
 }

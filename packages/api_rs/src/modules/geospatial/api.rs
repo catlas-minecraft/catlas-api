@@ -12,6 +12,7 @@ use super::types::{
 };
 use super::validation::{tag_value, validate_members, validate_point, validate_tags, validate_way};
 use super::viewport::{parse_bbox, viewport_typed};
+use crate::modules::NoContent;
 use crate::{
     database::{self, DatabasePool},
     schema::{core, draft},
@@ -22,7 +23,7 @@ use poem::{Result, session::Session, web::Data};
 use poem_openapi::{
     OpenApi,
     param::{Path, Query},
-    payload::{Json, Response as ApiResponse},
+    payload::Json,
 };
 use serde_json::Value;
 
@@ -65,8 +66,17 @@ impl GeospatialModule {
                     core::changesets::status,
                     core::changesets::comment,
                     core::changesets::created_by,
+                    core::changesets::created_at,
+                    core::changesets::published_at,
                 ))
-                .get_result::<(i64, String, Option<String>, String)>(c)
+                .get_result::<(
+                    i64,
+                    String,
+                    Option<String>,
+                    String,
+                    chrono::DateTime<chrono::Utc>,
+                    Option<chrono::DateTime<chrono::Utc>>,
+                )>(c)
                 .map_err(Into::into)
         })
         .await
@@ -77,6 +87,8 @@ impl GeospatialModule {
                 status: row.1,
                 comment: row.2,
                 created_by: row.3,
+                created_at: row.4,
+                published_at: row.5,
             }
             .into(),
         ))
@@ -99,8 +111,17 @@ impl GeospatialModule {
                     core::changesets::status,
                     core::changesets::comment,
                     core::changesets::created_by,
+                    core::changesets::created_at,
+                    core::changesets::published_at,
                 ))
-                .load::<(i64, String, Option<String>, String)>(c)
+                .load::<(
+                    i64,
+                    String,
+                    Option<String>,
+                    String,
+                    chrono::DateTime<chrono::Utc>,
+                    Option<chrono::DateTime<chrono::Utc>>,
+                )>(c)
                 .map_err(Into::into)
         })
         .await
@@ -113,6 +134,8 @@ impl GeospatialModule {
                         status: row.1,
                         comment: row.2,
                         created_by: row.3,
+                        created_at: row.4,
+                        published_at: row.5,
                     }
                     .into()
                 })
@@ -150,7 +173,7 @@ impl GeospatialModule {
         Path(id): Path<i64>,
         session: &Session,
         Data(pool): Data<&DatabasePool>,
-    ) -> Result<ApiResponse<()>> {
+    ) -> Result<NoContent> {
         let user = session_user(session)?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
@@ -171,7 +194,7 @@ impl GeospatialModule {
         })
         .await
         .map_err(db_error)?;
-        Ok(ApiResponse::new(()).status(poem::http::StatusCode::NO_CONTENT))
+        Ok(NoContent::NoContent)
     }
 
     /// Nodeを取得する
@@ -295,7 +318,7 @@ impl GeospatialModule {
     #[oai(path = "/nodes/:id", method = "patch")]
     async fn patch_node(
         &self,
-        Path(node_id): Path<i64>,
+        #[oai(name = "id")] Path(node_id): Path<i64>,
         Json(input): Json<NodePatch>,
         session: &Session,
         Data(pool): Data<&DatabasePool>,
@@ -321,11 +344,11 @@ impl GeospatialModule {
     #[oai(path = "/nodes/:id", method = "delete")]
     async fn delete_node(
         &self,
-        Path(node_id): Path<i64>,
+        #[oai(name = "id")] Path(node_id): Path<i64>,
         Json(input): Json<DeleteInput>,
         session: &Session,
         Data(pool): Data<&DatabasePool>,
-    ) -> Result<ApiResponse<()>> {
+    ) -> Result<NoContent> {
         let user = session_user(session)?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
@@ -335,7 +358,7 @@ impl GeospatialModule {
         })
         .await
         .map_err(db_error)?;
-        Ok(ApiResponse::new(()).status(poem::http::StatusCode::NO_CONTENT))
+        Ok(NoContent::NoContent)
     }
 
     /// Wayを作成する
@@ -350,7 +373,7 @@ impl GeospatialModule {
     ) -> Result<Json<IdVersion>> {
         let user = session_user(session)?;
         validate_tags(&input.tags)?;
-        validate_way(&input.geometry_kind, &input.node_refs)?;
+        validate_way(input.geometry_kind.as_str(), &input.node_refs)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
                 lock_owned_changeset(c, input.changeset_id, &user)?;
@@ -368,14 +391,14 @@ impl GeospatialModule {
     #[oai(path = "/ways/:id", method = "patch")]
     async fn patch_way(
         &self,
-        Path(way_id): Path<i64>,
+        #[oai(name = "id")] Path(way_id): Path<i64>,
         Json(input): Json<WayPatch>,
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<IdVersion>> {
         let user = session_user(session)?;
         validate_tags(&input.tags)?;
-        validate_way(&input.geometry_kind, &input.node_refs)?;
+        validate_way(input.geometry_kind.as_str(), &input.node_refs)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
                 lock_owned_changeset(c, input.changeset_id, &user)?;
@@ -393,11 +416,11 @@ impl GeospatialModule {
     #[oai(path = "/ways/:id", method = "delete")]
     async fn delete_way(
         &self,
-        Path(way_id): Path<i64>,
+        #[oai(name = "id")] Path(way_id): Path<i64>,
         Json(input): Json<DeleteInput>,
         session: &Session,
         Data(pool): Data<&DatabasePool>,
-    ) -> Result<ApiResponse<()>> {
+    ) -> Result<NoContent> {
         let user = session_user(session)?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
@@ -407,7 +430,7 @@ impl GeospatialModule {
         })
         .await
         .map_err(db_error)?;
-        Ok(ApiResponse::new(()).status(poem::http::StatusCode::NO_CONTENT))
+        Ok(NoContent::NoContent)
     }
 
     /// Relationを作成する
@@ -445,7 +468,7 @@ impl GeospatialModule {
     #[oai(path = "/relations/:id", method = "patch")]
     async fn patch_relation(
         &self,
-        Path(relation_id): Path<i64>,
+        #[oai(name = "id")] Path(relation_id): Path<i64>,
         Json(input): Json<RelationPatch>,
         session: &Session,
         Data(pool): Data<&DatabasePool>,
@@ -475,11 +498,11 @@ impl GeospatialModule {
     #[oai(path = "/relations/:id", method = "delete")]
     async fn delete_relation(
         &self,
-        Path(relation_id): Path<i64>,
+        #[oai(name = "id")] Path(relation_id): Path<i64>,
         Json(input): Json<DeleteInput>,
         session: &Session,
         Data(pool): Data<&DatabasePool>,
-    ) -> Result<ApiResponse<()>> {
+    ) -> Result<NoContent> {
         let user = session_user(session)?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
@@ -489,7 +512,7 @@ impl GeospatialModule {
         })
         .await
         .map_err(db_error)?;
-        Ok(ApiResponse::new(()).status(poem::http::StatusCode::NO_CONTENT))
+        Ok(NoContent::NoContent)
     }
 
     /// Viewport内の地物を取得する
@@ -499,7 +522,7 @@ impl GeospatialModule {
     async fn viewport(
         &self,
         #[oai(name = "bbox")] Query(bbox): Query<String>,
-        #[oai(name = "includeRelations")] Query(include_relations): Query<Option<String>>,
+        #[oai(name = "includeRelations")] Query(include_relations): Query<Option<bool>>,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<Viewport>> {
         let Some([minx, minz, maxx, maxz]) = parse_bbox(&bbox) else {
@@ -507,15 +530,7 @@ impl GeospatialModule {
                 poem::http::StatusCode::BAD_REQUEST,
             ));
         };
-        let relations = match include_relations.as_deref() {
-            None | Some("false") => false,
-            Some("true") => true,
-            Some(_) => {
-                return Err(poem::Error::from_status(
-                    poem::http::StatusCode::BAD_REQUEST,
-                ));
-            }
-        };
+        let relations = include_relations.unwrap_or(false);
         let viewport = database::blocking(pool, move |c| {
             c.build_transaction()
                 .repeatable_read()
@@ -531,9 +546,16 @@ impl From<ChangesetRow> for Changeset {
     fn from(r: ChangesetRow) -> Self {
         Self {
             id: r.id,
-            status: r.status,
-            comment: r.comment,
+            status: match r.status.as_str() {
+                "open" => super::types::ChangesetStatus::Open,
+                "published" => super::types::ChangesetStatus::Published,
+                "abandoned" => super::types::ChangesetStatus::Abandoned,
+                status => unreachable!("invalid changeset status from database: {status}"),
+            },
+            comment: r.comment.into(),
             created_by: r.created_by,
+            created_at: r.created_at,
+            published_at: r.published_at.into(),
         }
     }
 }
