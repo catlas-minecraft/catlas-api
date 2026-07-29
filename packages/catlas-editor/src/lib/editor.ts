@@ -3,14 +3,6 @@ import { Cause, Effect, Exit, ManagedRuntime, Option } from "effect";
 import type { Graph } from "./graph";
 import { addEntities, insertNodeIntoWay, moveNode, updateEntityProperties } from "./editor/actions";
 import { EditorApi, EditorApiError, EditorApiLive } from "./editor/api-client";
-import {
-  clearStoredAuthSession,
-  readStoredAuthSession,
-  storedSessionFromCreated,
-  storedSessionFromVerified,
-  type StoredAuthSession,
-  writeStoredAuthSession,
-} from "./editor/auth";
 import { buildChangesetReview, type ChangesetReview } from "./editor/changeset";
 import { History } from "./editor/history";
 import { getOperation, type Operation, type OperationId } from "./editor/operations";
@@ -116,8 +108,7 @@ export class CatlasEditor {
   readonly #tiles: TileCanvasLayer;
   readonly #zoom: d3.ZoomBehavior<SVGSVGElement, unknown>;
   #activeDrag: ActiveDrag | null = null;
-  #authSession: StoredAuthSession | null = null;
-  #authState: EditorAuthState = { status: "anonymous" };
+  #authState: EditorAuthState = { status: "checking" };
   readonly #canvasClickSuppression = new CanvasClickSuppression();
   #changePreview: ChangePreview | null = null;
   #changesetReviewCache: {
@@ -145,13 +136,8 @@ export class CatlasEditor {
   constructor(root: HTMLDivElement, options: CatlasEditorOptions = {}) {
     this.#root = root;
     this.#presets = options.presets ?? DEFAULT_PRESETS;
-    this.#authSession = readStoredAuthSession();
-    this.#authState = this.#authSession ? { status: "checking" } : { status: "anonymous" };
     this.#apiRuntime = ManagedRuntime.make(
-      EditorApiLive(
-        options.apiBaseUrl ?? window.location.origin,
-        () => this.#authSession?.sessionJwt ?? null,
-      ),
+      EditorApiLive(options.apiBaseUrl ?? window.location.origin),
     );
     this.#tiles = new TileCanvasLayer(root, options.tileUrl);
 
@@ -215,7 +201,7 @@ export class CatlasEditor {
     this.#tiles.setTransform(this.#transform);
     this.#snapshot = this.#createSnapshot();
     this.#render();
-    if (this.#authSession) void this.#verifyStoredSession();
+    void this.#checkSession();
     void this.#loadViewport();
   }
 
@@ -343,17 +329,18 @@ export class CatlasEditor {
     this.operation("delete").execute();
   }
 
-  async login(userId: string) {
-    const normalizedUserId = userId.trim();
-    if (!normalizedUserId || this.#authState.status === "authenticating") return;
+  async login(username: string) {
+    const normalizedUsername = username.trim();
+    if (!normalizedUsername || this.#authState.status === "authenticating") return;
 
     this.#authState = { status: "authenticating" };
     this.#emit();
     try {
       const session = await this.#runApi(
-        EditorApi.pipe(Effect.flatMap((api) => api.createSession(normalizedUserId))),
+        EditorApi.pipe(Effect.flatMap((api) => api.createSession(normalizedUsername))),
       );
-      this.#setAuthSession(storedSessionFromCreated(session));
+      if (!session.username) throw new Error("The API did not create a session.");
+      this.#authState = { status: "authenticated", username: session.username };
       this.#saveState = this.#saveState.status === "error" ? { status: "idle" } : this.#saveState;
       this.#emit();
     } catch (error) {
@@ -363,15 +350,13 @@ export class CatlasEditor {
   }
 
   async logout() {
-    const sessionJwt = this.#authSession?.sessionJwt;
-    this.#clearAuthSession();
+    this.#authState = { status: "anonymous" };
     this.#emit();
-    if (!sessionJwt) return;
 
     try {
-      await this.#runApi(EditorApi.pipe(Effect.flatMap((api) => api.revokeSession(sessionJwt))));
+      await this.#runApi(EditorApi.pipe(Effect.flatMap((api) => api.deleteSession())));
     } catch {
-      // The local credential is removed even when server-side revocation is unavailable.
+      // The local state is cleared even when the development session store is unavailable.
     }
   }
 
@@ -479,7 +464,7 @@ export class CatlasEditor {
 
   async save(comment: string | null) {
     if (!this.#history.isDirty() || this.#saveState.status === "saving") return;
-    if (!this.#authSession || this.#authState.status !== "authenticated") {
+    if (this.#authState.status !== "authenticated") {
       this.#saveState = {
         status: "error",
         message: "Sign in before publishing changes.",
@@ -504,7 +489,10 @@ export class CatlasEditor {
     const review = this.getChangesetReview();
     this.#emit();
     try {
-      await this.#refreshAuthentication();
+      const session = await this.#runApi(EditorApi.pipe(Effect.flatMap((api) => api.getSession())));
+      if (!session.username) {
+        throw new EditorApiError("Authentication required", false, true, null);
+      }
       const saved = await this.#runApi(
         EditorApi.pipe(
           Effect.flatMap((api) => saveGraph(api, this.#history.graph, review.payload, comment)),
@@ -521,7 +509,6 @@ export class CatlasEditor {
     } catch (error) {
       const apiError = error as EditorApiError;
       if (apiError?.unauthorized === true) {
-        this.#clearAuthSession();
         this.#authState = {
           status: "error",
           message: "Your session expired. Sign in again to publish these changes.",
@@ -938,42 +925,18 @@ export class CatlasEditor {
     };
   }
 
-  async #verifyStoredSession() {
+  async #checkSession() {
     try {
-      await this.#refreshAuthentication();
+      const session = await this.#runApi(EditorApi.pipe(Effect.flatMap((api) => api.getSession())));
+      this.#authState = session.username
+        ? { status: "authenticated", username: session.username }
+        : { status: "anonymous" };
       if (!this.#disposed) this.#emit();
     } catch (error) {
       if (this.#disposed) return;
-      const apiError = error as EditorApiError;
-      if (apiError?.unauthorized === true) this.#clearAuthSession();
       this.#authState = { status: "error", message: errorMessage(error) };
       this.#emit();
     }
-  }
-
-  async #refreshAuthentication() {
-    const current = this.#authSession;
-    if (!current) throw new EditorApiError("Authentication required", false, true, null);
-    const verified = await this.#runApi(
-      EditorApi.pipe(Effect.flatMap((api) => api.verifySession(current.sessionJwt))),
-    );
-    this.#setAuthSession(storedSessionFromVerified(current, verified));
-  }
-
-  #setAuthSession(session: StoredAuthSession) {
-    this.#authSession = session;
-    writeStoredAuthSession(session);
-    this.#authState = {
-      status: "authenticated",
-      userId: session.userId,
-      expiresAt: session.expiresAt,
-    };
-  }
-
-  #clearAuthSession() {
-    this.#authSession = null;
-    clearStoredAuthSession();
-    this.#authState = { status: "anonymous" };
   }
 
   async #runApi<A>(effect: Effect.Effect<A, EditorApiError, EditorApi>) {

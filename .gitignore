@@ -5,7 +5,9 @@ node_modules/
 tmp/
 dist/
 build/
-docs/
+docs/*
+!docs/
+!docs/geospatial-api-spec.md
 scratchpad/*
 !scratchpad/tsconfig.json
 .direnv/

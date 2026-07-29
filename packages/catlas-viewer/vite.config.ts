@@ -12,9 +12,8 @@ export default defineConfig({
     host: process.env.HOST,
     port: Number(process.env.PORT),
     proxy: {
-      "/openapi.json": "http://api.catlas.localhost:1355",
-      "/viewport": {
-        target: "http://api.catlas.localhost:1355",
+      "/api": {
+        target: "http://127.0.0.1:3000",
         changeOrigin: true,
       },
     },

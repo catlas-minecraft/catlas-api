@@ -1,26 +1,10 @@
 // @generated automatically by Diesel CLI.
 
-pub mod auth {
-    diesel::table! {
-        auth.sessions (id) {
-            id -> Text,
-            secret_hash -> Bytea,
-            user_id -> Text,
-            expires_at -> Timestamptz,
-            next_verified_at -> Timestamptz,
-            created_at -> Timestamptz,
-        }
-    }
-}
-
 pub mod core {
-    pub mod sql_types {
-        #[derive(diesel::sql_types::SqlType)]
-        #[diesel(postgres_type(name = "geometry"))]
-        pub struct Geometry;
-    }
-
     diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
         core.changesets (id) {
             id -> Int8,
             status -> Text,
@@ -33,7 +17,7 @@ pub mod core {
 
     diesel::table! {
         use diesel::sql_types::*;
-        use super::sql_types::Geometry;
+        use postgis_diesel::sql_types::Geometry;
 
         core.nodes (id) {
             id -> Int8,
@@ -55,19 +39,23 @@ pub mod core {
     }
 
     diesel::table! {
-        core.relation_members (id) {
-            id -> Int8,
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        core.relation_members (relation_id, seq) {
             relation_id -> Int8,
             member_type -> Text,
             member_id -> Int8,
             seq -> Int4,
             role -> Nullable<Text>,
-            version -> Int4,
             changeset_id -> Int8,
         }
     }
 
     diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
         core.relations (id) {
             id -> Int8,
             relation_type -> Text,
@@ -84,17 +72,21 @@ pub mod core {
     }
 
     diesel::table! {
-        core.way_nodes (id) {
-            id -> Int8,
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        core.way_nodes (way_id, seq) {
             way_id -> Int8,
-            node_id -> Int8,
             seq -> Int4,
-            version -> Int4,
+            node_id -> Int8,
             changeset_id -> Int8,
         }
     }
 
     diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
         core.ways (id) {
             id -> Int8,
             feature_type -> Text,
@@ -128,16 +120,99 @@ pub mod core {
     );
 }
 
-pub mod derived {
-    pub mod sql_types {
-        #[derive(diesel::sql_types::SqlType)]
-        #[diesel(postgres_type(name = "geometry"))]
-        pub struct Geometry;
+pub mod draft {
+    diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        draft.nodes (changeset_id, id) {
+            changeset_id -> Int8,
+            id -> Int8,
+            operation -> Text,
+            base_version -> Nullable<Int4>,
+            mc_x -> Nullable<Float8>,
+            mc_y -> Nullable<Float8>,
+            mc_z -> Nullable<Float8>,
+            feature_type -> Nullable<Text>,
+            tags -> Nullable<Jsonb>,
+            staged_by -> Text,
+            staged_at -> Timestamptz,
+        }
     }
 
     diesel::table! {
         use diesel::sql_types::*;
-        use super::sql_types::Geometry;
+        use postgis_diesel::sql_types::Geometry;
+
+        draft.relation_members (changeset_id, relation_id, seq) {
+            changeset_id -> Int8,
+            relation_id -> Int8,
+            seq -> Int4,
+            member_type -> Text,
+            member_id -> Int8,
+            role -> Nullable<Text>,
+        }
+    }
+
+    diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        draft.relations (changeset_id, id) {
+            changeset_id -> Int8,
+            id -> Int8,
+            operation -> Text,
+            base_version -> Nullable<Int4>,
+            relation_type -> Nullable<Text>,
+            tags -> Nullable<Jsonb>,
+            staged_by -> Text,
+            staged_at -> Timestamptz,
+        }
+    }
+
+    diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        draft.way_nodes (changeset_id, way_id, seq) {
+            changeset_id -> Int8,
+            way_id -> Int8,
+            seq -> Int4,
+            node_id -> Int8,
+        }
+    }
+
+    diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        draft.ways (changeset_id, id) {
+            changeset_id -> Int8,
+            id -> Int8,
+            operation -> Text,
+            base_version -> Nullable<Int4>,
+            feature_type -> Nullable<Text>,
+            geometry_kind -> Nullable<Text>,
+            is_closed -> Nullable<Bool>,
+            tags -> Nullable<Jsonb>,
+            staged_by -> Text,
+            staged_at -> Timestamptz,
+        }
+    }
+
+    diesel::allow_tables_to_appear_in_same_query!(
+        nodes,
+        relation_members,
+        relations,
+        way_nodes,
+        ways,
+    );
+}
+
+pub mod derived {
+    diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
 
         derived.relation_geometries (relation_id) {
             relation_id -> Int8,
@@ -150,7 +225,7 @@ pub mod derived {
 
     diesel::table! {
         use diesel::sql_types::*;
-        use super::sql_types::Geometry;
+        use postgis_diesel::sql_types::Geometry;
 
         derived.way_geometries (way_id) {
             way_id -> Int8,
@@ -166,8 +241,10 @@ pub mod derived {
 
 pub mod history {
     diesel::table! {
-        history.node_versions (id) {
-            id -> Int8,
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        history.node_versions (node_id, version) {
             node_id -> Int8,
             version -> Int4,
             snapshot -> Jsonb,
@@ -177,10 +254,13 @@ pub mod history {
     }
 
     diesel::table! {
-        history.relation_member_versions (id) {
-            id -> Int8,
-            relation_member_id -> Int8,
-            version -> Int4,
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        history.relation_member_versions (relation_id, parent_version, seq) {
+            relation_id -> Int8,
+            parent_version -> Int4,
+            seq -> Int4,
             snapshot -> Jsonb,
             changeset_id -> Int8,
             recorded_at -> Timestamptz,
@@ -188,8 +268,10 @@ pub mod history {
     }
 
     diesel::table! {
-        history.relation_versions (id) {
-            id -> Int8,
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        history.relation_versions (relation_id, version) {
             relation_id -> Int8,
             version -> Int4,
             snapshot -> Jsonb,
@@ -199,10 +281,13 @@ pub mod history {
     }
 
     diesel::table! {
-        history.way_node_versions (id) {
-            id -> Int8,
-            way_node_id -> Int8,
-            version -> Int4,
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        history.way_node_versions (way_id, parent_version, seq) {
+            way_id -> Int8,
+            parent_version -> Int4,
+            seq -> Int4,
             snapshot -> Jsonb,
             changeset_id -> Int8,
             recorded_at -> Timestamptz,
@@ -210,8 +295,10 @@ pub mod history {
     }
 
     diesel::table! {
-        history.way_versions (id) {
-            id -> Int8,
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        history.way_versions (way_id, version) {
             way_id -> Int8,
             version -> Int4,
             snapshot -> Jsonb,

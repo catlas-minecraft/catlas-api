@@ -73,7 +73,7 @@ export type EditorAuthState =
   | { readonly status: "anonymous" }
   | { readonly status: "checking" }
   | { readonly status: "authenticating" }
-  | { readonly status: "authenticated"; readonly userId: string; readonly expiresAt: number }
+  | { readonly status: "authenticated"; readonly username: string }
   | { readonly status: "error"; readonly message: string };
 
 export type EditorSnapshot = {

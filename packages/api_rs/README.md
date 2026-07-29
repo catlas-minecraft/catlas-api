@@ -23,6 +23,12 @@ Start the API on `http://127.0.0.1:3000`:
 cargo run -p catlas-api
 ```
 
+`HOST` and `PORT` override the defaults (`127.0.0.1` and `3000`). The HTTP API is
+under `/api`; interactive Scalar documentation is at `/docs` and the OpenAPI
+document is `/api/openapi.json`. Sessions use an HttpOnly, SameSite=Lax cookie
+and the in-memory Poem session store. `POST /api/auth/session` accepts a
+non-empty `username` and `DELETE` logs out.
+
 The API also applies pending embedded migrations before binding the HTTP server.
 The `db:migrate` task uses the same migration runner and PostgreSQL advisory lock.
 `db:schema` regenerates `src/schema.rs` from the migrated database with Diesel CLI. The generated

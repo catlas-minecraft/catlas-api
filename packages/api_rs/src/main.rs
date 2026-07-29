@@ -5,7 +5,7 @@ use poem::{
 };
 use poem_openapi::OpenApiService;
 
-use catlas_api::database;
+use catlas_api::{database, schema};
 
 use crate::middleware::RequestTracing;
 use crate::modules::{auth::AuthModule, geospatial::GeospatialModule};
@@ -38,8 +38,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // api_serviceをRouteに移動する前に生成する
     let swagger_ui = api_service.scalar();
 
+    let secure_cookie = std::env::var("COOKIE_SECURE")
+        .map(|value| value.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
     let server_session = ServerSession::new(
-        CookieConfig::default().http_only(true).secure(false),
+        CookieConfig::default()
+            .http_only(true)
+            .secure(secure_cookie),
         MemoryStorage::new(),
     );
 
@@ -50,9 +55,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .with(server_session)
         .data(database);
 
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
-        .run(app)
-        .await?;
+    let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_owned());
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_owned());
+    let address = format!("{host}:{port}");
+    Server::new(TcpListener::bind(address)).run(app).await?;
 
     Ok(())
 }

@@ -45,9 +45,9 @@ export function AuthControl({ editor, snapshot }: AuthControlProps) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            aria-label={`Account menu for ${auth.userId}`}
+            aria-label={`Account menu for ${auth.username}`}
             size="icon-sm"
-            title={`Signed in as ${auth.userId}`}
+            title={`Signed in as ${auth.username}`}
             type="button"
             variant="outline"
           >
@@ -59,7 +59,7 @@ export function AuthControl({ editor, snapshot }: AuthControlProps) {
             <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
             <DropdownMenuItem disabled>
               <UserRoundIcon />
-              <span className="truncate">{auth.userId}</span>
+              <span className="truncate">{auth.username}</span>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

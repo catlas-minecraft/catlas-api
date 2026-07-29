@@ -4,4 +4,7 @@ use poem_openapi::Tags;
 pub enum CatlasTags {
     // Authorization
     Auth,
+    Changesets,
+    Entities,
+    Viewport,
 }

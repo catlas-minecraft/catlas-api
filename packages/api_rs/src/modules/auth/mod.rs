@@ -1,20 +1,21 @@
 use poem::session::Session;
 use poem_openapi::{
-    ApiRequest, Object, OpenApi,
-    payload::{Json, PlainText},
+    Object, OpenApi,
+    payload::{Json, Response as ApiResponse},
 };
+use serde::Deserialize;
 
 use crate::tags::CatlasTags;
 
 /// 新規セッションの内容
 #[derive(Object)]
-struct SessionInfo {
-    username: String,
+pub struct SessionInfo {
+    pub username: Option<String>,
 }
 
-#[derive(ApiRequest)]
-enum CreateSessionRequest {
-    Json(Json<SessionInfo>),
+#[derive(Object, Deserialize)]
+pub struct CreateSession {
+    pub username: String,
 }
 
 pub struct AuthModule;
@@ -23,15 +24,10 @@ pub struct AuthModule;
 impl AuthModule {
     /// セッションを取得する
     #[oai(path = "/session", method = "get")]
-    async fn get_session(&self, session: &Session) -> PlainText<String> {
-        let name = session.get::<String>("name");
-
-        let message = match name {
-            Some(name) => format!("Hello {}!", name),
-            None => "Who are you".to_string(),
-        };
-
-        PlainText(message)
+    async fn get_session(&self, session: &Session) -> Json<SessionInfo> {
+        Json(SessionInfo {
+            username: session.get("username"),
+        })
     }
 
     /// 新規セッションを発行する
@@ -40,15 +36,25 @@ impl AuthModule {
     #[oai(path = "/session", method = "post")]
     async fn create_session(
         &self,
-        request: CreateSessionRequest,
+        Json(request): Json<CreateSession>,
         session: &Session,
-    ) -> PlainText<String> {
-        let CreateSessionRequest::Json(request) = request;
+    ) -> poem::Result<Json<SessionInfo>> {
+        let username = request.username.trim();
+        if username.is_empty() || username.len() > 128 {
+            return Err(poem::Error::from_status(
+                poem::http::StatusCode::BAD_REQUEST,
+            ));
+        }
+        session.renew();
+        session.set("username", username.to_owned());
+        Ok(Json(SessionInfo {
+            username: Some(username.to_owned()),
+        }))
+    }
 
-        session.set("name", &request.0.username);
-
-        let message = format!("Hello {}!", request.0.username);
-
-        PlainText(message)
+    #[oai(path = "/session", method = "delete")]
+    async fn delete_session(&self, session: &Session) -> poem::Result<ApiResponse<()>> {
+        session.purge();
+        Ok(ApiResponse::new(()).status(poem::http::StatusCode::NO_CONTENT))
     }
 }

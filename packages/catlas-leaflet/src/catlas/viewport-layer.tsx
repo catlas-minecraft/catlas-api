@@ -78,7 +78,7 @@ export const ViewportLayer = (props: ViewportLayerProps) => {
 
 const ViewportLayerInner = ({
   includeRelations = false,
-  url = "/viewport",
+  url = "/api/viewport",
 }: ViewportLayerProps) => {
   const { map } = useLeaflet();
   const [currentBbox, setCurrentBbox] = useState<readonly [number, number, number, number]>(() =>

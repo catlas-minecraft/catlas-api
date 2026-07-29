@@ -81,7 +81,24 @@ impl<E: Endpoint> Endpoint for RequestTracingEndpoint<E> {
                         duration = ?duration,
                         "error"
                     );
-                    Err(err)
+                    let status = err.status();
+                    let code = match status.as_u16() {
+                        400 => "validation",
+                        401 => "unauthorized",
+                        403 => "forbidden",
+                        404 => "not_found",
+                        409 => "version_conflict",
+                        422 => "invalid_geometry_state",
+                        _ => "unknown",
+                    };
+                    let body = serde_json::json!({
+                        "code": code,
+                        "message": if code == "unknown" { "request failed" } else { code },
+                    });
+                    Ok(Response::builder()
+                        .status(status)
+                        .content_type("application/json")
+                        .body(body.to_string()))
                 }
             }
         }

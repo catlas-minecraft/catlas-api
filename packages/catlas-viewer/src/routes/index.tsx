@@ -18,7 +18,7 @@ function App() {
         noWrap={true}
         className="pixel-map"
       />
-      <ViewportLayer url={"/viewport"} />
+      <ViewportLayer url="/api/viewport" />
       <Coordinator />
     </CatlasMap>
   );

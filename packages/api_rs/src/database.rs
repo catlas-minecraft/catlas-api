@@ -14,6 +14,22 @@ const MIGRATION_LOCK_ID: i64 = 0x43_61_74_6c_61_73;
 pub type DatabasePool = Pool<ConnectionManager<PgConnection>>;
 pub type DatabaseError = Box<dyn Error + Send + Sync>;
 
+/// Diesel is deliberately kept off the async executor.  All API database work
+/// goes through this small helper so this rule cannot be accidentally missed.
+pub async fn blocking<T, F>(pool: &DatabasePool, work: F) -> Result<T, DatabaseError>
+where
+    T: Send + 'static,
+    F: FnOnce(&mut PgConnection) -> Result<T, DatabaseError> + Send + 'static,
+{
+    let pool = pool.clone();
+    tokio::task::spawn_blocking(move || {
+        let mut connection = pool.get()?;
+        work(&mut connection)
+    })
+    .await
+    .map_err(|error| std::io::Error::other(error.to_string()))?
+}
+
 #[derive(QueryableByName)]
 struct AdvisoryLockResult {
     #[diesel(sql_type = Bool)]
@@ -100,8 +116,8 @@ mod tests {
         );
         connection
             .batch_execute(
-                "DROP SCHEMA IF EXISTS auth CASCADE;
-                 DROP SCHEMA IF EXISTS core CASCADE;
+                "DROP SCHEMA IF EXISTS core CASCADE;
+                 DROP SCHEMA IF EXISTS draft CASCADE;
                  DROP SCHEMA IF EXISTS derived CASCADE;
                  DROP SCHEMA IF EXISTS history CASCADE;
                  DROP TABLE IF EXISTS public.__diesel_schema_migrations;
@@ -132,7 +148,6 @@ mod tests {
             "SELECT count(*)::bigint AS count
              FROM pg_tables
              WHERE (schemaname, tablename) IN (
-               ('auth', 'sessions'),
                ('core', 'changesets'),
                ('core', 'nodes'),
                ('core', 'ways'),
@@ -141,6 +156,11 @@ mod tests {
                ('core', 'relation_members'),
                ('derived', 'way_geometries'),
                ('derived', 'relation_geometries'),
+               ('draft', 'nodes'),
+               ('draft', 'ways'),
+               ('draft', 'way_nodes'),
+               ('draft', 'relations'),
+               ('draft', 'relation_members'),
                ('history', 'node_versions'),
                ('history', 'way_versions'),
                ('history', 'way_node_versions'),
@@ -161,7 +181,7 @@ mod tests {
 
         assert_eq!(migration_count.count, expected_migration_count);
         assert_eq!(postgis_count.count, 1);
-        assert_eq!(application_table_count.count, 14);
+        assert_eq!(application_table_count.count, 18);
         assert_eq!(published_index_count.count, 1);
     }
 }
