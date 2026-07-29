@@ -10,7 +10,6 @@ import {
   XIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
-import type { ChangesetSnapshot } from "@catlas/domain";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +31,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { CatlasEditor } from "@/lib/editor";
+import type { components } from "@/lib/editor/catlas-api.gen";
 
 const PAGE_SIZE = 50;
 
@@ -39,13 +39,13 @@ export const changesetsQueryKey = ["changesets"] as const;
 
 export type ChangesetPanelMode = "dock" | "overlay";
 
-const formatPublishedAt = (publishedAt: number | null) => {
+const formatPublishedAt = (publishedAt: string | null) => {
   if (publishedAt === null) return "Published date unavailable";
 
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(publishedAt);
+  }).format(Date.parse(publishedAt));
 };
 
 const errorMessage = (error: unknown) =>
@@ -225,7 +225,11 @@ export function EditorChangesetSidebar({
   );
 }
 
-function ChangesetListItem({ changeset }: { readonly changeset: ChangesetSnapshot }) {
+function ChangesetListItem({
+  changeset,
+}: {
+  readonly changeset: components["schemas"]["Changeset"];
+}) {
   const label = changeset.comment?.trim() || "No comment";
   const publishedAt = formatPublishedAt(changeset.publishedAt);
 

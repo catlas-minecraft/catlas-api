@@ -1,15 +1,15 @@
-import type {
-  ChangesetListPage,
-  ChangesetUploadDiffResult,
-  ChangesetUploadPayload,
-} from "@catlas/domain";
 import createClient from "openapi-fetch";
 import type { components, paths } from "./catlas-api.gen";
+import type { ChangesetUploadDiffResult, ChangesetUploadPayload } from "./changeset";
 
 type SessionInfo = { readonly username: string | null };
 type IdVersion = components["schemas"]["IdVersion"];
 type Changeset = components["schemas"]["Changeset"];
-type DiffEntry = { readonly oldId: number; readonly newId: number; readonly newVersion: number };
+
+export type ChangesetListPage = {
+  readonly changesets: readonly Changeset[];
+  readonly nextBeforeId: number | null;
+};
 
 const responseError = async (response: Response, error: unknown) => {
   let detail = "";
@@ -79,8 +79,8 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
     const changeset = await json<Changeset>(changesetResult);
     const changesetId = changeset.id;
     const nodeIds = new Map<number, { id: number; version: number }>();
-    const nodeResults: DiffEntry[] = [];
-    const wayResults: DiffEntry[] = [];
+    const nodeResults: ChangesetUploadDiffResult["nodes"][number][] = [];
+    const wayResults: ChangesetUploadDiffResult["ways"][number][] = [];
     const remapNode = (id: number) => nodeIds.get(id)?.id ?? id;
 
     try {
@@ -195,14 +195,7 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
       );
       const page = filtered.slice(0, limit);
       return {
-        changesets: page.map((changeset) => ({
-          id: changeset.id,
-          status: changeset.status,
-          comment: changeset.comment ?? null,
-          createdBy: changeset.createdBy,
-          createdAt: Date.parse(changeset.createdAt),
-          publishedAt: changeset.publishedAt ? Date.parse(changeset.publishedAt) : null,
-        })),
+        changesets: page,
         nextBeforeId: filtered.length > limit ? (page.at(-1)?.id ?? null) : null,
       };
     },

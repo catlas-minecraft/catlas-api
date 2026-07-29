@@ -10,22 +10,6 @@ export default defineConfig({
         find: /^@\/(.*)$/,
         replacement: fileURLToPath(new URL("./src/$1", import.meta.url)),
       },
-      {
-        find: /^@catlas\/domain$/,
-        replacement: fileURLToPath(new URL("../domain/src/index.ts", import.meta.url)),
-      },
-      {
-        find: /^@catlas\/domain\/(.*)$/,
-        replacement: fileURLToPath(new URL("../domain/src/$1", import.meta.url)),
-      },
-      {
-        find: /^@catlas\/schema$/,
-        replacement: fileURLToPath(new URL("../schema/src/index.ts", import.meta.url)),
-      },
-      {
-        find: /^@catlas\/schema\/(.*)$/,
-        replacement: fileURLToPath(new URL("../schema/src/$1", import.meta.url)),
-      },
     ],
   },
   server: {

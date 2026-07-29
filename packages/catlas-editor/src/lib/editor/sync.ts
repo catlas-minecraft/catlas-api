@@ -1,7 +1,6 @@
-import type { ChangesetUploadPayload } from "@catlas/domain";
 import type { Graph } from "../graph";
 import type { EditorApiService } from "./api-client";
-import { diffResultToRemaps } from "./changeset";
+import { diffResultToRemaps, type ChangesetUploadPayload } from "./changeset";
 import { viewportToEntities } from "./types";
 
 export const loadViewportEntities = (

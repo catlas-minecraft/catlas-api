@@ -18,16 +18,15 @@ editor manageable:
 6. `Presets` define game feature types, default tags, geometry, and snap policies.
 7. `Validation` reports structural issues before upload.
 8. `Renderer` draws areas, lines, nodes, midpoints, and active drawing state with D3/SVG.
-9. `Sync` loads viewport entities and uploads changesets through an Effect service.
+9. `Sync` loads viewport entities and uploads changesets through the Catlas API client.
 10. React renders the toolbar, inspector, validation state, and save controls around the editor.
 
 ## Authentication
 
-Editing is available without a session, but publishing requires a verified Catlas API session.
-The toolbar's developer sign-in creates a JWT from a user id through `POST /auth/sessions`.
-The token is stored in `sessionStorage`, verified on startup and immediately before publishing,
-and attached to write requests as `Authorization: Bearer <session-jwt>`. Signing out revokes the
-session when the API is reachable and always removes the local credential.
+Editing is available without a session, but publishing requires a Catlas API session.
+The toolbar's developer sign-in creates a cookie-backed session through `POST /auth/session`.
+The editor checks that session on startup and immediately before publishing. Signing out deletes
+the session when the API is reachable and always clears the local authentication state.
 
 Relations are deliberately outside the current editing surface. The graph and API
 boundaries leave room for them without mixing relation behavior into the first

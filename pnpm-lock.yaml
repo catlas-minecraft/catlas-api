@@ -70,9 +70,6 @@ importers:
 
   packages/catlas-editor:
     dependencies:
-      '@catlas/domain':
-        specifier: workspace:^
-        version: link:../domain/dist
       '@fontsource-variable/geist':
         specifier: ^5.2.9
         version: 5.2.9
