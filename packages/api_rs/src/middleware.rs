@@ -1,10 +1,12 @@
 use std::time::Instant;
 
+use opentelemetry::trace::TraceContextExt as _;
 use poem::{
     Endpoint, FromRequest, IntoResponse, Middleware, PathPattern, Request, Response, Result,
     web::RealIp,
 };
 use tracing::{Instrument, Level};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 #[derive(Default)]
 pub struct RequestTracing;
@@ -44,6 +46,7 @@ impl<E: Endpoint> Endpoint for RequestTracingEndpoint<E> {
             version = ?req.version(),
             method = %method,
             uri = %req.original_uri(),
+            http.route = tracing::field::Empty,
         );
         let span_for_name = span.clone();
 
@@ -113,11 +116,18 @@ fn record_span_name(
     fallback_span_name: &str,
     path_pattern: Option<&PathPattern>,
 ) {
+    if let Some(path_pattern) = path_pattern {
+        span.record("http.route", path_pattern.0.as_ref());
+    }
     let span_name = path_pattern.map_or_else(
         || fallback_span_name.to_owned(),
         |path_pattern| format!("{method} {}", path_pattern.0),
     );
     span.record("otel.name", span_name.as_str());
+
+    // A child span starts its OTel parent before the route is available. In that
+    // state tracing-opentelemetry cannot apply a late otel.name field update.
+    span.context().span().update_name(span_name);
 }
 
 #[cfg(test)]
@@ -143,7 +153,17 @@ mod tests {
         );
         let _subscriber = tracing::subscriber::set_default(subscriber);
         let app = Route::new()
-            .nest("/api", Route::new().at("/users/:id", make_sync(|_| "ok")))
+            .nest(
+                "/api",
+                Route::new().at(
+                    "/users/:id",
+                    make_sync(|_| {
+                        let child = tracing::info_span!("child");
+                        let _guard = child.enter();
+                        "ok"
+                    }),
+                ),
+            )
             .with(RequestTracing);
 
         let response = app
@@ -159,7 +179,14 @@ mod tests {
         tracer_provider.force_flush().unwrap();
 
         let spans = exporter.get_finished_spans().unwrap();
-        assert_eq!(spans.len(), 1);
-        assert_eq!(spans[0].name.as_ref(), "GET /api/users/:id");
+        assert_eq!(spans.len(), 2);
+        let request_span = spans
+            .iter()
+            .find(|span| span.name.as_ref() != "child")
+            .unwrap();
+        assert_eq!(request_span.name.as_ref(), "GET /api/users/:id");
+        assert!(request_span.attributes.iter().any(|attribute| {
+            attribute.key.as_str() == "http.route" && attribute.value.as_str() == "/api/users/:id"
+        }));
     }
 }
