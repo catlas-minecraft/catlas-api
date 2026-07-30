@@ -1,10 +1,10 @@
-use super::models::{
+use crate::modules::common::models::{
     ChangesetRow, INSERT_BATCH_SIZE, NewNode, NewNodeVersion, NewRelation, NewRelationMember,
     NewRelationMemberVersion, NewRelationVersion, NewWay, NewWayNode, NewWayNodeVersion,
     NewWayVersion,
 };
-use super::queries::lock_owned_changeset;
-use super::validation::validate_publication_topology;
+use crate::modules::common::queries::lock_owned_changeset;
+use crate::modules::common::validation::validate_publication_topology;
 use crate::{
     database,
     schema::{core, derived, draft, history},
@@ -130,7 +130,7 @@ pub(super) fn check_relation_id_conflicts(
     Ok(())
 }
 
-pub(super) fn publish_sync(
+pub(crate) fn publish_sync(
     c: &mut database::DatabaseConnection,
     id: i64,
     user: &str,

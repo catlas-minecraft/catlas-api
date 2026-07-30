@@ -13,7 +13,11 @@ pub fn openapi_service() -> OpenApiService<impl poem_openapi::OpenApi, ()> {
     OpenApiService::new(
         (
             modules::auth::AuthModule,
-            modules::geospatial::GeospatialModule,
+            modules::ChangesetsModule,
+            modules::NodesModule,
+            modules::WaysModule,
+            modules::RelationsModule,
+            modules::ViewportModule,
         ),
         "Catlas API",
         "1.0.0",

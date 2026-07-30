@@ -1,11 +1,11 @@
-use super::models::{
+use super::common::models::{
     EntityState, NewDraftMember, NewDraftNode, NewDraftRelation, NewDraftWay, NewDraftWayNode,
 };
-use super::publication::publish_sync;
-use super::queries::{expected_version, proposed_version};
-use super::types::Point;
-use super::validation::{validate_point, validate_tags, validate_way};
-use super::viewport::{bbox_geometry, parse_bbox, viewport_typed};
+use super::changesets::publication::publish_sync;
+use super::common::queries::{expected_version, proposed_version};
+use super::common::types::Point;
+use super::common::validation::{validate_point, validate_tags, validate_way};
+use super::viewport::queries::{bbox_geometry, parse_bbox, viewport_typed};
 use crate::{
     database,
     schema::{core, draft},

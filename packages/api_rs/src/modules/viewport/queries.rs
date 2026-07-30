@@ -1,4 +1,4 @@
-use super::types::{
+use crate::modules::common::types::{
     GeometryKind, Viewport, ViewportNode, ViewportRelation, ViewportRelationMember, ViewportWay,
     ViewportWayNode,
 };
@@ -27,7 +27,7 @@ fn parse_geometry_kind(value: String) -> Result<GeometryKind, database::Database
     }
 }
 
-pub(super) fn viewport_typed(
+pub(crate) fn viewport_typed(
     c: &mut database::DatabaseConnection,
     bbox: [f64; 4],
     include_relations: bool,
@@ -176,7 +176,7 @@ pub(super) fn viewport_typed(
                     Ok(ViewportNode {
                         id,
                         version,
-                        geom: super::types::Point { x, y, z },
+                        geom: crate::modules::common::types::Point { x, y, z },
                         feature_type,
                         tags: string_tags(value)?,
                         deleted_at: deleted_at.into(),
@@ -253,7 +253,7 @@ pub(super) fn viewport_typed(
     })
 }
 
-pub(super) fn parse_bbox(value: &str) -> Option<[f64; 4]> {
+pub(crate) fn parse_bbox(value: &str) -> Option<[f64; 4]> {
     let values: Vec<f64> = value
         .split(',')
         .map(str::parse::<f64>)
@@ -271,7 +271,7 @@ pub(super) fn parse_bbox(value: &str) -> Option<[f64; 4]> {
 
 /// Build the PostGIS ground-plane envelope used by spatial predicates.  API
 /// coordinates are X/Y/Z, while the stored SRID-0 geometry is X/Z.
-pub(super) fn bbox_geometry([min_x, min_z, max_x, max_z]: [f64; 4]) -> Polygon<PostgisPoint> {
+pub(crate) fn bbox_geometry([min_x, min_z, max_x, max_z]: [f64; 4]) -> Polygon<PostgisPoint> {
     Polygon {
         rings: vec![vec![
             PostgisPoint::new(min_x, min_z, Some(0)),

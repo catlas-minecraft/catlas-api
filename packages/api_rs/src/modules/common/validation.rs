@@ -24,18 +24,18 @@ diesel::define_sql_function! {
     fn st_is_valid_sql(geometry: postgis_diesel::sql_types::Geometry) -> diesel::sql_types::Bool;
 }
 
-pub(super) use self::st_is_closed_sql as st_is_closed;
-pub(super) use self::st_is_valid_sql as st_is_valid;
+pub(crate) use self::st_is_closed_sql as st_is_closed;
+pub(crate) use self::st_is_valid_sql as st_is_valid;
 
 /// Validate the final graph before changing any core row. Draft deletes must
 /// win over core rows in every effective-state predicate.
-pub(super) use self::st_make_polygon_sql as st_make_polygon;
+pub(crate) use self::st_make_polygon_sql as st_make_polygon;
 
-pub(super) fn tag_value(value: &std::collections::BTreeMap<String, String>) -> Result<Value> {
+pub(crate) fn tag_value(value: &std::collections::BTreeMap<String, String>) -> Result<Value> {
     serde_json::to_value(value)
         .map_err(|_| poem::Error::from_status(poem::http::StatusCode::BAD_REQUEST))
 }
-pub(super) fn validate_tags(value: &std::collections::BTreeMap<String, String>) -> Result<()> {
+pub(crate) fn validate_tags(value: &std::collections::BTreeMap<String, String>) -> Result<()> {
     if value.keys().any(|key| {
         matches!(
             key.as_str(),
@@ -54,7 +54,7 @@ pub(super) fn validate_tags(value: &std::collections::BTreeMap<String, String>) 
     }
     Ok(())
 }
-pub(super) fn validate_point(p: &Point) -> Result<()> {
+pub(crate) fn validate_point(p: &Point) -> Result<()> {
     if [p.x, p.y, p.z].iter().any(|v| !v.is_finite()) {
         Err(poem::Error::from_status(
             poem::http::StatusCode::UNPROCESSABLE_ENTITY,
@@ -63,7 +63,7 @@ pub(super) fn validate_point(p: &Point) -> Result<()> {
         Ok(())
     }
 }
-pub(super) fn validate_way(kind: &str, refs: &[i64]) -> Result<()> {
+pub(crate) fn validate_way(kind: &str, refs: &[i64]) -> Result<()> {
     let valid = match kind {
         "line" => {
             refs.len() >= 2 && refs.iter().collect::<std::collections::BTreeSet<_>>().len() >= 2
@@ -87,7 +87,7 @@ pub(super) fn validate_way(kind: &str, refs: &[i64]) -> Result<()> {
         ))
     }
 }
-pub(super) fn validate_members(members: &[RelationMember]) -> Result<()> {
+pub(crate) fn validate_members(members: &[RelationMember]) -> Result<()> {
     let mut seen = std::collections::BTreeSet::new();
     if !members.is_empty()
         && members.iter().all(|member| {
@@ -107,7 +107,7 @@ pub(super) fn validate_members(members: &[RelationMember]) -> Result<()> {
     }
 }
 #[derive(Debug)]
-pub(super) struct DomainFailure(pub(super) &'static str);
+pub(crate) struct DomainFailure(pub(crate) &'static str);
 impl fmt::Display for DomainFailure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.0)
@@ -115,7 +115,7 @@ impl fmt::Display for DomainFailure {
 }
 impl Error for DomainFailure {}
 
-pub(super) fn validate_publication_topology(
+pub(crate) fn validate_publication_topology(
     c: &mut database::DatabaseConnection,
     id: i64,
 ) -> Result<(), database::DatabaseError> {

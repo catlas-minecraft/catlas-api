@@ -14,12 +14,12 @@ use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, delete
 use serde_json::Value;
 use std::collections::HashSet;
 
-pub(super) fn node_json(row: (i64, i32, f64, f64, f64, String, DbJson)) -> Value {
+pub(crate) fn node_json(row: (i64, i32, f64, f64, f64, String, DbJson)) -> Value {
     let (id, version, x, y, z, feature_type, tags) = row;
     serde_json::json!({"id": id, "version": version, "geom": {"x": x, "y": y, "z": z}, "featureType": feature_type, "tags": tags})
 }
 
-pub(super) fn create_node_typed(
+pub(crate) fn create_node_typed(
     c: &mut database::DatabaseConnection,
     input: NodeInput,
     tags: DbJson,
@@ -46,7 +46,7 @@ pub(super) fn create_node_typed(
     Ok(IdRow { id, version: 1 })
 }
 
-pub(super) fn patch_node_typed(
+pub(crate) fn patch_node_typed(
     c: &mut database::DatabaseConnection,
     node_id: i64,
     input: NodePatch,
@@ -110,7 +110,7 @@ pub(super) fn patch_node_typed(
     })
 }
 
-pub(super) fn delete_node_typed(
+pub(crate) fn delete_node_typed(
     c: &mut database::DatabaseConnection,
     node_id: i64,
     input: DeleteInput,
@@ -161,19 +161,19 @@ pub(super) fn delete_node_typed(
     Ok(())
 }
 
-pub(super) fn way_json(row: (i64, i32, String, String, DbJson, Vec<i64>)) -> Value {
+pub(crate) fn way_json(row: (i64, i32, String, String, DbJson, Vec<i64>)) -> Value {
     let (id, version, feature_type, geometry_kind, tags, node_refs) = row;
     serde_json::json!({"id": id, "version": version, "featureType": feature_type, "geometryKind": geometry_kind, "nodeRefs": node_refs, "tags": tags})
 }
 
-pub(super) fn relation_json(row: (i64, i32, String, DbJson)) -> Value {
+pub(crate) fn relation_json(row: (i64, i32, String, DbJson)) -> Value {
     let (id, version, relation_type, tags) = row;
     serde_json::json!({"id": id, "version": version, "relationType": relation_type, "tags": tags})
 }
 
 macro_rules! state_helper {
     ($name:ident, $draft:ident, $core:ident, $message:literal) => {
-        pub(super) fn $name(
+        pub(crate) fn $name(
             c: &mut database::DatabaseConnection,
             changeset_id: i64,
             id: i64,
@@ -211,7 +211,7 @@ state_helper!(node_state, nodes, nodes, "node not found");
 state_helper!(way_state, ways, ways, "way not found");
 state_helper!(relation_state, relations, relations, "relation not found");
 
-pub(super) fn expected_version(state: &EntityState) -> Result<i32, database::DatabaseError> {
+pub(crate) fn expected_version(state: &EntityState) -> Result<i32, database::DatabaseError> {
     if state.operation == "create" {
         return Ok(1);
     }
@@ -226,7 +226,7 @@ pub(super) fn expected_version(state: &EntityState) -> Result<i32, database::Dat
     })
 }
 
-pub(super) fn proposed_version(state: &EntityState) -> Result<i32, database::DatabaseError> {
+pub(crate) fn proposed_version(state: &EntityState) -> Result<i32, database::DatabaseError> {
     if state.operation == "create" {
         return Ok(1);
     }
@@ -237,7 +237,7 @@ pub(super) fn proposed_version(state: &EntityState) -> Result<i32, database::Dat
         + 1)
 }
 
-pub(super) fn lock_owned_changeset(
+pub(crate) fn lock_owned_changeset(
     c: &mut database::DatabaseConnection,
     changeset_id: i64,
     user: &str,
@@ -253,7 +253,7 @@ pub(super) fn lock_owned_changeset(
         .ok_or_else(|| std::io::Error::other("changeset not found or not owned").into())
 }
 
-pub(super) fn create_way_typed(
+pub(crate) fn create_way_typed(
     c: &mut database::DatabaseConnection,
     input: WayInput,
     user: &str,
@@ -298,7 +298,7 @@ pub(super) fn create_way_typed(
     Ok(IdRow { id, version: 1 })
 }
 
-pub(super) fn patch_way_typed(
+pub(crate) fn patch_way_typed(
     c: &mut database::DatabaseConnection,
     way_id: i64,
     input: WayPatch,
@@ -377,7 +377,7 @@ pub(super) fn patch_way_typed(
     })
 }
 
-pub(super) fn delete_way_typed(
+pub(crate) fn delete_way_typed(
     c: &mut database::DatabaseConnection,
     way_id: i64,
     input: DeleteInput,
@@ -426,7 +426,7 @@ pub(super) fn delete_way_typed(
     Ok(())
 }
 
-pub(super) fn create_relation_typed(
+pub(crate) fn create_relation_typed(
     c: &mut database::DatabaseConnection,
     input: RelationInput,
     user: &str,
@@ -473,7 +473,7 @@ pub(super) fn create_relation_typed(
     Ok(IdRow { id, version: 1 })
 }
 
-pub(super) fn patch_relation_typed(
+pub(crate) fn patch_relation_typed(
     c: &mut database::DatabaseConnection,
     relation_id: i64,
     input: RelationPatch,
@@ -552,7 +552,7 @@ pub(super) fn patch_relation_typed(
     })
 }
 
-pub(super) fn delete_relation_typed(
+pub(crate) fn delete_relation_typed(
     c: &mut database::DatabaseConnection,
     relation_id: i64,
     input: DeleteInput,
@@ -597,7 +597,7 @@ pub(super) fn delete_relation_typed(
     Ok(())
 }
 
-pub(super) fn effective_nodes_exist(
+pub(crate) fn effective_nodes_exist(
     c: &mut database::DatabaseConnection,
     changeset_id: i64,
     refs: &[i64],
@@ -630,7 +630,7 @@ pub(super) fn effective_nodes_exist(
         .all(|id| (drafts.contains(id) || core_ids.contains(id)) && !deleted.contains(id)))
 }
 
-pub(super) fn member_exists(
+pub(crate) fn member_exists(
     c: &mut database::DatabaseConnection,
     changeset_id: i64,
     member: &RelationMember,

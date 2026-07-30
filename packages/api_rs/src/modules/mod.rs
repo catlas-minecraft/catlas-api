@@ -1,5 +1,23 @@
 pub mod auth;
-pub mod geospatial;
+pub mod changesets;
+pub(crate) mod common;
+pub mod nodes;
+pub mod relations;
+pub mod viewport;
+pub mod ways;
+
+#[cfg(test)]
+mod tests;
+
+pub use changesets::ChangesetsModule;
+pub use nodes::NodesModule;
+pub use relations::RelationsModule;
+pub use viewport::ViewportModule;
+pub use ways::WaysModule;
+pub use common::types::{
+    Changeset, ChangesetInput, DeleteInput, GeometryKind, IdVersion, NodeInput, NodePatch, Point,
+    RelationInput, RelationMember, RelationPatch, Viewport, WayInput, WayPatch,
+};
 
 use std::borrow::Cow;
 
