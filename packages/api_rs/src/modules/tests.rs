@@ -1,7 +1,7 @@
+use super::changesets::publication::publish_sync;
 use super::common::models::{
     EntityState, NewDraftMember, NewDraftNode, NewDraftRelation, NewDraftWay, NewDraftWayNode,
 };
-use super::changesets::publication::publish_sync;
 use super::common::queries::{expected_version, proposed_version};
 use super::common::types::Point;
 use super::common::validation::{validate_point, validate_tags, validate_way};

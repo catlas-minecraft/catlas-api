@@ -1,10 +1,10 @@
 use super::ChangesetsModule;
 use super::publication::publish_sync;
+use crate::modules::NoContent;
 use crate::modules::common::models::ChangesetRow;
 use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::support::{db_error, session_user};
 use crate::modules::common::types::{Changeset, ChangesetInput};
-use crate::modules::NoContent;
 use crate::{
     database::{self, DatabasePool},
     schema::{core, draft},
@@ -12,11 +12,7 @@ use crate::{
 };
 use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, insert_into};
 use poem::{Result, session::Session, web::Data};
-use poem_openapi::{
-    OpenApi,
-    param::Path,
-    payload::Json,
-};
+use poem_openapi::{OpenApi, param::Path, payload::Json};
 
 #[OpenApi(prefix_path = "/", tag = CatlasTags::Entities)]
 impl ChangesetsModule {

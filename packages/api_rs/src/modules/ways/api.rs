@@ -1,14 +1,18 @@
 use super::WaysModule;
 use crate::modules::NoContent;
 use crate::modules::common::models::IdRow;
+use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::queries::{
     create_way_typed, delete_way_typed, patch_way_typed, way_json,
 };
-use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::support::{db_error, session_user};
 use crate::modules::common::types::{DeleteInput, IdVersion, WayInput, WayPatch};
 use crate::modules::common::validation::{validate_tags, validate_way};
-use crate::{database::{self, DatabasePool}, schema::core, tags::CatlasTags};
+use crate::{
+    database::{self, DatabasePool},
+    schema::core,
+    tags::CatlasTags,
+};
 use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use poem::{Result, session::Session, web::Data};
 use poem_openapi::{OpenApi, param::Path, payload::Json};
@@ -36,7 +40,13 @@ impl WaysModule {
                     core::ways::geometry_kind,
                     core::ways::tags,
                 ))
-                .first::<(i64, i32, String, String, crate::modules::common::models::DbJson)>(c)?;
+                .first::<(
+                    i64,
+                    i32,
+                    String,
+                    String,
+                    crate::modules::common::models::DbJson,
+                )>(c)?;
             let refs = core::way_nodes::table
                 .filter(core::way_nodes::way_id.eq(id))
                 .order_by(core::way_nodes::seq)

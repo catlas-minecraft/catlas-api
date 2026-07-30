@@ -1,14 +1,18 @@
 use super::RelationsModule;
 use crate::modules::NoContent;
 use crate::modules::common::models::IdRow;
+use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::queries::{
     create_relation_typed, delete_relation_typed, patch_relation_typed, relation_json,
 };
-use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::support::{db_error, session_user};
 use crate::modules::common::types::{DeleteInput, IdVersion, RelationInput, RelationPatch};
 use crate::modules::common::validation::{validate_members, validate_tags};
-use crate::{database::{self, DatabasePool}, schema::core, tags::CatlasTags};
+use crate::{
+    database::{self, DatabasePool},
+    schema::core,
+    tags::CatlasTags,
+};
 use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use poem::{Result, session::Session, web::Data};
 use poem_openapi::{OpenApi, param::Path, payload::Json};

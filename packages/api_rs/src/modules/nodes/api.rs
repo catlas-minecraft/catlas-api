@@ -1,14 +1,18 @@
 use super::NodesModule;
 use crate::modules::NoContent;
 use crate::modules::common::models::IdRow;
+use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::queries::{
     create_node_typed, delete_node_typed, node_json, patch_node_typed,
 };
-use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::support::{db_error, session_user};
 use crate::modules::common::types::{DeleteInput, IdVersion, NodeInput, NodePatch};
 use crate::modules::common::validation::{tag_value, validate_point, validate_tags};
-use crate::{database::{self, DatabasePool}, schema::core, tags::CatlasTags};
+use crate::{
+    database::{self, DatabasePool},
+    schema::core,
+    tags::CatlasTags,
+};
 use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use poem::{Result, session::Session, web::Data};
 use poem_openapi::{OpenApi, param::Path, payload::Json};
@@ -38,7 +42,15 @@ impl NodesModule {
                     core::nodes::feature_type,
                     core::nodes::tags,
                 ))
-                .first::<(i64, i32, f64, f64, f64, String, crate::modules::common::models::DbJson)>(c)
+                .first::<(
+                    i64,
+                    i32,
+                    f64,
+                    f64,
+                    f64,
+                    String,
+                    crate::modules::common::models::DbJson,
+                )>(c)
                 .map_err(Into::into)
         })
         .await
