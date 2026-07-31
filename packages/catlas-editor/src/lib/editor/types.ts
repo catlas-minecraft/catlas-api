@@ -1,4 +1,4 @@
-import type { NodeSnapshot, ViewportSnapshot, WayNodeSnapshot, WaySnapshot } from "@catlas/domain";
+import type { components } from "./catlas-api.gen";
 
 export type EntityType = "node" | "way";
 export type GeometryType = "point" | "line" | "area";
@@ -67,13 +67,16 @@ export type EditorSaveState =
   | { readonly status: "idle" }
   | { readonly status: "saving" }
   | { readonly status: "saved"; readonly message: string }
-  | { readonly status: "error"; readonly message: string; readonly conflict: boolean };
+  | { readonly status: "error"; readonly message: string };
 
 export type EditorAuthState =
   | { readonly status: "anonymous" }
   | { readonly status: "checking" }
   | { readonly status: "authenticating" }
-  | { readonly status: "authenticated"; readonly userId: string; readonly expiresAt: number }
+  | {
+      readonly status: "authenticated";
+      readonly user: { readonly id: number; readonly username: string };
+    }
   | { readonly status: "error"; readonly message: string };
 
 export type EditorSnapshot = {
@@ -125,7 +128,7 @@ export const entityRef = (entity: EditorEntity): EntityRef => ({
 export const sameEntityRef = (left: EntityRef | null, right: EntityRef | null) =>
   left?.type === right?.type && left?.id === right?.id;
 
-const toNodeEntity = (node: NodeSnapshot): NodeEntity => ({
+const toNodeEntity = (node: components["schemas"]["ViewportNode"]): NodeEntity => ({
   type: "node",
   id: node.id,
   version: node.version,
@@ -134,7 +137,10 @@ const toNodeEntity = (node: NodeSnapshot): NodeEntity => ({
   geom: { x: node.geom.x, y: node.geom.y, z: node.geom.z },
 });
 
-const toWayEntity = (way: WaySnapshot, wayNodes: readonly WayNodeSnapshot[]): WayEntity => ({
+const toWayEntity = (
+  way: components["schemas"]["ViewportWay"],
+  wayNodes: readonly components["schemas"]["ViewportWayNode"][],
+): WayEntity => ({
   type: "way",
   id: way.id,
   version: way.version,
@@ -147,11 +153,11 @@ const toWayEntity = (way: WaySnapshot, wayNodes: readonly WayNodeSnapshot[]): Wa
     .map((wayNode) => wayNode.nodeId),
 });
 
-export const viewportToEntities = (snapshot: ViewportSnapshot): ViewportEntities => {
-  const nodes = snapshot.nodes.filter((node) => node.deletedAt === null).map(toNodeEntity);
-  const ways = snapshot.ways
-    .filter((way) => way.deletedAt === null)
-    .map((way) => toWayEntity(way, snapshot.wayNodes));
+export const viewportToEntities = (
+  snapshot: components["schemas"]["Viewport"],
+): ViewportEntities => {
+  const nodes = snapshot.nodes.map(toNodeEntity);
+  const ways = snapshot.ways.map((way) => toWayEntity(way, snapshot.wayNodes));
   const entities: EditorEntity[] = [...nodes, ...ways];
 
   return {

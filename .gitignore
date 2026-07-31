@@ -5,7 +5,9 @@ node_modules/
 tmp/
 dist/
 build/
-docs/
+docs/*
+!docs/
+!docs/geospatial-api-spec.md
 scratchpad/*
 !scratchpad/tsconfig.json
 .direnv/
@@ -18,3 +20,8 @@ scratchpad/*
 .cache
 
 packages/*/public/tiles
+
+
+# Added by cargo
+
+/target

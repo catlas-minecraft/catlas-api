@@ -4,5 +4,8 @@ export default defineConfig({
   staged: {
     "*": "vp check --fix",
   },
-  lint: { options: { typeAware: true, typeCheck: true } },
+  lint: {
+    ignorePatterns: ["packages/catlas-editor/src/lib/editor/catlas-api.gen.ts"],
+    options: { typeAware: true, typeCheck: true },
+  },
 });

@@ -38,22 +38,6 @@
         "name": "@effect/language-service"
       }
     ],
-    "paths": {
-      "@catlas/api": ["./packages/api/src/index.js"],
-      "@catlas/api/*": ["./packages/api/src/*.js"],
-      "@catlas/api/test/*": ["./packages/api/test/*.js"],
-      "@catlas/db": ["./packages/db/src/index.js"],
-      "@catlas/db/*": ["./packages/db/src/*.js"],
-      "@catlas/db/test/*": ["./packages/db/test/*.js"],
-      "@catlas/domain": ["./packages/domain/src/index.js"],
-      "@catlas/domain/*": ["./packages/domain/src/*.js"],
-      "@catlas/domain/test/*": ["./packages/domain/test/*.js"],
-      "@catlas/louis": ["./packages/louis/src/index.js"],
-      "@catlas/louis/*": ["./packages/louis/src/*.js"],
-      "@catlas/schema": ["./packages/schema/src/index.js"],
-      "@catlas/schema/*": ["./packages/schema/src/*.js"],
-      "@catlas/schema/test/*": ["./packages/schema/test/*.js"],
-      "@catlas/louis/test/*": ["./packages/louis/test/*.js"]
-    }
+    "paths": {}
   }
 }

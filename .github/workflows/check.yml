@@ -18,9 +18,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          run-install: false
       - name: Install dependencies
         uses: ./.github/actions/setup
-      - run: pnpm codegen
+      - name: Install PostgreSQL client library
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
+      - run: vp run codegen
       - name: Check source state
         run: git add packages/*/src && git diff-index --cached HEAD --exit-code
           packages/*/src
@@ -44,3 +49,42 @@ jobs:
       - run: pnpm vitest
         env:
           NODE_OPTIONS: --max_old_space_size=8192
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgis:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: catlas_test
+          POSTGRES_USER: catlas
+          POSTGRES_PASSWORD: catlas
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U catlas -d catlas_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client library
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - run: cargo test --workspace --all-targets --locked
+      - name: Test Diesel migrations
+        run: cargo test -p catlas-api database::tests::applies_migrations_idempotently --locked -- --ignored
+        env:
+          TEST_DATABASE_URL: postgresql://catlas:catlas@127.0.0.1:5432/catlas_test
+      - name: Test geospatial publication
+        run: cargo test -p catlas-api modules::geospatial::tests::publishes_and_queries_a_spatial_graph --locked -- --ignored --exact
+        env:
+          TEST_DATABASE_URL: postgresql://catlas:catlas@127.0.0.1:5432/catlas_test
+      - name: Install Diesel CLI
+        run: cargo install diesel_cli --version 2.3.10 --no-default-features --features postgres --locked
+      - name: Check Diesel schema
+        run: bash scripts/generate-diesel-schema.sh --direct && git diff --exit-code -- packages/api_rs/src/schema.rs
+        env:
+          DATABASE_URL: postgresql://catlas:catlas@127.0.0.1:5432/catlas_test
