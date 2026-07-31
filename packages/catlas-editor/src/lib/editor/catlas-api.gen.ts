@@ -672,6 +672,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Look up a public user by user ID. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["User"];
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -696,7 +739,7 @@ export interface components {
         ChangesetStatus: "open" | "published" | "abandoned";
         /** CreateSession */
         CreateSession: {
-            username: string;
+            userId: string;
         };
         /** DeleteInput */
         DeleteInput: {
@@ -785,6 +828,7 @@ export interface components {
         User: {
             /** Format: int64 */
             id: number;
+            userId: string;
             username: string;
         };
         /** Viewport */

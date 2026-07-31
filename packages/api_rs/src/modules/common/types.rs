@@ -32,6 +32,7 @@ pub enum ChangesetStatus {
 #[oai(rename_all = "camelCase")]
 pub struct User {
     pub id: i64,
+    pub user_id: String,
     pub username: String,
 }
 

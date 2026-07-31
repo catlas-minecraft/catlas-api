@@ -731,6 +731,10 @@ pub(crate) fn publish_sync(
         status: row.1,
         comment: row.2,
         created_by_user_id: row.3,
+        created_by_user_id_public: core::users::table
+            .filter(core::users::id.eq(row.3))
+            .select(core::users::user_id)
+            .first(c)?,
         created_by_username: core::users::table
             .filter(core::users::id.eq(row.3))
             .select(core::users::username)

@@ -79,6 +79,7 @@ pub mod core {
             id -> Int8,
             username -> Text,
             created_at -> Timestamptz,
+            user_id -> Text,
         }
     }
 

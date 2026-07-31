@@ -3,6 +3,7 @@ pub mod changesets;
 pub(crate) mod common;
 pub mod nodes;
 pub mod relations;
+pub mod users;
 pub mod viewport;
 pub mod ways;
 
@@ -16,6 +17,7 @@ pub use common::types::{
 };
 pub use nodes::NodesModule;
 pub use relations::RelationsModule;
+pub use users::UsersModule;
 pub use viewport::ViewportModule;
 pub use ways::WaysModule;
 

@@ -14,6 +14,7 @@ impl From<ChangesetRow> for Changeset {
             comment: row.comment.into(),
             created_by: super::types::User {
                 id: row.created_by_user_id,
+                user_id: row.created_by_user_id_public,
                 username: row.created_by_username,
             },
             created_at: row.created_at,

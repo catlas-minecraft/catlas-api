@@ -90,9 +90,17 @@ mod tests {
         sql_query,
         sql_types::{BigInt, Jsonb, Text},
     };
+    use poem::{
+        EndpointExt, Route,
+        http::StatusCode,
+        session::{CookieConfig, MemoryStorage, ServerSession},
+        test::TestClient,
+    };
 
     use super::{MIGRATIONS, connect_and_migrate};
     use crate::modules::auth::provision_user;
+    use crate::modules::users::find_user;
+    use crate::openapi_service;
 
     #[derive(QueryableByName)]
     struct Count {
@@ -110,6 +118,16 @@ mod tests {
     struct Id {
         #[diesel(sql_type = BigInt)]
         id: i64,
+    }
+
+    #[derive(QueryableByName)]
+    struct UserRecord {
+        #[diesel(sql_type = BigInt)]
+        id: i64,
+        #[diesel(sql_type = Text)]
+        user_id: String,
+        #[diesel(sql_type = Text)]
+        username: String,
     }
 
     #[derive(QueryableByName)]
@@ -180,21 +198,110 @@ mod tests {
         connect_and_migrate(database_url).expect("second migration run failed");
 
         let mut connection = pool.get().expect("database connection failed");
-        let first = provision_user(&mut connection, "ProvisionedUser")
+        let first = provision_user(&mut connection, "provisioned-user")
             .expect("first user provisioning failed");
-        let same = provision_user(&mut connection, "ProvisionedUser")
+        let same = provision_user(&mut connection, "provisioned-user")
             .expect("second user provisioning failed");
-        let case_distinct = provision_user(&mut connection, "provisioneduser")
-            .expect("case-distinct user provisioning failed");
         assert_eq!(first, same);
-        assert_ne!(first.0, case_distinct.0);
-        assert_eq!(case_distinct.1, "provisioneduser");
-        let legacy_user_count = sql_query(
-            "SELECT count(*)::bigint AS count FROM core.users WHERE username = 'legacy-user'",
+        assert_eq!(first.1, "provisioned-user");
+        assert_eq!(first.2, "provisioned-user");
+        sql_query(
+            "INSERT INTO core.users (user_id, username) VALUES ('named-user', 'Display Name')",
         )
-        .get_result::<Count>(&mut connection)
+        .execute(&mut connection)
+        .expect("display-name user creation failed");
+        let named = provision_user(&mut connection, "named-user")
+            .expect("existing user provisioning failed");
+        assert_eq!(named.2, "Display Name");
+        let legacy_user = sql_query(
+            "SELECT id, user_id, username FROM core.users WHERE username = 'legacy-user'",
+        )
+        .get_result::<UserRecord>(&mut connection)
         .expect("legacy user query failed");
-        assert_eq!(legacy_user_count.count, 1);
+        assert_eq!(legacy_user.user_id, format!("user_{}", legacy_user.id));
+        assert_eq!(legacy_user.username, "legacy-user");
+        assert_eq!(
+            find_user(&mut connection, &legacy_user.user_id)
+                .expect("public user lookup failed")
+                .expect("legacy user was not found")
+                .username,
+            "legacy-user"
+        );
+        assert!(
+            find_user(&mut connection, "missing-user")
+                .expect("missing public user lookup failed")
+                .is_none()
+        );
+        sql_query(
+            "INSERT INTO core.users (user_id, username) VALUES ('another-user', 'legacy-user')",
+        )
+        .execute(&mut connection)
+        .expect("user display names should not be unique");
+        assert!(
+            sql_query(
+                "INSERT INTO core.users (user_id, username) VALUES ('Invalid-ID', 'invalid')",
+            )
+            .execute(&mut connection)
+            .is_err()
+        );
+
+        let http_user = provision_user(&mut connection, "http-user")
+            .expect("HTTP test user provisioning failed");
+        tokio::runtime::Runtime::new()
+            .expect("test runtime creation failed")
+            .block_on(async {
+                let app = Route::new()
+                    .nest("/api", openapi_service())
+                    .with(ServerSession::new(
+                        CookieConfig::default(),
+                        MemoryStorage::new(),
+                    ))
+                    .data(pool.clone());
+                let client = TestClient::new(app);
+                client
+                    .post("/api/auth/session")
+                    .body_json(&serde_json::json!({ "userId": " padded-user " }))
+                    .send()
+                    .await
+                    .assert_status(StatusCode::BAD_REQUEST);
+                client
+                    .post("/api/auth/session")
+                    .body_json(&serde_json::json!({ "userId": "http-user" }))
+                    .send()
+                    .await
+                    .assert_json(serde_json::json!({
+                        "user": {
+                            "id": http_user.0,
+                            "userId": http_user.1,
+                            "username": http_user.2
+                        }
+                    }))
+                    .await;
+                client
+                    .post("/api/auth/session")
+                    .body_json(&serde_json::json!({
+                        "userId": "valid-user",
+                        "username": "legacy-field"
+                    }))
+                    .send()
+                    .await
+                    .assert_status(StatusCode::BAD_REQUEST);
+                client
+                    .get("/api/users/user_1")
+                    .send()
+                    .await
+                    .assert_json(serde_json::json!({
+                        "id": legacy_user.id,
+                        "userId": legacy_user.user_id,
+                        "username": "legacy-user"
+                    }))
+                    .await;
+                client
+                    .get("/api/users/missing-user")
+                    .send()
+                    .await
+                    .assert_status(StatusCode::NOT_FOUND);
+            });
         let snapshots = sql_query(
             "SELECT snapshot FROM history.node_versions WHERE node_id = 9001 ORDER BY version",
         )

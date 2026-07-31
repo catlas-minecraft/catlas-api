@@ -36,7 +36,7 @@ type AuthControlProps = {
 
 export function AuthControl({ editor, snapshot }: AuthControlProps) {
   const [open, setOpen] = useState(false);
-  const [username, setUsername] = useState("demo-user");
+  const [userId, setUserId] = useState("demo-user");
   const auth = snapshot.auth;
   const isBusy = auth.status === "checking" || auth.status === "authenticating";
 
@@ -105,25 +105,25 @@ export function AuthControl({ editor, snapshot }: AuthControlProps) {
       <PopoverContent align="end" className="w-80">
         <PopoverHeader>
           <PopoverTitle>Developer sign in</PopoverTitle>
-          <PopoverDescription>Enter the username used to attribute changesets.</PopoverDescription>
+          <PopoverDescription>Enter the public ID used to attribute changesets.</PopoverDescription>
         </PopoverHeader>
         <form
           className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
-            void editor.login(username);
+            void editor.login(userId);
           }}
         >
           <FieldGroup className="gap-3">
             <Field data-invalid={auth.status === "error"}>
-              <FieldLabel htmlFor="developer-username">Username</FieldLabel>
+              <FieldLabel htmlFor="developer-user-id">Public user ID</FieldLabel>
               <Input
                 aria-invalid={auth.status === "error"}
                 autoFocus
                 disabled={isBusy}
-                id="developer-username"
-                onChange={(event) => setUsername(event.target.value)}
-                value={username}
+                id="developer-user-id"
+                onChange={(event) => setUserId(event.target.value)}
+                value={userId}
               />
               <FieldDescription>This id is attached to published changesets.</FieldDescription>
               <FieldError>{auth.status === "error" ? auth.message : null}</FieldError>
@@ -140,7 +140,7 @@ export function AuthControl({ editor, snapshot }: AuthControlProps) {
             >
               Cancel
             </Button>
-            <Button disabled={isBusy || !username.trim()} type="submit">
+            <Button disabled={isBusy || !userId.trim()} type="submit">
               {auth.status === "authenticating" ? (
                 <Spinner data-icon="inline-start" />
               ) : (

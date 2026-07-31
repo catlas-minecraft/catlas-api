@@ -51,7 +51,7 @@ const noContent = async (result: { error?: unknown; response: Response }) => {
 
 export type EditorApiService = {
   readonly getSession: () => Promise<SessionInfo>;
-  readonly createSession: (username: string) => Promise<SessionInfo>;
+  readonly createSession: (userId: string) => Promise<SessionInfo>;
   readonly deleteSession: () => Promise<void>;
   readonly loadViewport: (
     bbox: readonly [number, number, number, number],
@@ -175,9 +175,9 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
       );
       return { user: session.user ?? null };
     },
-    createSession: async (username) => {
+    createSession: async (userId) => {
       const session = await json<components["schemas"]["SessionInfo"]>(
-        await client.POST("/auth/session", { body: { username } }),
+        await client.POST("/auth/session", { body: { userId } }),
       );
       return { user: session.user ?? null };
     },

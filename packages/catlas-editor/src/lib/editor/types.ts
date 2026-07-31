@@ -75,7 +75,7 @@ export type EditorAuthState =
   | { readonly status: "authenticating" }
   | {
       readonly status: "authenticated";
-      readonly user: { readonly id: number; readonly username: string };
+      readonly user: { readonly id: number; readonly userId: string; readonly username: string };
     }
   | { readonly status: "error"; readonly message: string };
 

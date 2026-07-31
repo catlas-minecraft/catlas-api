@@ -18,9 +18,26 @@ pub fn openapi_service() -> OpenApiService<impl poem_openapi::OpenApi, ()> {
             modules::WaysModule,
             modules::RelationsModule,
             modules::ViewportModule,
+            modules::UsersModule,
         ),
         "Catlas API",
         "1.0.0",
     )
     .server("/api")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::openapi_service;
+    use serde_json::Value;
+
+    #[test]
+    fn user_lookup_openapi_contract() {
+        let spec: Value = serde_json::from_str(openapi_service().spec().as_str()).unwrap();
+        let user_path = &spec["paths"]["/users/{userId}"]["get"];
+        assert!(user_path.is_object());
+        assert_eq!(user_path["parameters"][0]["name"], "userId");
+        assert!(user_path["responses"]["404"].is_object());
+        assert!(spec["components"]["schemas"]["User"]["properties"]["userId"].is_object());
+    }
 }

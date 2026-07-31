@@ -20,8 +20,10 @@ pub struct SessionInfo {
 }
 
 #[derive(Object, Deserialize)]
+#[oai(rename_all = "camelCase")]
+#[oai(deny_unknown_fields)]
 pub struct CreateSession {
-    pub username: String,
+    pub user_id: String,
 }
 
 #[derive(QueryableByName)]
@@ -30,22 +32,24 @@ struct UserRow {
     id: i64,
     #[diesel(sql_type = Text)]
     username: String,
+    #[diesel(sql_type = Text)]
+    user_id: String,
 }
 
 pub struct AuthModule;
 
 pub(crate) fn provision_user(
     connection: &mut DatabaseConnection,
-    username: &str,
-) -> Result<(i64, String), DatabaseError> {
+    user_id: &str,
+) -> Result<(i64, String, String), DatabaseError> {
     sql_query(
-        r#"INSERT INTO core.users (username) VALUES ($1)
-           ON CONFLICT (username) DO UPDATE SET username = EXCLUDED.username
-           RETURNING id, username"#,
+        r#"INSERT INTO core.users (user_id, username) VALUES ($1, $1)
+           ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
+           RETURNING id, user_id, username"#,
     )
-    .bind::<Text, _>(username)
+    .bind::<Text, _>(user_id)
     .get_result::<UserRow>(connection)
-    .map(|row| (row.id, row.username))
+    .map(|row| (row.id, row.user_id, row.username))
     .map_err(Into::into)
 }
 
@@ -63,8 +67,8 @@ impl AuthModule {
             database::blocking(pool, move |c| {
                 core::users::table
                     .filter(core::users::id.eq(user_id))
-                    .select((core::users::id, core::users::username))
-                    .first::<(i64, String)>(c)
+                    .select((core::users::id, core::users::user_id, core::users::username))
+                    .first::<(i64, String, String)>(c)
                     .optional()
                     .map_err(Into::into)
             })
@@ -77,7 +81,11 @@ impl AuthModule {
             session.purge();
         }
         Ok(Json(SessionInfo {
-            user: Nullable(user.map(|(id, username)| User { id, username })),
+            user: Nullable(user.map(|(id, user_id, username)| User {
+                id,
+                user_id,
+                username,
+            })),
         }))
     }
 
@@ -91,14 +99,19 @@ impl AuthModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> poem::Result<Json<SessionInfo>> {
-        let username = request.username.trim();
-        if username.is_empty() || username.len() > 128 {
+        let user_id = request.user_id.as_str();
+        if user_id.is_empty()
+            || user_id.len() > 128
+            || !user_id.bytes().all(|byte| {
+                byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_' || byte == b'-'
+            })
+        {
             return Err(poem::Error::from_status(
                 poem::http::StatusCode::BAD_REQUEST,
             ));
         }
-        let username = username.to_owned();
-        let user = database::blocking(pool, move |c| provision_user(c, &username))
+        let user_id = user_id.to_owned();
+        let user = database::blocking(pool, move |c| provision_user(c, &user_id))
             .await
             .map_err(crate::modules::common::support::db_error)?;
         session.renew();
@@ -106,7 +119,8 @@ impl AuthModule {
         Ok(Json(SessionInfo {
             user: Nullable(Some(User {
                 id: user.0,
-                username: user.1,
+                user_id: user.1,
+                username: user.2,
             })),
         }))
     }

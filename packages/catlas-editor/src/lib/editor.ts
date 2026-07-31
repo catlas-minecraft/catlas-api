@@ -326,14 +326,14 @@ export class CatlasEditor {
     this.operation("delete").execute();
   }
 
-  async login(username: string) {
-    const normalizedUsername = username.trim();
-    if (!normalizedUsername || this.#authState.status === "authenticating") return;
+  async login(userId: string) {
+    const normalizedUserId = userId.trim();
+    if (!normalizedUserId || this.#authState.status === "authenticating") return;
 
     this.#authState = { status: "authenticating" };
     this.#emit();
     try {
-      const session = await this.#api.createSession(normalizedUsername);
+      const session = await this.#api.createSession(normalizedUserId);
       if (!session.user) throw new Error("The API did not create a session.");
       this.#authState = { status: "authenticated", user: session.user };
       this.#saveState = this.#saveState.status === "error" ? { status: "idle" } : this.#saveState;

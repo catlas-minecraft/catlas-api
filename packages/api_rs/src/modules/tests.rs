@@ -82,7 +82,10 @@ fn publishes_and_queries_a_spatial_graph() {
 
     connection.test_transaction::<_, database::DatabaseError, _>(|connection| {
         let user_id = insert_into(core::users::table)
-            .values(core::users::username.eq("integration-test"))
+            .values((
+                core::users::user_id.eq("integration-test"),
+                core::users::username.eq("integration-test"),
+            ))
             .returning(core::users::id)
             .get_result::<i64>(connection)?;
         let changeset_id = insert_into(core::changesets::table)

@@ -549,6 +549,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-io"
+version = "0.3.33"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4577ecaa3c4f96589d473f679a71b596316f6641bc350038b962a5daf0085d7a"
+
+[[package]]
 name = "futures-macro"
 version = "0.3.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -578,11 +584,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a77a90a256fce34da66415271e30f94ee91c57b04b8a2c042d9cf3220179deaa"
 dependencies = [
  "futures-core",
+ "futures-io",
  "futures-macro",
  "futures-sink",
  "futures-task",
+ "memchr",
  "pin-project-lite",
  "slab",
+]
+
+[[package]]
+name = "futures_codec"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad004dd81205978a2bba6c566ed70535ccf88c0be34649e628186474603f43ca"
+dependencies = [
+ "bytes",
+ "futures-sink",
+ "futures-util",
+ "memchr",
+ "pin-project-lite",
 ]
 
 [[package]]
@@ -1296,6 +1317,7 @@ dependencies = [
  "serde_urlencoded",
  "serde_yaml",
  "smallvec",
+ "sse-codec",
  "sync_wrapper",
  "tempfile",
  "thiserror",
@@ -1864,6 +1886,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3763264f6b73151db08c50ff20d7d8a0b8796e021cdea7ceedad07b80155fa0e"
 
 [[package]]
+name = "sse-codec"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a395a858c7ff5c4b42aeab0501e07c978ac5e1ae5059f301884dab3fa405f47"
+dependencies = [
+ "futures-io",
+ "futures_codec",
+ "memchr",
+]
+
+[[package]]
 name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2051,6 +2084,7 @@ checksum = "9ae9cec805b01e8fc3fd2fe289f89149a9b66dd16786abd8b19cfa7b48cb0098"
 dependencies = [
  "bytes",
  "futures-core",
+ "futures-io",
  "futures-sink",
  "pin-project-lite",
  "tokio",
