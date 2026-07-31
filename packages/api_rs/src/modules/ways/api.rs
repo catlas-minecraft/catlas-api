@@ -69,13 +69,13 @@ impl WaysModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<IdVersion>> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         validate_tags(&input.tags)?;
         validate_way(input.geometry_kind.as_str(), &input.node_refs)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, &user)?;
-                create_way_typed(c, input, &user)
+                lock_owned_changeset(c, input.changeset_id, user)?;
+                create_way_typed(c, input, user)
             })
         })
         .await
@@ -94,13 +94,13 @@ impl WaysModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<IdVersion>> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         validate_tags(&input.tags)?;
         validate_way(input.geometry_kind.as_str(), &input.node_refs)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, &user)?;
-                patch_way_typed(c, way_id, input, &user)
+                lock_owned_changeset(c, input.changeset_id, user)?;
+                patch_way_typed(c, way_id, input, user)
             })
         })
         .await
@@ -119,11 +119,11 @@ impl WaysModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<NoContent> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, &user)?;
-                delete_way_typed(c, way_id, input, &user)
+                lock_owned_changeset(c, input.changeset_id, user)?;
+                delete_way_typed(c, way_id, input, user)
             })
         })
         .await

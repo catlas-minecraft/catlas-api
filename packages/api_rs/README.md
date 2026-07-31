@@ -31,7 +31,10 @@ cargo run -p catlas-api
 under `/api`; interactive Scalar documentation is at `/docs` and the OpenAPI
 document is `/api/openapi.json`. Sessions use an HttpOnly, SameSite=Lax cookie
 and the in-memory Poem session store. `POST /api/auth/session` accepts a
-non-empty `username` and `DELETE` logs out.
+non-empty `username`, creates or reuses the matching user, stores its ID in the
+session, and returns `{ "user": { "id": number, "username": string } }`.
+`GET` returns the same user object (or `null` for an anonymous/stale session),
+and `DELETE` logs out.
 
 Regenerate the Editor's `openapi-fetch` types directly from the Rust service:
 

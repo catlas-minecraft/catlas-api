@@ -6,13 +6,14 @@ is rooted at `/api`; the retired TypeScript API is not a compatibility target.
 ## Session
 
 `GET`, `POST`, and `DELETE /api/auth/session` manage a temporary Poem
-`MemoryStorage` cookie session. `POST` accepts `{ "username": string }`. The
-username is the editing actor and changeset owner. Sessions are intentionally
-development-only: they are lost on restart and do not authenticate ownership
-of the supplied username.
+`MemoryStorage` cookie session. `POST` accepts `{ "username": string }`,
+automatically creates or reuses the exact case-sensitive username, and returns
+`{ "user": { "id": number, "username": string } }`. Sessions store only the
+user ID; `GET` resolves it to a user (or returns `user: null` when stale).
+Sessions are intentionally development-only and are lost on restart.
 
 Viewport and entity reads are public. Changeset and entity writes require a
-session and may only mutate changesets owned by the session username.
+session and may only mutate changesets owned by the session user ID.
 
 ## Coordinates
 

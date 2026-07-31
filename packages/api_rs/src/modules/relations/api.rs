@@ -57,7 +57,7 @@ impl RelationsModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<IdVersion>> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         if input.relation_type != "multipolygon" {
             return Err(poem::Error::from_status(
                 poem::http::StatusCode::UNPROCESSABLE_ENTITY,
@@ -67,8 +67,8 @@ impl RelationsModule {
         validate_members(&input.members)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, &user)?;
-                create_relation_typed(c, input, &user)
+                lock_owned_changeset(c, input.changeset_id, user)?;
+                create_relation_typed(c, input, user)
             })
         })
         .await
@@ -87,7 +87,7 @@ impl RelationsModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<IdVersion>> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         if input.relation_type != "multipolygon" {
             return Err(poem::Error::from_status(
                 poem::http::StatusCode::UNPROCESSABLE_ENTITY,
@@ -97,8 +97,8 @@ impl RelationsModule {
         validate_members(&input.members)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, &user)?;
-                patch_relation_typed(c, relation_id, input, &user)
+                lock_owned_changeset(c, input.changeset_id, user)?;
+                patch_relation_typed(c, relation_id, input, user)
             })
         })
         .await
@@ -117,11 +117,11 @@ impl RelationsModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<NoContent> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, &user)?;
-                delete_relation_typed(c, relation_id, input, &user)
+                lock_owned_changeset(c, input.changeset_id, user)?;
+                delete_relation_typed(c, relation_id, input, user)
             })
         })
         .await

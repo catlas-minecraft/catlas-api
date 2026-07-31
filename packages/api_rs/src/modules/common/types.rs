@@ -30,6 +30,13 @@ pub enum ChangesetStatus {
 
 #[derive(Debug, Object, Serialize, Deserialize, Clone)]
 #[oai(rename_all = "camelCase")]
+pub struct User {
+    pub id: i64,
+    pub username: String,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize, Clone)]
+#[oai(rename_all = "camelCase")]
 pub struct Point {
     pub x: f64,
     pub y: f64,
@@ -121,7 +128,7 @@ pub struct Changeset {
     pub id: i64,
     pub status: ChangesetStatus,
     pub comment: Nullable<String>,
-    pub created_by: String,
+    pub created_by: User,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub published_at: Nullable<chrono::DateTime<chrono::Utc>>,
 }

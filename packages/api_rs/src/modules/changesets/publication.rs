@@ -133,7 +133,7 @@ pub(super) fn check_relation_id_conflicts(
 pub(crate) fn publish_sync(
     c: &mut database::DatabaseConnection,
     id: i64,
-    user: &str,
+    user: i64,
 ) -> Result<ChangesetRow, database::DatabaseError> {
     sql_query("SELECT pg_advisory_xact_lock(hashtextextended('catlas.publish', 0))").execute(c)?;
     lock_owned_changeset(c, id, user)?;
@@ -157,7 +157,7 @@ pub(crate) fn publish_sync(
             draft::nodes::mc_z,
             draft::nodes::feature_type,
             draft::nodes::tags,
-            draft::nodes::staged_by,
+            draft::nodes::staged_by_user_id,
         ))
         .load::<(
             i64,
@@ -166,7 +166,7 @@ pub(crate) fn publish_sync(
             Option<f64>,
             Option<String>,
             Option<Value>,
-            String,
+            i64,
         )>(c)?;
     let node_creates: Vec<_> = node_creates
         .into_iter()
@@ -180,8 +180,8 @@ pub(crate) fn publish_sync(
                     .ok_or_else(|| std::io::Error::other("invalid node draft"))?,
                 tags: tags.unwrap_or_else(|| serde_json::json!({})),
                 created_changeset_id: id,
-                created_by: by.clone(),
-                updated_by: by,
+                created_by_user_id: by,
+                updated_by_user_id: by,
                 changeset_id: id,
             })
         })
@@ -198,7 +198,7 @@ pub(crate) fn publish_sync(
             draft::ways::geometry_kind,
             draft::ways::is_closed,
             draft::ways::tags,
-            draft::ways::staged_by,
+            draft::ways::staged_by_user_id,
         ))
         .load::<(
             i64,
@@ -206,7 +206,7 @@ pub(crate) fn publish_sync(
             Option<String>,
             Option<bool>,
             Option<Value>,
-            String,
+            i64,
         )>(c)?;
     let way_creates: Vec<_> = way_creates
         .into_iter()
@@ -221,8 +221,8 @@ pub(crate) fn publish_sync(
                     is_closed: is_closed.unwrap_or(false),
                     tags: tags.unwrap_or_else(|| serde_json::json!({})),
                     created_changeset_id: id,
-                    created_by: by.clone(),
-                    updated_by: by,
+                    created_by_user_id: by,
+                    updated_by_user_id: by,
                     changeset_id: id,
                 })
             },
@@ -238,9 +238,9 @@ pub(crate) fn publish_sync(
             draft::relations::id,
             draft::relations::relation_type,
             draft::relations::tags,
-            draft::relations::staged_by,
+            draft::relations::staged_by_user_id,
         ))
-        .load::<(i64, Option<String>, Option<Value>, String)>(c)?;
+        .load::<(i64, Option<String>, Option<Value>, i64)>(c)?;
     let relation_creates: Vec<_> = relation_creates
         .into_iter()
         .map(|(relation_id, relation_type, tags, by)| {
@@ -250,8 +250,8 @@ pub(crate) fn publish_sync(
                     .ok_or_else(|| std::io::Error::other("invalid relation draft"))?,
                 tags: tags.unwrap_or_else(|| serde_json::json!({})),
                 created_changeset_id: id,
-                created_by: by.clone(),
-                updated_by: by,
+                created_by_user_id: by,
+                updated_by_user_id: by,
                 changeset_id: id,
             })
         })
@@ -272,7 +272,7 @@ pub(crate) fn publish_sync(
             draft::nodes::mc_z,
             draft::nodes::feature_type,
             draft::nodes::tags,
-            draft::nodes::staged_by,
+            draft::nodes::staged_by_user_id,
         ))
         .load::<(
             i64,
@@ -281,7 +281,7 @@ pub(crate) fn publish_sync(
             Option<f64>,
             Option<String>,
             Option<Value>,
-            String,
+            i64,
         )>(c)?;
     for (node_id, x, y, z, feature_type, tags, by) in node_updates {
         update(core::nodes::table.filter(core::nodes::id.eq(node_id)))
@@ -294,7 +294,7 @@ pub(crate) fn publish_sync(
                 core::nodes::tags.eq(tags.unwrap_or_else(|| serde_json::json!({}))),
                 core::nodes::version.eq(core::nodes::version + 1),
                 core::nodes::updated_at.eq(diesel::dsl::now),
-                core::nodes::updated_by.eq(by),
+                core::nodes::updated_by_user_id.eq(by),
                 core::nodes::changeset_id.eq(id),
                 core::nodes::deleted_at.eq(None::<chrono::DateTime<chrono::Utc>>),
             ))
@@ -303,14 +303,14 @@ pub(crate) fn publish_sync(
     let node_deletes = draft::nodes::table
         .filter(draft::nodes::changeset_id.eq(id))
         .filter(draft::nodes::operation.eq("delete"))
-        .select((draft::nodes::id, draft::nodes::staged_by))
-        .load::<(i64, String)>(c)?;
+        .select((draft::nodes::id, draft::nodes::staged_by_user_id))
+        .load::<(i64, i64)>(c)?;
     for (node_id, by) in node_deletes {
         update(core::nodes::table.filter(core::nodes::id.eq(node_id)))
             .set((
                 core::nodes::version.eq(core::nodes::version + 1),
                 core::nodes::updated_at.eq(diesel::dsl::now),
-                core::nodes::updated_by.eq(by),
+                core::nodes::updated_by_user_id.eq(by),
                 core::nodes::changeset_id.eq(id),
                 core::nodes::deleted_at.eq(diesel::dsl::now),
             ))
@@ -325,7 +325,7 @@ pub(crate) fn publish_sync(
             draft::ways::geometry_kind,
             draft::ways::is_closed,
             draft::ways::tags,
-            draft::ways::staged_by,
+            draft::ways::staged_by_user_id,
         ))
         .load::<(
             i64,
@@ -333,7 +333,7 @@ pub(crate) fn publish_sync(
             Option<String>,
             Option<bool>,
             Option<Value>,
-            String,
+            i64,
         )>(c)?;
     for (way_id, feature_type, geometry_kind, is_closed, tags, by) in way_updates {
         update(core::ways::table.filter(core::ways::id.eq(way_id)))
@@ -346,7 +346,7 @@ pub(crate) fn publish_sync(
                 core::ways::tags.eq(tags.unwrap_or_else(|| serde_json::json!({}))),
                 core::ways::version.eq(core::ways::version + 1),
                 core::ways::updated_at.eq(diesel::dsl::now),
-                core::ways::updated_by.eq(by),
+                core::ways::updated_by_user_id.eq(by),
                 core::ways::changeset_id.eq(id),
                 core::ways::deleted_at.eq(None::<chrono::DateTime<chrono::Utc>>),
             ))
@@ -355,14 +355,14 @@ pub(crate) fn publish_sync(
     let way_deletes = draft::ways::table
         .filter(draft::ways::changeset_id.eq(id))
         .filter(draft::ways::operation.eq("delete"))
-        .select((draft::ways::id, draft::ways::staged_by))
-        .load::<(i64, String)>(c)?;
+        .select((draft::ways::id, draft::ways::staged_by_user_id))
+        .load::<(i64, i64)>(c)?;
     for (way_id, by) in way_deletes {
         update(core::ways::table.filter(core::ways::id.eq(way_id)))
             .set((
                 core::ways::version.eq(core::ways::version + 1),
                 core::ways::updated_at.eq(diesel::dsl::now),
-                core::ways::updated_by.eq(by),
+                core::ways::updated_by_user_id.eq(by),
                 core::ways::changeset_id.eq(id),
                 core::ways::deleted_at.eq(diesel::dsl::now),
             ))
@@ -375,9 +375,9 @@ pub(crate) fn publish_sync(
             draft::relations::id,
             draft::relations::relation_type,
             draft::relations::tags,
-            draft::relations::staged_by,
+            draft::relations::staged_by_user_id,
         ))
-        .load::<(i64, Option<String>, Option<Value>, String)>(c)?;
+        .load::<(i64, Option<String>, Option<Value>, i64)>(c)?;
     for (relation_id, relation_type, tags, by) in relation_updates {
         update(core::relations::table.filter(core::relations::id.eq(relation_id)))
             .set((
@@ -387,7 +387,7 @@ pub(crate) fn publish_sync(
                 core::relations::tags.eq(tags.unwrap_or_else(|| serde_json::json!({}))),
                 core::relations::version.eq(core::relations::version + 1),
                 core::relations::updated_at.eq(diesel::dsl::now),
-                core::relations::updated_by.eq(by),
+                core::relations::updated_by_user_id.eq(by),
                 core::relations::changeset_id.eq(id),
                 core::relations::deleted_at.eq(None::<chrono::DateTime<chrono::Utc>>),
             ))
@@ -396,14 +396,14 @@ pub(crate) fn publish_sync(
     let relation_deletes = draft::relations::table
         .filter(draft::relations::changeset_id.eq(id))
         .filter(draft::relations::operation.eq("delete"))
-        .select((draft::relations::id, draft::relations::staged_by))
-        .load::<(i64, String)>(c)?;
+        .select((draft::relations::id, draft::relations::staged_by_user_id))
+        .load::<(i64, i64)>(c)?;
     for (relation_id, by) in relation_deletes {
         update(core::relations::table.filter(core::relations::id.eq(relation_id)))
             .set((
                 core::relations::version.eq(core::relations::version + 1),
                 core::relations::updated_at.eq(diesel::dsl::now),
-                core::relations::updated_by.eq(by),
+                core::relations::updated_by_user_id.eq(by),
                 core::relations::changeset_id.eq(id),
                 core::relations::deleted_at.eq(diesel::dsl::now),
             ))
@@ -579,8 +579,8 @@ pub(crate) fn publish_sync(
             core::nodes::tags,
             core::nodes::changeset_id,
             core::nodes::created_changeset_id,
-            core::nodes::created_by,
-            core::nodes::updated_by,
+            core::nodes::created_by_user_id,
+            core::nodes::updated_by_user_id,
         ))
         .load::<(
             i64,
@@ -593,10 +593,10 @@ pub(crate) fn publish_sync(
             Value,
             i64,
             i64,
-            String,
-            String,
+            i64,
+            i64,
         )>(c)?;
-    let nodes: Vec<_> = nodes.into_iter().map(|(node_id,version,deleted_at,x,y,z,feature_type,tags,changeset_id,created_changeset_id,created_by,updated_by)| NewNodeVersion { node_id,version,snapshot: serde_json::json!({"id":node_id,"version":version,"deletedAt":deleted_at,"geom":{"x":x,"y":y,"z":z},"featureType":feature_type,"tags":tags,"changesetId":changeset_id,"createdChangesetId":created_changeset_id,"createdBy":created_by,"updatedBy":updated_by}),changeset_id:id }).collect();
+    let nodes: Vec<_> = nodes.into_iter().map(|(node_id,version,deleted_at,x,y,z,feature_type,tags,changeset_id,created_changeset_id,created_by,updated_by)| NewNodeVersion { node_id,version,snapshot: serde_json::json!({"id":node_id,"version":version,"deletedAt":deleted_at,"geom":{"x":x,"y":y,"z":z},"featureType":feature_type,"tags":tags,"changesetId":changeset_id,"createdChangesetId":created_changeset_id,"createdByUserId":created_by,"updatedByUserId":updated_by}),changeset_id:id }).collect();
     for chunk in nodes.chunks(INSERT_BATCH_SIZE) {
         insert_into(history::node_versions::table)
             .values(chunk)
@@ -614,8 +614,8 @@ pub(crate) fn publish_sync(
             core::ways::tags,
             core::ways::changeset_id,
             core::ways::created_changeset_id,
-            core::ways::created_by,
-            core::ways::updated_by,
+            core::ways::created_by_user_id,
+            core::ways::updated_by_user_id,
         ))
         .load::<(
             i64,
@@ -627,10 +627,10 @@ pub(crate) fn publish_sync(
             Value,
             i64,
             i64,
-            String,
-            String,
+            i64,
+            i64,
         )>(c)?;
-    let ways: Vec<_> = ways.into_iter().map(|(way_id,version,deleted_at,feature_type,geometry_kind,is_closed,tags,changeset_id,created_changeset_id,created_by,updated_by)| NewWayVersion { way_id,version,snapshot: serde_json::json!({"id":way_id,"version":version,"deletedAt":deleted_at,"featureType":feature_type,"geometryKind":geometry_kind,"isClosed":is_closed,"tags":tags,"changesetId":changeset_id,"createdChangesetId":created_changeset_id,"createdBy":created_by,"updatedBy":updated_by}),changeset_id:id }).collect();
+    let ways: Vec<_> = ways.into_iter().map(|(way_id,version,deleted_at,feature_type,geometry_kind,is_closed,tags,changeset_id,created_changeset_id,created_by,updated_by)| NewWayVersion { way_id,version,snapshot: serde_json::json!({"id":way_id,"version":version,"deletedAt":deleted_at,"featureType":feature_type,"geometryKind":geometry_kind,"isClosed":is_closed,"tags":tags,"changesetId":changeset_id,"createdChangesetId":created_changeset_id,"createdByUserId":created_by,"updatedByUserId":updated_by}),changeset_id:id }).collect();
     for chunk in ways.chunks(INSERT_BATCH_SIZE) {
         insert_into(history::way_versions::table)
             .values(chunk)
@@ -646,8 +646,8 @@ pub(crate) fn publish_sync(
             core::relations::tags,
             core::relations::changeset_id,
             core::relations::created_changeset_id,
-            core::relations::created_by,
-            core::relations::updated_by,
+            core::relations::created_by_user_id,
+            core::relations::updated_by_user_id,
         ))
         .load::<(
             i64,
@@ -657,10 +657,10 @@ pub(crate) fn publish_sync(
             Value,
             i64,
             i64,
-            String,
-            String,
+            i64,
+            i64,
         )>(c)?;
-    let relations: Vec<_> = relations.into_iter().map(|(relation_id,version,deleted_at,relation_type,tags,changeset_id,created_changeset_id,created_by,updated_by)| NewRelationVersion { relation_id,version,snapshot: serde_json::json!({"id":relation_id,"version":version,"deletedAt":deleted_at,"relationType":relation_type,"tags":tags,"changesetId":changeset_id,"createdChangesetId":created_changeset_id,"createdBy":created_by,"updatedBy":updated_by}),changeset_id:id }).collect();
+    let relations: Vec<_> = relations.into_iter().map(|(relation_id,version,deleted_at,relation_type,tags,changeset_id,created_changeset_id,created_by,updated_by)| NewRelationVersion { relation_id,version,snapshot: serde_json::json!({"id":relation_id,"version":version,"deletedAt":deleted_at,"relationType":relation_type,"tags":tags,"changesetId":changeset_id,"createdChangesetId":created_changeset_id,"createdByUserId":created_by,"updatedByUserId":updated_by}),changeset_id:id }).collect();
     for chunk in relations.chunks(INSERT_BATCH_SIZE) {
         insert_into(history::relation_versions::table)
             .values(chunk)
@@ -714,7 +714,7 @@ pub(crate) fn publish_sync(
             core::changesets::id,
             core::changesets::status,
             core::changesets::comment,
-            core::changesets::created_by,
+            core::changesets::created_by_user_id,
             core::changesets::created_at,
             core::changesets::published_at,
         ))
@@ -722,7 +722,7 @@ pub(crate) fn publish_sync(
             i64,
             String,
             Option<String>,
-            String,
+            i64,
             chrono::DateTime<chrono::Utc>,
             Option<chrono::DateTime<chrono::Utc>>,
         )>(c)?;
@@ -730,7 +730,11 @@ pub(crate) fn publish_sync(
         id: row.0,
         status: row.1,
         comment: row.2,
-        created_by: row.3,
+        created_by_user_id: row.3,
+        created_by_username: core::users::table
+            .filter(core::users::id.eq(row.3))
+            .select(core::users::username)
+            .first(c)?,
         created_at: row.4,
         published_at: row.5,
     })

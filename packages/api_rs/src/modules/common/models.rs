@@ -13,7 +13,8 @@ pub(crate) struct ChangesetRow {
     pub(crate) id: i64,
     pub(crate) status: String,
     pub(crate) comment: Option<String>,
-    pub(crate) created_by: String,
+    pub(crate) created_by_user_id: i64,
+    pub(crate) created_by_username: String,
     pub(crate) created_at: chrono::DateTime<chrono::Utc>,
     pub(crate) published_at: Option<chrono::DateTime<chrono::Utc>>,
 }
@@ -29,7 +30,7 @@ pub(crate) struct NewDraftNode<'a> {
     pub(crate) mc_z: Option<f64>,
     pub(crate) feature_type: Option<&'a str>,
     pub(crate) tags: Option<Value>,
-    pub(crate) staged_by: &'a str,
+    pub(crate) staged_by_user_id: i64,
 }
 #[derive(Insertable)]
 #[diesel(table_name = draft::ways)]
@@ -42,7 +43,7 @@ pub(crate) struct NewDraftWay<'a> {
     pub(crate) geometry_kind: Option<&'a str>,
     pub(crate) is_closed: Option<bool>,
     pub(crate) tags: Option<Value>,
-    pub(crate) staged_by: &'a str,
+    pub(crate) staged_by_user_id: i64,
 }
 #[derive(Insertable)]
 #[diesel(table_name = draft::relations)]
@@ -53,7 +54,7 @@ pub(crate) struct NewDraftRelation<'a> {
     pub(crate) base_version: Option<i32>,
     pub(crate) relation_type: Option<&'a str>,
     pub(crate) tags: Option<Value>,
-    pub(crate) staged_by: &'a str,
+    pub(crate) staged_by_user_id: i64,
 }
 #[derive(Insertable)]
 #[diesel(table_name = draft::way_nodes)]
@@ -84,8 +85,8 @@ pub(crate) struct NewNode {
     pub(crate) feature_type: String,
     pub(crate) tags: Value,
     pub(crate) created_changeset_id: i64,
-    pub(crate) created_by: String,
-    pub(crate) updated_by: String,
+    pub(crate) created_by_user_id: i64,
+    pub(crate) updated_by_user_id: i64,
     pub(crate) changeset_id: i64,
 }
 #[derive(Insertable)]
@@ -97,8 +98,8 @@ pub(crate) struct NewWay {
     pub(crate) is_closed: bool,
     pub(crate) tags: Value,
     pub(crate) created_changeset_id: i64,
-    pub(crate) created_by: String,
-    pub(crate) updated_by: String,
+    pub(crate) created_by_user_id: i64,
+    pub(crate) updated_by_user_id: i64,
     pub(crate) changeset_id: i64,
 }
 #[derive(Insertable)]
@@ -108,8 +109,8 @@ pub(crate) struct NewRelation {
     pub(crate) relation_type: String,
     pub(crate) tags: Value,
     pub(crate) created_changeset_id: i64,
-    pub(crate) created_by: String,
-    pub(crate) updated_by: String,
+    pub(crate) created_by_user_id: i64,
+    pub(crate) updated_by_user_id: i64,
     pub(crate) changeset_id: i64,
 }
 #[derive(Insertable)]

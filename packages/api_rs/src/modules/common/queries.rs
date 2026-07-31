@@ -23,7 +23,7 @@ pub(crate) fn create_node_typed(
     c: &mut database::DatabaseConnection,
     input: NodeInput,
     tags: DbJson,
-    user: &str,
+    user: i64,
 ) -> Result<IdRow, database::DatabaseError> {
     let id = diesel::select(diesel::dsl::sql::<diesel::sql_types::BigInt>(
         "nextval('core.node_id_seq'::regclass)",
@@ -40,7 +40,7 @@ pub(crate) fn create_node_typed(
             mc_z: Some(input.geom.z),
             feature_type: Some(&input.feature_type),
             tags: Some(tags),
-            staged_by: user,
+            staged_by_user_id: user,
         })
         .execute(c)?;
     Ok(IdRow { id, version: 1 })
@@ -51,7 +51,7 @@ pub(crate) fn patch_node_typed(
     node_id: i64,
     input: NodePatch,
     tags: DbJson,
-    user: &str,
+    user: i64,
 ) -> Result<IdRow, database::DatabaseError> {
     let state = node_state(c, input.changeset_id, node_id)?;
     let required_version = expected_version(&state)?;
@@ -87,7 +87,7 @@ pub(crate) fn patch_node_typed(
         mc_z: Some(input.geom.z),
         feature_type: Some(&input.feature_type),
         tags: Some(tags),
-        staged_by: user,
+        staged_by_user_id: user,
     };
     insert_into(draft::nodes::table)
         .values(&row)
@@ -101,7 +101,7 @@ pub(crate) fn patch_node_typed(
             draft::nodes::mc_z.eq(row.mc_z),
             draft::nodes::feature_type.eq(row.feature_type),
             draft::nodes::tags.eq(row.tags.clone()),
-            draft::nodes::staged_by.eq(row.staged_by),
+            draft::nodes::staged_by_user_id.eq(row.staged_by_user_id),
         ))
         .execute(c)?;
     Ok(IdRow {
@@ -114,7 +114,7 @@ pub(crate) fn delete_node_typed(
     c: &mut database::DatabaseConnection,
     node_id: i64,
     input: DeleteInput,
-    user: &str,
+    user: i64,
 ) -> Result<(), database::DatabaseError> {
     let state = node_state(c, input.changeset_id, node_id)?;
     let want = expected_version(&state)?;
@@ -141,7 +141,7 @@ pub(crate) fn delete_node_typed(
         mc_z: None,
         feature_type: None,
         tags: None,
-        staged_by: user,
+        staged_by_user_id: user,
     };
     insert_into(draft::nodes::table)
         .values(&row)
@@ -155,7 +155,7 @@ pub(crate) fn delete_node_typed(
             draft::nodes::mc_z.eq(None::<f64>),
             draft::nodes::feature_type.eq(None::<String>),
             draft::nodes::tags.eq(None::<Value>),
-            draft::nodes::staged_by.eq(user),
+            draft::nodes::staged_by_user_id.eq(user),
         ))
         .execute(c)?;
     Ok(())
@@ -240,11 +240,11 @@ pub(crate) fn proposed_version(state: &EntityState) -> Result<i32, database::Dat
 pub(crate) fn lock_owned_changeset(
     c: &mut database::DatabaseConnection,
     changeset_id: i64,
-    user: &str,
+    user: i64,
 ) -> Result<(), database::DatabaseError> {
     let row = core::changesets::table
         .filter(core::changesets::id.eq(changeset_id))
-        .filter(core::changesets::created_by.eq(user))
+        .filter(core::changesets::created_by_user_id.eq(user))
         .filter(core::changesets::status.eq("open"))
         .select(core::changesets::id)
         .first::<i64>(c)
@@ -256,7 +256,7 @@ pub(crate) fn lock_owned_changeset(
 pub(crate) fn create_way_typed(
     c: &mut database::DatabaseConnection,
     input: WayInput,
-    user: &str,
+    user: i64,
 ) -> Result<IdRow, database::DatabaseError> {
     if !effective_nodes_exist(c, input.changeset_id, &input.node_refs)? {
         return Err(std::io::Error::other("invalid reference").into());
@@ -276,7 +276,7 @@ pub(crate) fn create_way_typed(
             geometry_kind: Some(input.geometry_kind.as_str()),
             is_closed: Some(input.node_refs.first() == input.node_refs.last()),
             tags: Some(tags),
-            staged_by: user,
+            staged_by_user_id: user,
         })
         .execute(c)?;
     let children: Vec<_> = input
@@ -302,7 +302,7 @@ pub(crate) fn patch_way_typed(
     c: &mut database::DatabaseConnection,
     way_id: i64,
     input: WayPatch,
-    user: &str,
+    user: i64,
 ) -> Result<IdRow, database::DatabaseError> {
     if !effective_nodes_exist(c, input.changeset_id, &input.node_refs)? {
         return Err(std::io::Error::other("invalid reference").into());
@@ -332,7 +332,7 @@ pub(crate) fn patch_way_typed(
         geometry_kind: Some(input.geometry_kind.as_str()),
         is_closed: Some(input.node_refs.first() == input.node_refs.last()),
         tags: Some(tags),
-        staged_by: user,
+        staged_by_user_id: user,
     };
     insert_into(draft::ways::table)
         .values(&row)
@@ -345,7 +345,7 @@ pub(crate) fn patch_way_typed(
             draft::ways::geometry_kind.eq(row.geometry_kind),
             draft::ways::is_closed.eq(row.is_closed),
             draft::ways::tags.eq(row.tags.clone()),
-            draft::ways::staged_by.eq(user),
+            draft::ways::staged_by_user_id.eq(user),
         ))
         .execute(c)?;
     delete(
@@ -381,7 +381,7 @@ pub(crate) fn delete_way_typed(
     c: &mut database::DatabaseConnection,
     way_id: i64,
     input: DeleteInput,
-    user: &str,
+    user: i64,
 ) -> Result<(), database::DatabaseError> {
     let state = way_state(c, input.changeset_id, way_id)?;
     let version = expected_version(&state)?;
@@ -407,7 +407,7 @@ pub(crate) fn delete_way_typed(
         geometry_kind: None,
         is_closed: None,
         tags: None,
-        staged_by: user,
+        staged_by_user_id: user,
     };
     insert_into(draft::ways::table)
         .values(&row)
@@ -420,7 +420,7 @@ pub(crate) fn delete_way_typed(
             draft::ways::geometry_kind.eq(None::<String>),
             draft::ways::is_closed.eq(None::<bool>),
             draft::ways::tags.eq(None::<Value>),
-            draft::ways::staged_by.eq(user),
+            draft::ways::staged_by_user_id.eq(user),
         ))
         .execute(c)?;
     Ok(())
@@ -429,7 +429,7 @@ pub(crate) fn delete_way_typed(
 pub(crate) fn create_relation_typed(
     c: &mut database::DatabaseConnection,
     input: RelationInput,
-    user: &str,
+    user: i64,
 ) -> Result<IdRow, database::DatabaseError> {
     for member in &input.members {
         if !member_exists(c, input.changeset_id, member)? {
@@ -449,7 +449,7 @@ pub(crate) fn create_relation_typed(
             base_version: None,
             relation_type: Some(&input.relation_type),
             tags: Some(tags),
-            staged_by: user,
+            staged_by_user_id: user,
         })
         .execute(c)?;
     let members: Vec<_> = input
@@ -477,7 +477,7 @@ pub(crate) fn patch_relation_typed(
     c: &mut database::DatabaseConnection,
     relation_id: i64,
     input: RelationPatch,
-    user: &str,
+    user: i64,
 ) -> Result<IdRow, database::DatabaseError> {
     for member in &input.members {
         if !member_exists(c, input.changeset_id, member)? {
@@ -507,7 +507,7 @@ pub(crate) fn patch_relation_typed(
         base_version,
         relation_type: Some(&input.relation_type),
         tags: Some(tags),
-        staged_by: user,
+        staged_by_user_id: user,
     };
     insert_into(draft::relations::table)
         .values(&row)
@@ -518,7 +518,7 @@ pub(crate) fn patch_relation_typed(
             draft::relations::base_version.eq(base_version),
             draft::relations::relation_type.eq(row.relation_type),
             draft::relations::tags.eq(row.tags.clone()),
-            draft::relations::staged_by.eq(user),
+            draft::relations::staged_by_user_id.eq(user),
         ))
         .execute(c)?;
     delete(
@@ -556,7 +556,7 @@ pub(crate) fn delete_relation_typed(
     c: &mut database::DatabaseConnection,
     relation_id: i64,
     input: DeleteInput,
-    user: &str,
+    user: i64,
 ) -> Result<(), database::DatabaseError> {
     let state = relation_state(c, input.changeset_id, relation_id)?;
     let version = expected_version(&state)?;
@@ -580,7 +580,7 @@ pub(crate) fn delete_relation_typed(
         base_version: Some(base),
         relation_type: None,
         tags: None,
-        staged_by: user,
+        staged_by_user_id: user,
     };
     insert_into(draft::relations::table)
         .values(&row)
@@ -591,7 +591,7 @@ pub(crate) fn delete_relation_typed(
             draft::relations::base_version.eq(base),
             draft::relations::relation_type.eq(None::<String>),
             draft::relations::tags.eq(None::<Value>),
-            draft::relations::staged_by.eq(user),
+            draft::relations::staged_by_user_id.eq(user),
         ))
         .execute(c)?;
     Ok(())

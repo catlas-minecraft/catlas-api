@@ -2,7 +2,7 @@ import createClient from "openapi-fetch";
 import type { components, paths } from "./catlas-api.gen";
 import type { ChangesetUploadDiffResult, ChangesetUploadPayload } from "./changeset";
 
-type SessionInfo = { readonly username: string | null };
+type SessionInfo = { readonly user: components["schemas"]["User"] | null };
 type IdVersion = components["schemas"]["IdVersion"];
 type Changeset = components["schemas"]["Changeset"];
 
@@ -173,13 +173,13 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
       const session = await json<components["schemas"]["SessionInfo"]>(
         await client.GET("/auth/session"),
       );
-      return { username: session.username ?? null };
+      return { user: session.user ?? null };
     },
     createSession: async (username) => {
       const session = await json<components["schemas"]["SessionInfo"]>(
         await client.POST("/auth/session", { body: { username } }),
       );
-      return { username: session.username ?? null };
+      return { user: session.user ?? null };
     },
     deleteSession: async () => noContent(await client.DELETE("/auth/session")),
     loadViewport: async (bbox) =>

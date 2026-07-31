@@ -26,46 +26,50 @@ impl ChangesetsModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<Changeset>> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         let comment = input.comment;
         let row = database::blocking(pool, move |c| {
-            insert_into(core::changesets::table)
-                .values((
-                    core::changesets::status.eq("open"),
-                    core::changesets::comment.eq(comment),
-                    core::changesets::created_by.eq(user),
-                ))
-                .returning((
-                    core::changesets::id,
-                    core::changesets::status,
-                    core::changesets::comment,
-                    core::changesets::created_by,
-                    core::changesets::created_at,
-                    core::changesets::published_at,
-                ))
-                .get_result::<(
-                    i64,
-                    String,
-                    Option<String>,
-                    String,
-                    chrono::DateTime<chrono::Utc>,
-                    Option<chrono::DateTime<chrono::Utc>>,
-                )>(c)
-                .map_err(Into::into)
+            c.transaction::<ChangesetRow, database::DatabaseError, _>(|c| {
+                let row = insert_into(core::changesets::table)
+                    .values((
+                        core::changesets::status.eq("open"),
+                        core::changesets::comment.eq(comment),
+                        core::changesets::created_by_user_id.eq(user),
+                    ))
+                    .returning((
+                        core::changesets::id,
+                        core::changesets::status,
+                        core::changesets::comment,
+                        core::changesets::created_by_user_id,
+                        core::changesets::created_at,
+                        core::changesets::published_at,
+                    ))
+                    .get_result::<(
+                        i64,
+                        String,
+                        Option<String>,
+                        i64,
+                        chrono::DateTime<chrono::Utc>,
+                        Option<chrono::DateTime<chrono::Utc>>,
+                    )>(c)?;
+                let username = core::users::table
+                    .filter(core::users::id.eq(row.3))
+                    .select(core::users::username)
+                    .first::<String>(c)?;
+                Ok(ChangesetRow {
+                    id: row.0,
+                    status: row.1,
+                    comment: row.2,
+                    created_by_user_id: row.3,
+                    created_by_username: username,
+                    created_at: row.4,
+                    published_at: row.5,
+                })
+            })
         })
         .await
         .map_err(db_error)?;
-        Ok(Json(
-            ChangesetRow {
-                id: row.0,
-                status: row.1,
-                comment: row.2,
-                created_by: row.3,
-                created_at: row.4,
-                published_at: row.5,
-            }
-            .into(),
-        ))
+        Ok(Json(row.into()))
     }
 
     /// 公開済みのChangeset一覧を取得する
@@ -84,7 +88,7 @@ impl ChangesetsModule {
                     core::changesets::id,
                     core::changesets::status,
                     core::changesets::comment,
-                    core::changesets::created_by,
+                    core::changesets::created_by_user_id,
                     core::changesets::created_at,
                     core::changesets::published_at,
                 ))
@@ -92,7 +96,7 @@ impl ChangesetsModule {
                     i64,
                     String,
                     Option<String>,
-                    String,
+                    i64,
                     chrono::DateTime<chrono::Utc>,
                     Option<chrono::DateTime<chrono::Utc>>,
                 )>(c)
@@ -100,18 +104,32 @@ impl ChangesetsModule {
         })
         .await
         .map_err(db_error)?;
+        let user_ids: Vec<i64> = rows.iter().map(|row| row.3).collect();
+        let usernames = database::blocking(pool, move |c| {
+            core::users::table
+                .filter(core::users::id.eq_any(user_ids))
+                .select((core::users::id, core::users::username))
+                .load::<(i64, String)>(c)
+                .map_err(Into::into)
+        })
+        .await
+        .map_err(db_error)?;
+        let usernames: std::collections::HashMap<_, _> = usernames.into_iter().collect();
         Ok(Json(
             rows.into_iter()
-                .map(|row| {
-                    ChangesetRow {
-                        id: row.0,
-                        status: row.1,
-                        comment: row.2,
-                        created_by: row.3,
-                        created_at: row.4,
-                        published_at: row.5,
-                    }
-                    .into()
+                .filter_map(|row| {
+                    usernames.get(&row.3).map(|username| {
+                        ChangesetRow {
+                            id: row.0,
+                            status: row.1,
+                            comment: row.2,
+                            created_by_user_id: row.3,
+                            created_by_username: username.clone(),
+                            created_at: row.4,
+                            published_at: row.5,
+                        }
+                        .into()
+                    })
                 })
                 .collect(),
         ))
@@ -127,11 +145,9 @@ impl ChangesetsModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<Changeset>> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         let row = database::blocking(pool, move |c| {
-            c.transaction::<ChangesetRow, database::DatabaseError, _>(|c| {
-                publish_sync(c, id, &user)
-            })
+            c.transaction::<ChangesetRow, database::DatabaseError, _>(|c| publish_sync(c, id, user))
         })
         .await
         .map_err(db_error)?;
@@ -148,10 +164,10 @@ impl ChangesetsModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<NoContent> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, id, &user)?;
+                lock_owned_changeset(c, id, user)?;
                 diesel::delete(draft::nodes::table.filter(draft::nodes::changeset_id.eq(id)))
                     .execute(c)?;
                 diesel::delete(draft::ways::table.filter(draft::ways::changeset_id.eq(id)))

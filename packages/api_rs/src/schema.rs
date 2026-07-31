@@ -9,9 +9,9 @@ pub mod core {
             id -> Int8,
             status -> Text,
             comment -> Nullable<Text>,
-            created_by -> Text,
             created_at -> Timestamptz,
             published_at -> Nullable<Timestamptz>,
+            created_by_user_id -> Int8,
         }
     }
 
@@ -31,10 +31,10 @@ pub mod core {
             created_changeset_id -> Int8,
             created_at -> Timestamptz,
             updated_at -> Timestamptz,
-            created_by -> Text,
-            updated_by -> Text,
             deleted_at -> Nullable<Timestamptz>,
             changeset_id -> Int8,
+            created_by_user_id -> Int8,
+            updated_by_user_id -> Int8,
         }
     }
 
@@ -64,10 +64,21 @@ pub mod core {
             created_changeset_id -> Int8,
             created_at -> Timestamptz,
             updated_at -> Timestamptz,
-            created_by -> Text,
-            updated_by -> Text,
             deleted_at -> Nullable<Timestamptz>,
             changeset_id -> Int8,
+            created_by_user_id -> Int8,
+            updated_by_user_id -> Int8,
+        }
+    }
+
+    diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        core.users (id) {
+            id -> Int8,
+            username -> Text,
+            created_at -> Timestamptz,
         }
     }
 
@@ -97,13 +108,14 @@ pub mod core {
             created_changeset_id -> Int8,
             created_at -> Timestamptz,
             updated_at -> Timestamptz,
-            created_by -> Text,
-            updated_by -> Text,
             deleted_at -> Nullable<Timestamptz>,
             changeset_id -> Int8,
+            created_by_user_id -> Int8,
+            updated_by_user_id -> Int8,
         }
     }
 
+    diesel::joinable!(changesets -> users (created_by_user_id));
     diesel::joinable!(relation_members -> changesets (changeset_id));
     diesel::joinable!(relation_members -> relations (relation_id));
     diesel::joinable!(way_nodes -> changesets (changeset_id));
@@ -115,6 +127,7 @@ pub mod core {
         nodes,
         relation_members,
         relations,
+        users,
         way_nodes,
         ways,
     );
@@ -135,8 +148,8 @@ pub mod draft {
             mc_z -> Nullable<Float8>,
             feature_type -> Nullable<Text>,
             tags -> Nullable<Jsonb>,
-            staged_by -> Text,
             staged_at -> Timestamptz,
+            staged_by_user_id -> Int8,
         }
     }
 
@@ -165,8 +178,8 @@ pub mod draft {
             base_version -> Nullable<Int4>,
             relation_type -> Nullable<Text>,
             tags -> Nullable<Jsonb>,
-            staged_by -> Text,
             staged_at -> Timestamptz,
+            staged_by_user_id -> Int8,
         }
     }
 
@@ -195,8 +208,8 @@ pub mod draft {
             geometry_kind -> Nullable<Text>,
             is_closed -> Nullable<Bool>,
             tags -> Nullable<Jsonb>,
-            staged_by -> Text,
             staged_at -> Timestamptz,
+            staged_by_user_id -> Int8,
         }
     }
 

@@ -36,7 +36,7 @@ type AuthControlProps = {
 
 export function AuthControl({ editor, snapshot }: AuthControlProps) {
   const [open, setOpen] = useState(false);
-  const [userId, setUserId] = useState("demo-user");
+  const [username, setUsername] = useState("demo-user");
   const auth = snapshot.auth;
   const isBusy = auth.status === "checking" || auth.status === "authenticating";
 
@@ -45,9 +45,9 @@ export function AuthControl({ editor, snapshot }: AuthControlProps) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            aria-label={`Account menu for ${auth.username}`}
+            aria-label={`Account menu for ${auth.user.username}`}
             size="icon-sm"
-            title={`Signed in as ${auth.username}`}
+            title={`Signed in as ${auth.user.username}`}
             type="button"
             variant="outline"
           >
@@ -59,7 +59,7 @@ export function AuthControl({ editor, snapshot }: AuthControlProps) {
             <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
             <DropdownMenuItem disabled>
               <UserRoundIcon />
-              <span className="truncate">{auth.username}</span>
+              <span className="truncate">{auth.user.username}</span>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
@@ -105,27 +105,25 @@ export function AuthControl({ editor, snapshot }: AuthControlProps) {
       <PopoverContent align="end" className="w-80">
         <PopoverHeader>
           <PopoverTitle>Developer sign in</PopoverTitle>
-          <PopoverDescription>
-            Enter the API user id used to attribute changesets.
-          </PopoverDescription>
+          <PopoverDescription>Enter the username used to attribute changesets.</PopoverDescription>
         </PopoverHeader>
         <form
           className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
-            void editor.login(userId);
+            void editor.login(username);
           }}
         >
           <FieldGroup className="gap-3">
             <Field data-invalid={auth.status === "error"}>
-              <FieldLabel htmlFor="developer-user-id">User ID</FieldLabel>
+              <FieldLabel htmlFor="developer-username">Username</FieldLabel>
               <Input
                 aria-invalid={auth.status === "error"}
                 autoFocus
                 disabled={isBusy}
-                id="developer-user-id"
-                onChange={(event) => setUserId(event.target.value)}
-                value={userId}
+                id="developer-username"
+                onChange={(event) => setUsername(event.target.value)}
+                value={username}
               />
               <FieldDescription>This id is attached to published changesets.</FieldDescription>
               <FieldError>{auth.status === "error" ? auth.message : null}</FieldError>
@@ -142,7 +140,7 @@ export function AuthControl({ editor, snapshot }: AuthControlProps) {
             >
               Cancel
             </Button>
-            <Button disabled={isBusy || !userId.trim()} type="submit">
+            <Button disabled={isBusy || !username.trim()} type="submit">
               {auth.status === "authenticating" ? (
                 <Spinner data-icon="inline-start" />
               ) : (

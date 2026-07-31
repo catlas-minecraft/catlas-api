@@ -68,14 +68,14 @@ impl NodesModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<IdVersion>> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         validate_point(&input.geom)?;
         validate_tags(&input.tags)?;
         let tags = tag_value(&input.tags)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, &user)?;
-                create_node_typed(c, input, tags, &user)
+                lock_owned_changeset(c, input.changeset_id, user)?;
+                create_node_typed(c, input, tags, user)
             })
         })
         .await
@@ -94,14 +94,14 @@ impl NodesModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<IdVersion>> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         validate_point(&input.geom)?;
         validate_tags(&input.tags)?;
         let tags = tag_value(&input.tags)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, &user)?;
-                patch_node_typed(c, node_id, input, tags, &user)
+                lock_owned_changeset(c, input.changeset_id, user)?;
+                patch_node_typed(c, node_id, input, tags, user)
             })
         })
         .await
@@ -120,11 +120,11 @@ impl NodesModule {
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<NoContent> {
-        let user = session_user(session)?;
+        let user = session_user(session, pool).await?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, &user)?;
-                delete_node_typed(c, node_id, input, &user)
+                lock_owned_changeset(c, input.changeset_id, user)?;
+                delete_node_typed(c, node_id, input, user)
             })
         })
         .await

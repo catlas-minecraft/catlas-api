@@ -241,7 +241,7 @@ function ChangesetListItem({
       <ItemContent>
         <ItemTitle title={label}>{label}</ItemTitle>
         <ItemDescription>
-          #{changeset.id} · {changeset.createdBy} · {publishedAt}
+          #{changeset.id} · {changeset.createdBy.username} · {publishedAt}
         </ItemDescription>
       </ItemContent>
       <Badge variant="outline">Published</Badge>

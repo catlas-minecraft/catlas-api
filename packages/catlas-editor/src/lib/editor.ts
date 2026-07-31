@@ -334,8 +334,8 @@ export class CatlasEditor {
     this.#emit();
     try {
       const session = await this.#api.createSession(normalizedUsername);
-      if (!session.username) throw new Error("The API did not create a session.");
-      this.#authState = { status: "authenticated", username: session.username };
+      if (!session.user) throw new Error("The API did not create a session.");
+      this.#authState = { status: "authenticated", user: session.user };
       this.#saveState = this.#saveState.status === "error" ? { status: "idle" } : this.#saveState;
       this.#emit();
     } catch (error) {
@@ -483,7 +483,7 @@ export class CatlasEditor {
     this.#emit();
     try {
       const session = await this.#api.getSession();
-      if (!session.username) {
+      if (!session.user) {
         this.#authState = {
           status: "error",
           message: "Your session expired. Sign in again to publish these changes.",
@@ -916,8 +916,8 @@ export class CatlasEditor {
   async #checkSession() {
     try {
       const session = await this.#api.getSession();
-      this.#authState = session.username
-        ? { status: "authenticated", username: session.username }
+      this.#authState = session.user
+        ? { status: "authenticated", user: session.user }
         : { status: "anonymous" };
       if (!this.#disposed) this.#emit();
     } catch (error) {

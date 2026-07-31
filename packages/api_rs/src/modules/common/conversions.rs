@@ -12,7 +12,10 @@ impl From<ChangesetRow> for Changeset {
                 status => unreachable!("invalid changeset status from database: {status}"),
             },
             comment: row.comment.into(),
-            created_by: row.created_by,
+            created_by: super::types::User {
+                id: row.created_by_user_id,
+                username: row.created_by_username,
+            },
             created_at: row.created_at,
             published_at: row.published_at.into(),
         }

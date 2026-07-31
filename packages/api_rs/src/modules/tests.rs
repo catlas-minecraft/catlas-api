@@ -8,9 +8,9 @@ use super::common::validation::{validate_point, validate_tags, validate_way};
 use super::viewport::queries::{bbox_geometry, parse_bbox, viewport_typed};
 use crate::{
     database,
-    schema::{core, draft},
+    schema::{core, draft, history},
 };
-use diesel::{Connection, ExpressionMethods, RunQueryDsl, insert_into};
+use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, insert_into};
 use postgis_diesel::types::Point as PostgisPoint;
 
 #[test]
@@ -81,10 +81,14 @@ fn publishes_and_queries_a_spatial_graph() {
     let mut connection = pool.get().expect("database connection failed");
 
     connection.test_transaction::<_, database::DatabaseError, _>(|connection| {
+        let user_id = insert_into(core::users::table)
+            .values(core::users::username.eq("integration-test"))
+            .returning(core::users::id)
+            .get_result::<i64>(connection)?;
         let changeset_id = insert_into(core::changesets::table)
             .values((
                 core::changesets::status.eq("open"),
-                core::changesets::created_by.eq("integration-test"),
+                core::changesets::created_by_user_id.eq(user_id),
             ))
             .returning(core::changesets::id)
             .get_result::<i64>(connection)?;
@@ -106,7 +110,7 @@ fn publishes_and_queries_a_spatial_graph() {
                     mc_z: Some(z),
                     feature_type: Some("vertex"),
                     tags: Some(serde_json::json!({})),
-                    staged_by: "integration-test",
+                    staged_by_user_id: user_id,
                 })
                 .execute(connection)?;
             node_ids.push(node_id);
@@ -126,7 +130,7 @@ fn publishes_and_queries_a_spatial_graph() {
                 geometry_kind: Some("area"),
                 is_closed: Some(true),
                 tags: Some(serde_json::json!({})),
-                staged_by: "integration-test",
+                staged_by_user_id: user_id,
             })
             .execute(connection)?;
         let ring = [
@@ -162,7 +166,7 @@ fn publishes_and_queries_a_spatial_graph() {
                 base_version: None,
                 relation_type: Some("multipolygon"),
                 tags: Some(serde_json::json!({})),
-                staged_by: "integration-test",
+                staged_by_user_id: user_id,
             })
             .execute(connection)?;
         insert_into(draft::relation_members::table)
@@ -176,8 +180,46 @@ fn publishes_and_queries_a_spatial_graph() {
             })
             .execute(connection)?;
 
-        let published = publish_sync(connection, changeset_id, "integration-test")?;
+        let published = publish_sync(connection, changeset_id, user_id)?;
         assert_eq!(published.status, "published");
+
+        for actor_ids in core::nodes::table
+            .select((
+                core::nodes::created_by_user_id,
+                core::nodes::updated_by_user_id,
+            ))
+            .load::<(i64, i64)>(connection)?
+            .into_iter()
+            .chain(
+                core::ways::table
+                    .select((
+                        core::ways::created_by_user_id,
+                        core::ways::updated_by_user_id,
+                    ))
+                    .load::<(i64, i64)>(connection)?,
+            )
+            .chain(
+                core::relations::table
+                    .select((
+                        core::relations::created_by_user_id,
+                        core::relations::updated_by_user_id,
+                    ))
+                    .load::<(i64, i64)>(connection)?,
+            )
+        {
+            assert_eq!(actor_ids, (user_id, user_id));
+        }
+        let snapshots = history::node_versions::table
+            .filter(history::node_versions::changeset_id.eq(changeset_id))
+            .select(history::node_versions::snapshot)
+            .load::<serde_json::Value>(connection)?;
+        assert!(!snapshots.is_empty());
+        for snapshot in snapshots {
+            assert_eq!(snapshot["createdByUserId"], user_id);
+            assert_eq!(snapshot["updatedByUserId"], user_id);
+            assert!(snapshot.get("createdBy").is_none());
+            assert!(snapshot.get("updatedBy").is_none());
+        }
 
         let viewport = viewport_typed(connection, [-1.0, -1.0, 11.0, 11.0], true)?;
         assert_eq!(viewport.nodes.len(), 4);

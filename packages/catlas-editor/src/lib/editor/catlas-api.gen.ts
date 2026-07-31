@@ -682,7 +682,7 @@ export interface components {
             id: number;
             status: components["schemas"]["ChangesetStatus"];
             comment: string | null;
-            createdBy: string;
+            createdBy: components["schemas"]["User"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -779,7 +779,13 @@ export interface components {
          * @description 新規セッションの内容
          */
         SessionInfo: {
-            username: string | null;
+            user: (components["schemas"]["User"] & unknown) | null;
+        };
+        /** User */
+        User: {
+            /** Format: int64 */
+            id: number;
+            username: string;
         };
         /** Viewport */
         Viewport: {
