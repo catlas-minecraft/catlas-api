@@ -54,7 +54,7 @@
 
 .entity-area {
   fill: none;
-  stroke: #2f7048;
+  stroke: var(--editor-entity);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
@@ -67,7 +67,7 @@
 
 .entity-line {
   fill: none;
-  stroke: #2f7048;
+  stroke: var(--editor-entity);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 4;
@@ -93,7 +93,7 @@
 .entity-hit--area {
   fill: none;
   pointer-events: stroke;
-  stroke: rgba(63, 134, 89, 0.24);
+  stroke: var(--editor-entity-hit);
   stroke-width: 45;
 }
 
