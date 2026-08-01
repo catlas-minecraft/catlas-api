@@ -1,14 +1,11 @@
-import { PlusIcon, XIcon } from "lucide-react";
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import type { CatlasEditor, EditorSnapshot } from "@/lib/editor";
 import { entityKey, geometryTypeForEntity } from "@/lib/editor/types";
 import { EditorChangesReview } from "./editor-changes-review";
+import { InspectorSection } from "./inspector/editor-inspector-section";
+import { EditorTagsSection } from "./inspector/editor-tags-section";
 import { useEditorSnapshot } from "./use-editor-snapshot";
 
 export function EditorInspector({ editor }: { readonly editor: CatlasEditor | null }) {
@@ -25,8 +22,6 @@ function InspectorContent({ editor }: { readonly editor: CatlasEditor }) {
 
 function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: EditorSnapshot }) {
   const entity = snapshot.selectedEntity;
-  const [newTagKey, setNewTagKey] = useState("");
-  const [newTagValue, setNewTagValue] = useState("");
 
   const geometry = entity ? geometryTypeForEntity(entity) : null;
 
@@ -34,27 +29,19 @@ function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: Edito
     return <EditorChangesReview editor={editor} snapshot={snapshot} />;
   }
 
-  const addTag = () => {
-    const key = newTagKey.trim();
-    if (!key) return;
-    editor.updateTag(key, newTagValue);
-    setNewTagKey("");
-    setNewTagValue("");
-  };
-
   return (
-    <aside className="inspector flex flex-col h-full min-h-0 min-w-0 bg-background">
-      <header className="inspector__header flex items-start justify-between gap-2 flex-[0_0_auto] min-h-16 border-b border-border p-3 [&>div]:min-w-0">
+    <aside className="inspector tags-inspector dark flex h-full min-h-0 min-w-0 flex-col bg-background text-foreground">
+      <header className="inspector__header flex min-h-16 flex-[0_0_auto] items-start justify-between gap-2 border-b border-border/70 bg-background p-3 [&>div]:min-w-0">
         <div>
-          <span className="eyebrow text-muted-foreground text-[9px] font-[750] tracking-[0.12em] uppercase">
+          <span className="eyebrow text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
             {geometry}
           </span>
-          <h2 className="text-sm font-[650] leading-tight mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
+          <h2 className="mt-0.5 truncate text-sm font-semibold leading-tight text-foreground">
             {entity.tags.name ||
               (geometry === "point" ? "Point" : geometry === "line" ? "Line" : "Area")}
           </h2>
         </div>
-        <Badge variant="outline">
+        <Badge className="border-border bg-muted/55 text-foreground" variant="outline">
           <code>
             {entity.type[0]}
             {entity.id}
@@ -64,20 +51,20 @@ function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: Edito
 
       <div className="inspector__body min-h-0 overflow-y-auto overscroll-contain">
         <InspectorSection title="Geometry">
-          <FieldGroup className="property-list gap-2">
+          <FieldGroup className="property-list gap-2.5">
             {entity.type === "node" ? (
               <Field
-                className="property-row items-center grid gap-2 grid-cols-[minmax(64px,80px)_minmax(0,1fr)]"
+                className="property-row grid grid-cols-[minmax(58px,0.72fr)_minmax(0,1.28fr)] items-center gap-1.5"
                 orientation="horizontal"
               >
                 <FieldLabel
-                  className="text-muted-foreground text-[11px] min-w-0"
+                  className="min-w-0 truncate text-[11px] text-muted-foreground"
                   htmlFor="node-height"
                 >
                   Height
                 </FieldLabel>
                 <Input
-                  className="h-7 min-w-0 w-full"
+                  className="h-8 min-w-0 w-full rounded-lg border-input bg-muted/70 px-2.5 text-xs text-foreground shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30"
                   defaultValue={entity.geom.y}
                   id="node-height"
                   key={`node-${entity.id}-y-${entity.geom.y}`}
@@ -89,88 +76,8 @@ function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: Edito
             ) : null}
           </FieldGroup>
         </InspectorSection>
-
-        <Separator />
-        <InspectorSection title="All tags">
-          <div className="tag-list grid gap-1.5">
-            {Object.entries(entity.tags).map(([key, value]) => (
-              <div
-                className="tag-row items-center grid gap-1.25 grid-cols-[minmax(54px,72px)_minmax(0,1fr)_24px]"
-                key={key}
-              >
-                <code
-                  className="text-muted-foreground text-[10px] overflow-hidden text-ellipsis whitespace-nowrap"
-                  title={key}
-                >
-                  {key}
-                </code>
-                <Input
-                  className="h-7 min-w-0 w-full"
-                  aria-label={`${key} value`}
-                  defaultValue={value}
-                  key={`${entityKey(entity)}-${key}-${value}`}
-                  onBlur={(event) => editor.updateTag(key, event.target.value)}
-                />
-                <Button
-                  aria-label={`Remove ${key}`}
-                  onClick={() => editor.removeTag(key)}
-                  size="icon-xs"
-                  type="button"
-                  variant="ghost"
-                >
-                  <XIcon />
-                </Button>
-              </div>
-            ))}
-            {Object.keys(entity.tags).length === 0 ? (
-              <Empty className="tag-list__empty flex-none min-h-13 p-3 border-0">
-                <EmptyHeader>
-                  <EmptyDescription>No tags yet.</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : null}
-          </div>
-          <FieldGroup className="tag-add items-end grid gap-1.25 grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_auto] mt-2">
-            <Field className="gap-0 min-w-0">
-              <FieldLabel className="sr-only" htmlFor="new-tag-key">
-                New tag key
-              </FieldLabel>
-              <Input
-                className="h-7 min-w-0 w-full"
-                id="new-tag-key"
-                onChange={(event) => setNewTagKey(event.target.value)}
-                placeholder="key"
-                value={newTagKey}
-              />
-            </Field>
-            <Field className="gap-0 min-w-0">
-              <FieldLabel className="sr-only" htmlFor="new-tag-value">
-                New tag value
-              </FieldLabel>
-              <Input
-                className="h-7 min-w-0 w-full"
-                id="new-tag-value"
-                onChange={(event) => setNewTagValue(event.target.value)}
-                placeholder="value"
-                value={newTagValue}
-              />
-            </Field>
-            <Button disabled={!newTagKey.trim()} onClick={addTag} size="sm" type="button">
-              <PlusIcon data-icon="inline-start" />
-              Add
-            </Button>
-          </FieldGroup>
-        </InspectorSection>
+        <EditorTagsSection editor={editor} entity={entity} />
       </div>
     </aside>
-  );
-}
-
-function InspectorSection({ children, title }: { children: React.ReactNode; title: string }) {
-  return (
-    <section className="form-section p-3">
-      <h3 className="text-[11px] font-[650] mb-2.5 mt-0">{title}</h3>
-      {children}
-    </section>
   );
 }
