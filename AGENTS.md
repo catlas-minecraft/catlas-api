@@ -89,3 +89,41 @@ For GitHub Actions, consider using [`voidzero-dev/setup-vp`](https://github.com/
 
 In this enviroment
 Not `vp dlx <command>`, use `vpx <command>`
+
+## Repository Map
+
+- `packages/api_rs`: Rust Catlas API, Diesel migrations, and database schema
+- `packages/catlas-editor`: React/Vite map editor
+- `packages/catlas-leaflet`: Shared React/Leaflet library
+- `packages/catlas-viewer`: React/Vite map viewer
+- `docs`: Project specifications and design documentation
+- `scripts`: Repository maintenance and database schema scripts
+- `docker-compose.yml`: Local PostGIS and Jaeger services
+- `.github`: CI workflows and shared GitHub Actions
+
+## Project Commands
+
+Run these commands from the repository root.
+
+### Development
+
+- `vp install`: Install dependencies
+- `vp run dev`: Start the web packages in development mode
+- `cargo run -p catlas-api`: Start the Rust API
+
+### Validation and Builds
+
+- `vp run check`: Run the root TypeScript check
+- `vp run check-recursive`: Run TypeScript checks for all packages
+- `vp test`: Run JavaScript tests
+- `vp run coverage`: Run tests with coverage
+- `vp run build`: Build all web packages
+
+### API and Database
+
+- `vp run api:codegen`: Generate Editor API types from the Rust API OpenAPI document
+- `vp run db:up`: Start local PostGIS and Jaeger
+- `vp run db:down`: Stop local database services
+- `vp run db:down:volumes`: Stop services and remove database volumes
+- `vp run db:migrate`: Apply database migrations
+- `vp run db:schema`: Regenerate the Diesel schema
