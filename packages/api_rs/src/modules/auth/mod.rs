@@ -1,7 +1,5 @@
-use diesel::{
-    ExpressionMethods, OptionalExtension, QueryDsl, QueryableByName, RunQueryDsl, sql_query,
-    sql_types::{BigInt, Text},
-};
+use diesel::upsert::excluded;
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, insert_into};
 use poem::session::Session;
 use poem::web::Data;
 use poem_openapi::{Object, OpenApi, payload::Json};
@@ -26,31 +24,23 @@ pub struct CreateSession {
     pub user_id: String,
 }
 
-#[derive(QueryableByName)]
-struct UserRow {
-    #[diesel(sql_type = BigInt)]
-    id: i64,
-    #[diesel(sql_type = Text)]
-    username: String,
-    #[diesel(sql_type = Text)]
-    user_id: String,
-}
-
 pub struct AuthModule;
 
 pub(crate) fn provision_user(
     connection: &mut DatabaseConnection,
     user_id: &str,
 ) -> Result<(i64, String, String), DatabaseError> {
-    sql_query(
-        r#"INSERT INTO core.users (user_id, username) VALUES ($1, $1)
-           ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
-           RETURNING id, user_id, username"#,
-    )
-    .bind::<Text, _>(user_id)
-    .get_result::<UserRow>(connection)
-    .map(|row| (row.id, row.user_id, row.username))
-    .map_err(Into::into)
+    insert_into(core::users::table)
+        .values((
+            core::users::user_id.eq(user_id),
+            core::users::username.eq(user_id),
+        ))
+        .on_conflict(core::users::user_id)
+        .do_update()
+        .set(core::users::user_id.eq(excluded(core::users::user_id)))
+        .returning((core::users::id, core::users::user_id, core::users::username))
+        .get_result::<(i64, String, String)>(connection)
+        .map_err(Into::into)
 }
 
 #[OpenApi(prefix_path = "/auth", tag = CatlasTags::Auth)]
