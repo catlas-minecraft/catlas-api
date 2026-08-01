@@ -7,7 +7,7 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    vp-nix.url = "github:naitokosuke/vp-nix";
+    nix-vite-plus.url = "github:ryoppippi/nix-vite-plus";
   };
 
   outputs =
@@ -15,7 +15,7 @@
       self,
       nixpkgs,
       rust-overlay,
-      vp-nix,
+      nix-vite-plus,
     }:
     let
       system = "aarch64-darwin"; # Apple Silicon Mac
@@ -36,7 +36,7 @@
         sqliteSupport = false;
         mysqlSupport = false;
       };
-      vp = vp-nix.packages.${system}.default;
+      vp = nix-vite-plus.packages.${system}.vp;
     in
     {
       devShells.${system}.default = pkgs.mkShell {
