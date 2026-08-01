@@ -15,7 +15,7 @@ editor manageable:
 3. `Actions` are small graph transformations such as moving a node or changing tags.
 4. `Modes` and pointer behaviors decide how input becomes actions.
 5. `Operations` expose user commands with availability, disabled reasons, and `execute()`.
-6. `Presets` define game feature types, default tags, geometry, and snap policies.
+6. `Snapping` applies geometry-based coordinate policies while drawing and moving entities.
 7. `Validation` reports structural issues before upload.
 8. `Renderer` draws areas, lines, nodes, midpoints, and active drawing state with D3/SVG.
 9. `Sync` loads viewport entities and uploads changesets through the Catlas API client.
@@ -36,7 +36,7 @@ point/line/area milestone.
 
 `CatlasEditor` owns the mutable session and exposes snapshots through
 `getSnapshot()` and `subscribe()`. UI commands use methods such as `setMode()`,
-`undo()`, `redo()`, `applyPreset()`, and `save()`. Commands that need availability
+`undo()`, `redo()`, and `save()`. Commands that need availability
 metadata are obtained with `operation(id)`.
 
 ## Development

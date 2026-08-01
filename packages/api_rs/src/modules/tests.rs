@@ -111,7 +111,6 @@ fn publishes_and_queries_a_spatial_graph() {
                     mc_x: Some(x),
                     mc_y: Some(0.0),
                     mc_z: Some(z),
-                    feature_type: Some("vertex"),
                     tags: Some(serde_json::json!({})),
                     staged_by_user_id: user_id,
                 })
@@ -129,7 +128,6 @@ fn publishes_and_queries_a_spatial_graph() {
                 id: way_id,
                 operation: "create",
                 base_version: None,
-                feature_type: Some("building"),
                 geometry_kind: Some("area"),
                 is_closed: Some(true),
                 tags: Some(serde_json::json!({})),

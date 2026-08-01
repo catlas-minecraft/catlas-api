@@ -67,7 +67,6 @@ pub(crate) fn viewport_typed(
         .select((
             core::ways::id,
             core::ways::version,
-            core::ways::feature_type,
             core::ways::geometry_kind,
             core::ways::tags,
             core::ways::is_closed,
@@ -78,7 +77,6 @@ pub(crate) fn viewport_typed(
         .load::<(
             i64,
             i32,
-            String,
             String,
             Value,
             bool,
@@ -116,7 +114,6 @@ pub(crate) fn viewport_typed(
             core::nodes::mc_x,
             core::nodes::mc_y,
             core::nodes::mc_z,
-            core::nodes::feature_type,
             core::nodes::tags,
             core::nodes::deleted_at,
             core::nodes::changeset_id,
@@ -128,7 +125,6 @@ pub(crate) fn viewport_typed(
             f64,
             f64,
             f64,
-            String,
             Value,
             Option<chrono::DateTime<chrono::Utc>>,
             i64,
@@ -171,37 +167,24 @@ pub(crate) fn viewport_typed(
     Ok(Viewport {
         nodes: nodes
             .into_iter()
-            .map(
-                |(id, version, x, y, z, feature_type, value, deleted_at, changeset_id)| {
-                    Ok(ViewportNode {
-                        id,
-                        version,
-                        geom: crate::modules::common::types::Point { x, y, z },
-                        feature_type,
-                        tags: string_tags(value)?,
-                        deleted_at: deleted_at.into(),
-                        changeset_id,
-                    })
-                },
-            )
+            .map(|(id, version, x, y, z, value, deleted_at, changeset_id)| {
+                Ok(ViewportNode {
+                    id,
+                    version,
+                    geom: crate::modules::common::types::Point { x, y, z },
+                    tags: string_tags(value)?,
+                    deleted_at: deleted_at.into(),
+                    changeset_id,
+                })
+            })
             .collect::<Result<Vec<_>, database::DatabaseError>>()?,
         ways: ways
             .into_iter()
             .map(
-                |(
-                    id,
-                    version,
-                    feature_type,
-                    geometry_kind,
-                    value,
-                    is_closed,
-                    deleted_at,
-                    changeset_id,
-                )| {
+                |(id, version, geometry_kind, value, is_closed, deleted_at, changeset_id)| {
                     Ok(ViewportWay {
                         id,
                         version,
-                        feature_type,
                         geometry_kind: parse_geometry_kind(geometry_kind)?,
                         tags: string_tags(value)?,
                         is_closed,

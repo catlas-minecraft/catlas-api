@@ -34,16 +34,28 @@ describe("editor actions", () => {
   });
 
   test("deleting a local way removes its untagged local vertices", () => {
-    const graph = new Graph([
-      { ...node(-1), featureType: "route:vertex" },
-      { ...node(-2), featureType: "route:vertex" },
-      line(-1, [-1, -2]),
-    ]);
+    const graph = new Graph([{ ...node(-1) }, { ...node(-2) }, line(-1, [-1, -2])]);
     const next = deleteEntity({ type: "way", id: -1 })(graph);
 
     expect(next.way(-1)).toBeUndefined();
     expect(next.node(-1)).toBeUndefined();
     expect(next.node(-2)).toBeUndefined();
+  });
+
+  test("deleting a way preserves tagged and shared nodes", () => {
+    const graph = new Graph([
+      { ...node(1), tags: { name: "Landmark" } },
+      node(2),
+      node(3),
+      line(10, [1, 2]),
+      line(11, [2, 3]),
+    ]);
+    const next = deleteEntity({ type: "way", id: 10 })(graph);
+
+    expect(next.way(10)).toBeUndefined();
+    expect(next.node(1)?.tags).toEqual({ name: "Landmark" });
+    expect(next.node(2)).toBeDefined();
+    expect(next.way(11)?.nodeIds).toEqual([2, 3]);
   });
 
   const joinCases = [
@@ -59,13 +71,13 @@ describe("editor actions", () => {
         node(1),
         node(2),
         node(3),
-        { ...line(10, joinCase.keep), featureType: "primary-route", tags: { name: "Keep" } },
+        { ...line(10, joinCase.keep), tags: { name: "Keep" } },
         line(11, joinCase.merge),
       ]);
       const next = joinWays(10, 11)(graph);
 
       expect(next.way(10)?.nodeIds).toEqual(joinCase.expected);
-      expect(next.way(10)?.featureType).toBe("primary-route");
+      expect(next.way(10)?.tags.name).toBe("Keep");
       expect(next.way(10)?.tags).toEqual({ name: "Keep" });
       expect(next.way(11)).toBeUndefined();
     });
@@ -107,14 +119,13 @@ describe("editor actions", () => {
       node(2),
       node(3),
       node(4),
-      { ...line(10, [1, 2, 3, 4]), featureType: "primary-route", tags: { name: "Main" } },
+      { ...line(10, [1, 2, 3, 4]), tags: { name: "Main" } },
     ]);
     const next = splitWayAtNode(10, 3, -1)(graph);
 
     expect(next.way(10)?.nodeIds).toEqual([1, 2, 3]);
     expect(next.way(-1)).toMatchObject({
       version: 0,
-      featureType: "primary-route",
       tags: { name: "Main" },
       geometryKind: "line",
       nodeIds: [3, 4],

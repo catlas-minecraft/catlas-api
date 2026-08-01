@@ -40,4 +40,25 @@ mod tests {
         assert!(user_path["responses"]["404"].is_object());
         assert!(spec["components"]["schemas"]["User"]["properties"]["userId"].is_object());
     }
+
+    #[test]
+    fn node_and_way_openapi_schemas_have_no_feature_type() {
+        let spec: Value = serde_json::from_str(openapi_service().spec().as_str()).unwrap();
+
+        for schema in [
+            "NodeInput",
+            "NodePatch",
+            "ViewportNode",
+            "ViewportWay",
+            "WayInput",
+            "WayPatch",
+        ] {
+            assert!(
+                spec["components"]["schemas"][schema]["properties"]
+                    .get("featureType")
+                    .is_none(),
+                "{schema} still exposes featureType"
+            );
+        }
+    }
 }

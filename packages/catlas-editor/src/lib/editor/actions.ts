@@ -18,7 +18,6 @@ export const updateEntityProperties =
   (
     ref: EntityRef,
     properties: {
-      readonly featureType?: string;
       readonly tags?: Readonly<Record<string, string>>;
       readonly y?: number;
     },
@@ -30,7 +29,6 @@ export const updateEntityProperties =
     if (entity.type === "node") {
       return graph.replace({
         ...entity,
-        featureType: properties.featureType ?? entity.featureType,
         tags: properties.tags ? { ...properties.tags } : entity.tags,
         geom: properties.y === undefined ? entity.geom : { ...entity.geom, y: properties.y },
       });
@@ -38,7 +36,6 @@ export const updateEntityProperties =
 
     return graph.replace({
       ...entity,
-      featureType: properties.featureType ?? entity.featureType,
       tags: properties.tags ? { ...properties.tags } : entity.tags,
     });
   };
@@ -66,12 +63,8 @@ export const deleteEntity =
       for (const nodeId of new Set(entity.nodeIds)) {
         const node = graph.node(nodeId);
         const onlyUsedByDeletedWay = graph.parentWays(nodeId).length === 1;
-        if (
-          node &&
-          onlyUsedByDeletedWay &&
-          node.featureType.endsWith(":vertex") &&
-          Object.keys(node.tags).length === 0
-        ) {
+        // Untagged sole-parent nodes are structural vertices; semantic points retain tags.
+        if (node && onlyUsedByDeletedWay && Object.keys(node.tags).length === 0) {
           nextGraph = nextGraph.remove({ type: "node", id: nodeId });
         }
       }

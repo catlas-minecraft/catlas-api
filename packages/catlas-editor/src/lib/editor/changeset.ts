@@ -53,7 +53,7 @@ export type ChangesetReviewEntry = {
   readonly key: string;
   readonly kind: "create" | "modify" | "delete";
   readonly ref: { readonly type: "node" | "way"; readonly id: number };
-  readonly featureType: string;
+  readonly label: string | null;
   readonly geometry: "point" | "line" | "area";
   readonly expectedVersion: number | null;
   readonly fields: readonly ChangesetReviewField[];
@@ -83,7 +83,6 @@ export const difference = (base: Graph, current: Graph): GraphDifference => {
 const nodeCreate = (node: NodeEntity) => ({
   id: node.id,
   geom: node.geom,
-  featureType: node.featureType,
   tags: { ...node.tags },
 });
 
@@ -94,7 +93,6 @@ const nodeModify = (node: NodeEntity) => ({
 
 const wayCreate = (way: WayEntity) => ({
   id: way.id,
-  featureType: way.featureType,
   geometryKind: way.geometryKind,
   nodeRefs: [...way.nodeIds],
   tags: { ...way.tags },
@@ -162,8 +160,6 @@ const fieldChanges = (
     fields.push({ key, label, before: beforeValue, after: afterValue });
   };
 
-  include("featureType", "Feature type", before?.featureType ?? null, after?.featureType ?? null);
-
   if (before?.type === "node" || after?.type === "node") {
     const beforeNode = before?.type === "node" ? before : null;
     const afterNode = after?.type === "node" ? after : null;
@@ -204,7 +200,7 @@ const reviewEntry = (
     key: entityKey(entity),
     kind,
     ref: { type: entity.type, id: entity.id },
-    featureType: entity.featureType,
+    label: entity.tags.name ?? null,
     geometry: entity.type === "node" ? "point" : entity.geometryKind,
     expectedVersion: kind === "create" ? null : entity.version,
     fields: fieldChanges(kind, before, after),

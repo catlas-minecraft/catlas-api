@@ -88,7 +88,14 @@ function EditorContextMenu({
           </span>
           <span className="editor-context-menu__meta flex min-w-0 items-center gap-1.5 text-muted-foreground text-[10px] leading-snug">
             <code className="font-mono">{entityKey(targetEntity)}</code>
-            <span className="truncate">{targetEntity.featureType || "Untyped feature"}</span>
+            <span className="truncate">
+              {targetEntity.tags.name ||
+                (targetEntity.type === "node"
+                  ? "Point"
+                  : targetEntity.geometryKind === "line"
+                    ? "Line"
+                    : "Area")}
+            </span>
           </span>
         </ContextMenuLabel>
       ) : (

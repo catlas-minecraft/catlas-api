@@ -14,9 +14,9 @@ use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, delete
 use serde_json::Value;
 use std::collections::HashSet;
 
-pub(crate) fn node_json(row: (i64, i32, f64, f64, f64, String, DbJson)) -> Value {
-    let (id, version, x, y, z, feature_type, tags) = row;
-    serde_json::json!({"id": id, "version": version, "geom": {"x": x, "y": y, "z": z}, "featureType": feature_type, "tags": tags})
+pub(crate) fn node_json(row: (i64, i32, f64, f64, f64, DbJson)) -> Value {
+    let (id, version, x, y, z, tags) = row;
+    serde_json::json!({"id": id, "version": version, "geom": {"x": x, "y": y, "z": z}, "tags": tags})
 }
 
 pub(crate) fn create_node_typed(
@@ -38,7 +38,6 @@ pub(crate) fn create_node_typed(
             mc_x: Some(input.geom.x),
             mc_y: Some(input.geom.y),
             mc_z: Some(input.geom.z),
-            feature_type: Some(&input.feature_type),
             tags: Some(tags),
             staged_by_user_id: user,
         })
@@ -85,7 +84,6 @@ pub(crate) fn patch_node_typed(
         mc_x: Some(input.geom.x),
         mc_y: Some(input.geom.y),
         mc_z: Some(input.geom.z),
-        feature_type: Some(&input.feature_type),
         tags: Some(tags),
         staged_by_user_id: user,
     };
@@ -99,7 +97,6 @@ pub(crate) fn patch_node_typed(
             draft::nodes::mc_x.eq(row.mc_x),
             draft::nodes::mc_y.eq(row.mc_y),
             draft::nodes::mc_z.eq(row.mc_z),
-            draft::nodes::feature_type.eq(row.feature_type),
             draft::nodes::tags.eq(row.tags.clone()),
             draft::nodes::staged_by_user_id.eq(row.staged_by_user_id),
         ))
@@ -139,7 +136,6 @@ pub(crate) fn delete_node_typed(
         mc_x: None,
         mc_y: None,
         mc_z: None,
-        feature_type: None,
         tags: None,
         staged_by_user_id: user,
     };
@@ -153,7 +149,6 @@ pub(crate) fn delete_node_typed(
             draft::nodes::mc_x.eq(None::<f64>),
             draft::nodes::mc_y.eq(None::<f64>),
             draft::nodes::mc_z.eq(None::<f64>),
-            draft::nodes::feature_type.eq(None::<String>),
             draft::nodes::tags.eq(None::<Value>),
             draft::nodes::staged_by_user_id.eq(user),
         ))
@@ -161,9 +156,9 @@ pub(crate) fn delete_node_typed(
     Ok(())
 }
 
-pub(crate) fn way_json(row: (i64, i32, String, String, DbJson, Vec<i64>)) -> Value {
-    let (id, version, feature_type, geometry_kind, tags, node_refs) = row;
-    serde_json::json!({"id": id, "version": version, "featureType": feature_type, "geometryKind": geometry_kind, "nodeRefs": node_refs, "tags": tags})
+pub(crate) fn way_json(row: (i64, i32, String, DbJson, Vec<i64>)) -> Value {
+    let (id, version, geometry_kind, tags, node_refs) = row;
+    serde_json::json!({"id": id, "version": version, "geometryKind": geometry_kind, "nodeRefs": node_refs, "tags": tags})
 }
 
 pub(crate) fn relation_json(row: (i64, i32, String, DbJson)) -> Value {
@@ -272,7 +267,6 @@ pub(crate) fn create_way_typed(
             id,
             operation: "create",
             base_version: None,
-            feature_type: Some(&input.feature_type),
             geometry_kind: Some(input.geometry_kind.as_str()),
             is_closed: Some(input.node_refs.first() == input.node_refs.last()),
             tags: Some(tags),
@@ -328,7 +322,6 @@ pub(crate) fn patch_way_typed(
         id: way_id,
         operation,
         base_version,
-        feature_type: Some(&input.feature_type),
         geometry_kind: Some(input.geometry_kind.as_str()),
         is_closed: Some(input.node_refs.first() == input.node_refs.last()),
         tags: Some(tags),
@@ -341,7 +334,6 @@ pub(crate) fn patch_way_typed(
         .set((
             draft::ways::operation.eq(operation),
             draft::ways::base_version.eq(base_version),
-            draft::ways::feature_type.eq(row.feature_type),
             draft::ways::geometry_kind.eq(row.geometry_kind),
             draft::ways::is_closed.eq(row.is_closed),
             draft::ways::tags.eq(row.tags.clone()),
@@ -403,7 +395,6 @@ pub(crate) fn delete_way_typed(
         id: way_id,
         operation: "delete",
         base_version: Some(base),
-        feature_type: None,
         geometry_kind: None,
         is_closed: None,
         tags: None,
@@ -416,7 +407,6 @@ pub(crate) fn delete_way_typed(
         .set((
             draft::ways::operation.eq("delete"),
             draft::ways::base_version.eq(base),
-            draft::ways::feature_type.eq(None::<String>),
             draft::ways::geometry_kind.eq(None::<String>),
             draft::ways::is_closed.eq(None::<bool>),
             draft::ways::tags.eq(None::<Value>),

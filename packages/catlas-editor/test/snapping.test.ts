@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
-import { snapPoint, snapValue } from "../src/lib/editor/presets";
+import { snapPoint, snapValue } from "../src/lib/editor/snapping";
 
-describe("preset snapping", () => {
+describe("geometry snapping", () => {
   test("supports integer, half, and free policies", () => {
     expect(snapValue(1.24, "integer")).toBe(1);
     expect(snapValue(1.24, "half")).toBe(1);

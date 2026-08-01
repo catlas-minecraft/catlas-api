@@ -86,3 +86,6 @@ For GitHub Actions, consider using [`voidzero-dev/setup-vp`](https://github.com/
 - [ ] Run `vp install` after pulling remote changes and before getting started.
 - [ ] Run `vp check` and `vp test` to validate changes.
 <!--VITE PLUS END-->
+
+In this enviroment
+Not `vp dlx <command>`, use `vpx <command>`

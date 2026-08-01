@@ -39,7 +39,6 @@ impl NodesModule {
                     core::nodes::mc_x,
                     core::nodes::mc_y,
                     core::nodes::mc_z,
-                    core::nodes::feature_type,
                     core::nodes::tags,
                 ))
                 .first::<(
@@ -48,7 +47,6 @@ impl NodesModule {
                     f64,
                     f64,
                     f64,
-                    String,
                     crate::modules::common::models::DbJson,
                 )>(c)
                 .map_err(Into::into)
@@ -85,7 +83,7 @@ impl NodesModule {
 
     /// Nodeを更新する
     ///
-    /// expectedVersionを検証し、Nodeの座標、種別、タグを指定したChangesetのDraftに保存する。
+    /// expectedVersionを検証し、Nodeの座標とタグを指定したChangesetのDraftに保存する。
     #[oai(path = "/nodes/:id", method = "patch")]
     async fn patch_node(
         &self,

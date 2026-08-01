@@ -86,7 +86,7 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
     try {
       for (const node of payload.create.nodes) {
         const result = await client.POST("/nodes", {
-          body: { changesetId, geom: node.geom, featureType: node.featureType, tags: node.tags },
+          body: { changesetId, geom: node.geom, tags: node.tags },
         });
         const created = await json<IdVersion>(result);
         nodeIds.set(node.id, created);
@@ -96,7 +96,6 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
         const result = await client.POST("/ways", {
           body: {
             changesetId,
-            featureType: way.featureType,
             geometryKind: way.geometryKind,
             nodeRefs: way.nodeRefs.map(remapNode),
             tags: way.tags,
@@ -112,7 +111,6 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
             changesetId,
             expectedVersion: node.expectedVersion,
             geom: node.geom,
-            featureType: node.featureType,
             tags: node.tags,
           },
         });
@@ -125,7 +123,6 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
           body: {
             changesetId,
             expectedVersion: way.expectedVersion,
-            featureType: way.featureType,
             geometryKind: way.geometryKind,
             nodeRefs: way.nodeRefs.map(remapNode),
             tags: way.tags,

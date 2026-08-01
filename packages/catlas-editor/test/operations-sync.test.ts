@@ -49,7 +49,6 @@ describe("API synchronization", () => {
           {
             id: 7,
             geom: { x: 1, y: 2, z: 3 },
-            featureType: "landmark",
             tags: {},
             version: 4,
             deletedAt: null,

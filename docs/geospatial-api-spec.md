@@ -65,6 +65,9 @@ deletes also include `expectedVersion`. Node geometry is `{x,y,z}`. Ways use an
 ordered `nodeRefs` array. Relations currently support strict multipolygons made
 from area ways with `outer`, `inner`, or null roles.
 
+Nodes and ways have no dedicated semantic type field. Their meaning and other
+application-specific metadata are represented by tags.
+
 ## Publication
 
 Publication is a single database transaction:

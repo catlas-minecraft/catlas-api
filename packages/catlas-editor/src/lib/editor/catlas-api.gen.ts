@@ -288,7 +288,7 @@ export interface paths {
         head?: never;
         /**
          * Nodeを更新する
-         * @description expectedVersionを検証し、Nodeの座標、種別、タグを指定したChangesetのDraftに保存する。
+         * @description expectedVersionを検証し、Nodeの座標とタグを指定したChangesetのDraftに保存する。
          */
         patch: {
             parameters: {
@@ -762,7 +762,6 @@ export interface components {
             /** Format: int64 */
             changesetId: number;
             geom: components["schemas"]["Point"];
-            featureType: string;
             tags: {
                 [key: string]: string;
             };
@@ -774,7 +773,6 @@ export interface components {
             /** Format: int32 */
             expectedVersion: number;
             geom: components["schemas"]["Point"];
-            featureType: string;
             tags: {
                 [key: string]: string;
             };
@@ -846,7 +844,6 @@ export interface components {
             /** Format: int32 */
             version: number;
             geom: components["schemas"]["Point"];
-            featureType: string;
             tags: {
                 [key: string]: string;
             };
@@ -889,7 +886,6 @@ export interface components {
             id: number;
             /** Format: int32 */
             version: number;
-            featureType: string;
             geometryKind: components["schemas"]["GeometryKind"];
             tags: {
                 [key: string]: string;
@@ -915,7 +911,6 @@ export interface components {
         WayInput: {
             /** Format: int64 */
             changesetId: number;
-            featureType: string;
             geometryKind: components["schemas"]["GeometryKind"];
             nodeRefs: number[];
             tags: {
@@ -928,7 +923,6 @@ export interface components {
             changesetId: number;
             /** Format: int32 */
             expectedVersion: number;
-            featureType: string;
             geometryKind: components["schemas"]["GeometryKind"];
             nodeRefs: number[];
             tags: {
