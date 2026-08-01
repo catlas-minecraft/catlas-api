@@ -18,14 +18,12 @@ type Point3D = {
 type NodeSnapshot = {
   id: number;
   geom: Point3D;
-  featureType: string;
   tags: Record<string, string>;
   deletedAt: number | null;
 };
 
 type WaySnapshot = {
   id: number;
-  featureType: string;
   geometryKind: "line" | "area";
   isClosed: boolean;
   tags: Record<string, string>;

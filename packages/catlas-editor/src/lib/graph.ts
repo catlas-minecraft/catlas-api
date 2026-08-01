@@ -22,11 +22,7 @@ const tagsEqual = (
 export const entityEqual = (left: EditorEntity | undefined, right: EditorEntity | undefined) => {
   if (left === right) return true;
   if (!left || !right || left.type !== right.type || left.id !== right.id) return false;
-  if (
-    left.version !== right.version ||
-    left.featureType !== right.featureType ||
-    !tagsEqual(left.tags, right.tags)
-  ) {
+  if (left.version !== right.version || !tagsEqual(left.tags, right.tags)) {
     return false;
   }
 

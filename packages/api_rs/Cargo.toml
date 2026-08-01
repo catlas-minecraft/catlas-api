@@ -32,4 +32,5 @@ tracing-opentelemetry = { version = "0.33.0" }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [dev-dependencies]
+poem = { version = "3.1.12", features = ["session", "test"] }
 opentelemetry_sdk = { version = "0.32.1", features = ["testing"] }

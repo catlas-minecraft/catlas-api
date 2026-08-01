@@ -52,16 +52,17 @@ impl ChangesetsModule {
                         chrono::DateTime<chrono::Utc>,
                         Option<chrono::DateTime<chrono::Utc>>,
                     )>(c)?;
-                let username = core::users::table
+                let user = core::users::table
                     .filter(core::users::id.eq(row.3))
-                    .select(core::users::username)
-                    .first::<String>(c)?;
+                    .select((core::users::user_id, core::users::username))
+                    .first::<(String, String)>(c)?;
                 Ok(ChangesetRow {
                     id: row.0,
                     status: row.1,
                     comment: row.2,
                     created_by_user_id: row.3,
-                    created_by_username: username,
+                    created_by_user_id_public: user.0,
+                    created_by_username: user.1,
                     created_at: row.4,
                     published_at: row.5,
                 })
@@ -105,25 +106,29 @@ impl ChangesetsModule {
         .await
         .map_err(db_error)?;
         let user_ids: Vec<i64> = rows.iter().map(|row| row.3).collect();
-        let usernames = database::blocking(pool, move |c| {
+        let users = database::blocking(pool, move |c| {
             core::users::table
                 .filter(core::users::id.eq_any(user_ids))
-                .select((core::users::id, core::users::username))
-                .load::<(i64, String)>(c)
+                .select((core::users::id, core::users::user_id, core::users::username))
+                .load::<(i64, String, String)>(c)
                 .map_err(Into::into)
         })
         .await
         .map_err(db_error)?;
-        let usernames: std::collections::HashMap<_, _> = usernames.into_iter().collect();
+        let users: std::collections::HashMap<_, _> = users
+            .into_iter()
+            .map(|(id, user_id, username)| (id, (user_id, username)))
+            .collect();
         Ok(Json(
             rows.into_iter()
                 .filter_map(|row| {
-                    usernames.get(&row.3).map(|username| {
+                    users.get(&row.3).map(|(user_id, username)| {
                         ChangesetRow {
                             id: row.0,
                             status: row.1,
                             comment: row.2,
                             created_by_user_id: row.3,
+                            created_by_user_id_public: user_id.clone(),
                             created_by_username: username.clone(),
                             created_at: row.4,
                             published_at: row.5,

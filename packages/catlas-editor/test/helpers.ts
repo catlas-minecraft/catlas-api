@@ -4,7 +4,6 @@ export const node = (id: number, x = id, z = id, version = id < 0 ? 0 : 1): Node
   type: "node",
   id,
   version,
-  featureType: "landmark",
   tags: {},
   geom: { x, y: 0, z },
 });
@@ -17,7 +16,6 @@ export const line = (
   type: "way",
   id,
   version,
-  featureType: "route",
   tags: {},
   geometryKind: "line",
   nodeIds,
@@ -31,7 +29,6 @@ export const area = (
   type: "way",
   id,
   version,
-  featureType: "zone",
   tags: {},
   geometryKind: "area",
   nodeIds,

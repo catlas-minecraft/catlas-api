@@ -39,8 +39,7 @@ pub(crate) fn validate_tags(value: &std::collections::BTreeMap<String, String>) 
     if value.keys().any(|key| {
         matches!(
             key.as_str(),
-            "feature_type"
-                | "relation_type"
+            "relation_type"
                 | "geometry_kind"
                 | "is_closed"
                 | "version"

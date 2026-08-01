@@ -25,7 +25,6 @@ pub mod core {
             mc_y -> Float8,
             mc_z -> Float8,
             geom_2d -> Nullable<Geometry>,
-            feature_type -> Text,
             tags -> Jsonb,
             version -> Int4,
             created_changeset_id -> Int8,
@@ -79,6 +78,7 @@ pub mod core {
             id -> Int8,
             username -> Text,
             created_at -> Timestamptz,
+            user_id -> Text,
         }
     }
 
@@ -100,7 +100,6 @@ pub mod core {
 
         core.ways (id) {
             id -> Int8,
-            feature_type -> Text,
             geometry_kind -> Text,
             is_closed -> Bool,
             tags -> Jsonb,
@@ -146,7 +145,6 @@ pub mod draft {
             mc_x -> Nullable<Float8>,
             mc_y -> Nullable<Float8>,
             mc_z -> Nullable<Float8>,
-            feature_type -> Nullable<Text>,
             tags -> Nullable<Jsonb>,
             staged_at -> Timestamptz,
             staged_by_user_id -> Int8,
@@ -204,7 +202,6 @@ pub mod draft {
             id -> Int8,
             operation -> Text,
             base_version -> Nullable<Int4>,
-            feature_type -> Nullable<Text>,
             geometry_kind -> Nullable<Text>,
             is_closed -> Nullable<Bool>,
             tags -> Nullable<Jsonb>,

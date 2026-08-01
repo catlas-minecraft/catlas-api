@@ -234,7 +234,12 @@ function ChangeItem({
           <ItemContent>
             <ItemTitle>
               <Icon />
-              {entry.featureType || `Untyped ${entry.ref.type}`}
+              {entry.label ||
+                (entry.geometry === "point"
+                  ? "Point"
+                  : entry.geometry === "line"
+                    ? "Line"
+                    : "Area")}
             </ItemTitle>
             <ItemDescription>
               {entry.geometry} · {entry.key}

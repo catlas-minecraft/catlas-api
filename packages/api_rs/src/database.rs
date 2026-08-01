@@ -90,9 +90,17 @@ mod tests {
         sql_query,
         sql_types::{BigInt, Jsonb, Text},
     };
+    use poem::{
+        EndpointExt, Route,
+        http::StatusCode,
+        session::{CookieConfig, MemoryStorage, ServerSession},
+        test::TestClient,
+    };
 
     use super::{MIGRATIONS, connect_and_migrate};
     use crate::modules::auth::provision_user;
+    use crate::modules::users::find_user;
+    use crate::openapi_service;
 
     #[derive(QueryableByName)]
     struct Count {
@@ -110,6 +118,16 @@ mod tests {
     struct Id {
         #[diesel(sql_type = BigInt)]
         id: i64,
+    }
+
+    #[derive(QueryableByName)]
+    struct UserRecord {
+        #[diesel(sql_type = BigInt)]
+        id: i64,
+        #[diesel(sql_type = Text)]
+        user_id: String,
+        #[diesel(sql_type = Text)]
+        username: String,
     }
 
     #[derive(QueryableByName)]
@@ -167,34 +185,164 @@ mod tests {
         .get_result::<Id>(&mut connection)
         .expect("legacy changeset insert failed");
         sql_query(
+            "INSERT INTO core.nodes (
+               id, mc_x, mc_y, mc_z, feature_type, tags, created_changeset_id,
+               created_by, updated_by, changeset_id
+             ) VALUES (9001, 1, 2, 3, 'landmark', '{}', $1, 'legacy-user', 'legacy-user', $1)",
+        )
+        .bind::<BigInt, _>(changeset.id)
+        .execute(&mut connection)
+        .expect("legacy node insert failed");
+        sql_query(
+            "INSERT INTO core.ways (
+               id, feature_type, geometry_kind, is_closed, tags, created_changeset_id,
+               created_by, updated_by, changeset_id
+             ) VALUES (9002, 'route', 'line', false, '{}', $1, 'legacy-user', 'legacy-user', $1)",
+        )
+        .bind::<BigInt, _>(changeset.id)
+        .execute(&mut connection)
+        .expect("legacy way insert failed");
+        sql_query(
+            "INSERT INTO draft.nodes (
+               changeset_id, id, operation, mc_x, mc_y, mc_z, feature_type, tags, staged_by
+             ) VALUES ($1, -1, 'create', 4, 5, 6, 'spawn', '{}', 'legacy-user')",
+        )
+        .bind::<BigInt, _>(changeset.id)
+        .execute(&mut connection)
+        .expect("legacy node draft insert failed");
+        sql_query(
+            "INSERT INTO draft.ways (
+               changeset_id, id, operation, feature_type, geometry_kind, is_closed, tags, staged_by
+             ) VALUES ($1, -2, 'create', 'boundary', 'line', false, '{}', 'legacy-user')",
+        )
+        .bind::<BigInt, _>(changeset.id)
+        .execute(&mut connection)
+        .expect("legacy feature type fixture insert failed");
+        sql_query(
             "INSERT INTO history.node_versions (node_id, version, snapshot, changeset_id)
-             VALUES (9001, 1, '{\"createdBy\": \"legacy-user\", \"updatedBy\": \"legacy-user\"}', $1),
-                    (9001, 2, '{\"createdBy\": \"legacy-user\"}', $1)",
+             VALUES (9001, 1, '{\"featureType\": \"landmark\", \"createdBy\": \"legacy-user\", \"updatedBy\": \"legacy-user\"}', $1),
+                    (9001, 2, '{\"featureType\": \"spawn\", \"createdBy\": \"legacy-user\"}', $1)",
         )
         .bind::<BigInt, _>(changeset.id)
         .execute(&mut connection)
         .expect("legacy history insert failed");
+        sql_query(
+            "INSERT INTO history.way_versions (way_id, version, snapshot, changeset_id)
+             VALUES (9002, 1, '{\"featureType\": \"route\", \"createdBy\": \"legacy-user\", \"updatedBy\": \"legacy-user\"}', $1)",
+        )
+        .bind::<BigInt, _>(changeset.id)
+        .execute(&mut connection)
+        .expect("legacy way history insert failed");
         drop(connection);
 
         let pool = connect_and_migrate(database_url.clone()).expect("first migration run failed");
         connect_and_migrate(database_url).expect("second migration run failed");
 
         let mut connection = pool.get().expect("database connection failed");
-        let first = provision_user(&mut connection, "ProvisionedUser")
+        let first = provision_user(&mut connection, "provisioned-user")
             .expect("first user provisioning failed");
-        let same = provision_user(&mut connection, "ProvisionedUser")
+        let same = provision_user(&mut connection, "provisioned-user")
             .expect("second user provisioning failed");
-        let case_distinct = provision_user(&mut connection, "provisioneduser")
-            .expect("case-distinct user provisioning failed");
         assert_eq!(first, same);
-        assert_ne!(first.0, case_distinct.0);
-        assert_eq!(case_distinct.1, "provisioneduser");
-        let legacy_user_count = sql_query(
-            "SELECT count(*)::bigint AS count FROM core.users WHERE username = 'legacy-user'",
+        assert_eq!(first.1, "provisioned-user");
+        assert_eq!(first.2, "provisioned-user");
+        sql_query(
+            "INSERT INTO core.users (user_id, username) VALUES ('named-user', 'Display Name')",
         )
-        .get_result::<Count>(&mut connection)
+        .execute(&mut connection)
+        .expect("display-name user creation failed");
+        let named = provision_user(&mut connection, "named-user")
+            .expect("existing user provisioning failed");
+        assert_eq!(named.2, "Display Name");
+        let legacy_user = sql_query(
+            "SELECT id, user_id, username FROM core.users WHERE username = 'legacy-user'",
+        )
+        .get_result::<UserRecord>(&mut connection)
         .expect("legacy user query failed");
-        assert_eq!(legacy_user_count.count, 1);
+        assert_eq!(legacy_user.user_id, format!("user_{}", legacy_user.id));
+        assert_eq!(legacy_user.username, "legacy-user");
+        assert_eq!(
+            find_user(&mut connection, &legacy_user.user_id)
+                .expect("public user lookup failed")
+                .expect("legacy user was not found")
+                .username,
+            "legacy-user"
+        );
+        assert!(
+            find_user(&mut connection, "missing-user")
+                .expect("missing public user lookup failed")
+                .is_none()
+        );
+        sql_query(
+            "INSERT INTO core.users (user_id, username) VALUES ('another-user', 'legacy-user')",
+        )
+        .execute(&mut connection)
+        .expect("user display names should not be unique");
+        assert!(
+            sql_query(
+                "INSERT INTO core.users (user_id, username) VALUES ('Invalid-ID', 'invalid')",
+            )
+            .execute(&mut connection)
+            .is_err()
+        );
+
+        let http_user = provision_user(&mut connection, "http-user")
+            .expect("HTTP test user provisioning failed");
+        tokio::runtime::Runtime::new()
+            .expect("test runtime creation failed")
+            .block_on(async {
+                let app = Route::new()
+                    .nest("/api", openapi_service())
+                    .with(ServerSession::new(
+                        CookieConfig::default(),
+                        MemoryStorage::new(),
+                    ))
+                    .data(pool.clone());
+                let client = TestClient::new(app);
+                client
+                    .post("/api/auth/session")
+                    .body_json(&serde_json::json!({ "userId": " padded-user " }))
+                    .send()
+                    .await
+                    .assert_status(StatusCode::BAD_REQUEST);
+                client
+                    .post("/api/auth/session")
+                    .body_json(&serde_json::json!({ "userId": "http-user" }))
+                    .send()
+                    .await
+                    .assert_json(serde_json::json!({
+                        "user": {
+                            "id": http_user.0,
+                            "userId": http_user.1,
+                            "username": http_user.2
+                        }
+                    }))
+                    .await;
+                client
+                    .post("/api/auth/session")
+                    .body_json(&serde_json::json!({
+                        "userId": "valid-user",
+                        "username": "legacy-field"
+                    }))
+                    .send()
+                    .await
+                    .assert_status(StatusCode::BAD_REQUEST);
+                client
+                    .get("/api/users/user_1")
+                    .send()
+                    .await
+                    .assert_json(serde_json::json!({
+                        "id": legacy_user.id,
+                        "userId": legacy_user.user_id,
+                        "username": "legacy-user"
+                    }))
+                    .await;
+                client
+                    .get("/api/users/missing-user")
+                    .send()
+                    .await
+                    .assert_status(StatusCode::NOT_FOUND);
+            });
         let snapshots = sql_query(
             "SELECT snapshot FROM history.node_versions WHERE node_id = 9001 ORDER BY version",
         )
@@ -205,6 +353,39 @@ mod tests {
         assert_eq!(snapshots[0].snapshot["updatedByUserId"], 1);
         assert_eq!(snapshots[1].snapshot["createdByUserId"], 1);
         assert!(snapshots[1].snapshot.get("updatedBy").is_none());
+        assert!(
+            snapshots
+                .iter()
+                .all(|snapshot| snapshot.snapshot.get("featureType").is_none())
+        );
+        let way_snapshots = sql_query(
+            "SELECT snapshot FROM history.way_versions WHERE way_id = 9002 ORDER BY version",
+        )
+        .load::<Snapshot>(&mut connection)
+        .expect("legacy way history query failed");
+        assert_eq!(way_snapshots.len(), 1);
+        assert!(way_snapshots[0].snapshot.get("featureType").is_none());
+        let feature_type_column_count = sql_query(
+            "SELECT count(*)::bigint AS count
+             FROM information_schema.columns
+             WHERE table_schema IN ('core', 'draft')
+               AND table_name IN ('nodes', 'ways')
+               AND column_name = 'feature_type'",
+        )
+        .get_result::<Count>(&mut connection)
+        .expect("feature type column query failed");
+        let legacy_entity_count = sql_query(
+            "SELECT (
+               (SELECT count(*) FROM core.nodes WHERE id = 9001)
+               + (SELECT count(*) FROM core.ways WHERE id = 9002)
+               + (SELECT count(*) FROM draft.nodes WHERE id = -1)
+               + (SELECT count(*) FROM draft.ways WHERE id = -2)
+             )::bigint AS count",
+        )
+        .get_result::<Count>(&mut connection)
+        .expect("legacy entity query failed");
+        assert_eq!(feature_type_column_count.count, 0);
+        assert_eq!(legacy_entity_count.count, 4);
         let expected_migration_count = MigrationSource::<Pg>::migrations(&MIGRATIONS)
             .expect("embedded migrations could not be loaded")
             .len() as i64;
@@ -267,5 +448,14 @@ mod tests {
         assert_eq!(application_table_count.count, 19);
         assert_eq!(published_index_count.count, 1);
         assert_eq!(actor_fk_count.count, 10);
+
+        connection
+            .batch_execute(
+                "DELETE FROM draft.ways WHERE id = -2;
+                 DELETE FROM draft.nodes WHERE id = -1;
+                 DELETE FROM core.ways WHERE id = 9002;
+                 DELETE FROM core.nodes WHERE id = 9001;",
+            )
+            .expect("legacy feature type fixture cleanup failed");
     }
 }

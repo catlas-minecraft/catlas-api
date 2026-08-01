@@ -32,6 +32,7 @@ pub enum ChangesetStatus {
 #[oai(rename_all = "camelCase")]
 pub struct User {
     pub id: i64,
+    pub user_id: String,
     pub username: String,
 }
 
@@ -48,7 +49,6 @@ pub struct Point {
 pub struct NodeInput {
     pub changeset_id: i64,
     pub geom: Point,
-    pub feature_type: String,
     pub tags: std::collections::BTreeMap<String, String>,
 }
 #[derive(Debug, Object, Serialize, Deserialize)]
@@ -57,7 +57,6 @@ pub struct NodePatch {
     pub changeset_id: i64,
     pub expected_version: i32,
     pub geom: Point,
-    pub feature_type: String,
     pub tags: std::collections::BTreeMap<String, String>,
 }
 #[derive(Debug, Object, Serialize, Deserialize)]
@@ -77,7 +76,6 @@ pub struct IdVersion {
 #[oai(rename_all = "camelCase")]
 pub struct WayInput {
     pub changeset_id: i64,
-    pub feature_type: String,
     pub geometry_kind: GeometryKind,
     pub node_refs: Vec<i64>,
     pub tags: std::collections::BTreeMap<String, String>,
@@ -87,7 +85,6 @@ pub struct WayInput {
 pub struct WayPatch {
     pub changeset_id: i64,
     pub expected_version: i32,
-    pub feature_type: String,
     pub geometry_kind: GeometryKind,
     pub node_refs: Vec<i64>,
     pub tags: std::collections::BTreeMap<String, String>,
@@ -139,7 +136,6 @@ pub struct ViewportNode {
     pub id: i64,
     pub version: i32,
     pub geom: Point,
-    pub feature_type: String,
     pub tags: BTreeMap<String, String>,
     pub deleted_at: Nullable<chrono::DateTime<chrono::Utc>>,
     pub changeset_id: i64,
@@ -150,7 +146,6 @@ pub struct ViewportNode {
 pub struct ViewportWay {
     pub id: i64,
     pub version: i32,
-    pub feature_type: String,
     pub geometry_kind: GeometryKind,
     pub tags: BTreeMap<String, String>,
     pub is_closed: bool,

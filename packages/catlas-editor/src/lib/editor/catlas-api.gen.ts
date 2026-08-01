@@ -288,7 +288,7 @@ export interface paths {
         head?: never;
         /**
          * Nodeを更新する
-         * @description expectedVersionを検証し、Nodeの座標、種別、タグを指定したChangesetのDraftに保存する。
+         * @description expectedVersionを検証し、Nodeの座標とタグを指定したChangesetのDraftに保存する。
          */
         patch: {
             parameters: {
@@ -672,6 +672,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Look up a public user by user ID. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["User"];
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -696,7 +739,7 @@ export interface components {
         ChangesetStatus: "open" | "published" | "abandoned";
         /** CreateSession */
         CreateSession: {
-            username: string;
+            userId: string;
         };
         /** DeleteInput */
         DeleteInput: {
@@ -719,7 +762,6 @@ export interface components {
             /** Format: int64 */
             changesetId: number;
             geom: components["schemas"]["Point"];
-            featureType: string;
             tags: {
                 [key: string]: string;
             };
@@ -731,7 +773,6 @@ export interface components {
             /** Format: int32 */
             expectedVersion: number;
             geom: components["schemas"]["Point"];
-            featureType: string;
             tags: {
                 [key: string]: string;
             };
@@ -785,6 +826,7 @@ export interface components {
         User: {
             /** Format: int64 */
             id: number;
+            userId: string;
             username: string;
         };
         /** Viewport */
@@ -802,7 +844,6 @@ export interface components {
             /** Format: int32 */
             version: number;
             geom: components["schemas"]["Point"];
-            featureType: string;
             tags: {
                 [key: string]: string;
             };
@@ -845,7 +886,6 @@ export interface components {
             id: number;
             /** Format: int32 */
             version: number;
-            featureType: string;
             geometryKind: components["schemas"]["GeometryKind"];
             tags: {
                 [key: string]: string;
@@ -871,7 +911,6 @@ export interface components {
         WayInput: {
             /** Format: int64 */
             changesetId: number;
-            featureType: string;
             geometryKind: components["schemas"]["GeometryKind"];
             nodeRefs: number[];
             tags: {
@@ -884,7 +923,6 @@ export interface components {
             changesetId: number;
             /** Format: int32 */
             expectedVersion: number;
-            featureType: string;
             geometryKind: components["schemas"]["GeometryKind"];
             nodeRefs: number[];
             tags: {

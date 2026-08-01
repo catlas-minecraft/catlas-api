@@ -155,7 +155,6 @@ pub(crate) fn publish_sync(
             draft::nodes::mc_x,
             draft::nodes::mc_y,
             draft::nodes::mc_z,
-            draft::nodes::feature_type,
             draft::nodes::tags,
             draft::nodes::staged_by_user_id,
         ))
@@ -164,20 +163,17 @@ pub(crate) fn publish_sync(
             Option<f64>,
             Option<f64>,
             Option<f64>,
-            Option<String>,
             Option<Value>,
             i64,
         )>(c)?;
     let node_creates: Vec<_> = node_creates
         .into_iter()
-        .map(|(node_id, x, y, z, feature_type, tags, by)| {
+        .map(|(node_id, x, y, z, tags, by)| {
             Ok(NewNode {
                 id: node_id,
                 mc_x: x.ok_or_else(|| std::io::Error::other("invalid node draft"))?,
                 mc_y: y.ok_or_else(|| std::io::Error::other("invalid node draft"))?,
                 mc_z: z.ok_or_else(|| std::io::Error::other("invalid node draft"))?,
-                feature_type: feature_type
-                    .ok_or_else(|| std::io::Error::other("invalid node draft"))?,
                 tags: tags.unwrap_or_else(|| serde_json::json!({})),
                 created_changeset_id: id,
                 created_by_user_id: by,
@@ -194,39 +190,27 @@ pub(crate) fn publish_sync(
         .filter(draft::ways::operation.eq("create"))
         .select((
             draft::ways::id,
-            draft::ways::feature_type,
             draft::ways::geometry_kind,
             draft::ways::is_closed,
             draft::ways::tags,
             draft::ways::staged_by_user_id,
         ))
-        .load::<(
-            i64,
-            Option<String>,
-            Option<String>,
-            Option<bool>,
-            Option<Value>,
-            i64,
-        )>(c)?;
+        .load::<(i64, Option<String>, Option<bool>, Option<Value>, i64)>(c)?;
     let way_creates: Vec<_> = way_creates
         .into_iter()
-        .map(
-            |(way_id, feature_type, geometry_kind, is_closed, tags, by)| {
-                Ok(NewWay {
-                    id: way_id,
-                    feature_type: feature_type
-                        .ok_or_else(|| std::io::Error::other("invalid way draft"))?,
-                    geometry_kind: geometry_kind
-                        .ok_or_else(|| std::io::Error::other("invalid way draft"))?,
-                    is_closed: is_closed.unwrap_or(false),
-                    tags: tags.unwrap_or_else(|| serde_json::json!({})),
-                    created_changeset_id: id,
-                    created_by_user_id: by,
-                    updated_by_user_id: by,
-                    changeset_id: id,
-                })
-            },
-        )
+        .map(|(way_id, geometry_kind, is_closed, tags, by)| {
+            Ok(NewWay {
+                id: way_id,
+                geometry_kind: geometry_kind
+                    .ok_or_else(|| std::io::Error::other("invalid way draft"))?,
+                is_closed: is_closed.unwrap_or(false),
+                tags: tags.unwrap_or_else(|| serde_json::json!({})),
+                created_changeset_id: id,
+                created_by_user_id: by,
+                updated_by_user_id: by,
+                changeset_id: id,
+            })
+        })
         .collect::<Result<Vec<_>, std::io::Error>>()?;
     for chunk in way_creates.chunks(INSERT_BATCH_SIZE) {
         insert_into(core::ways::table).values(chunk).execute(c)?;
@@ -270,7 +254,6 @@ pub(crate) fn publish_sync(
             draft::nodes::mc_x,
             draft::nodes::mc_y,
             draft::nodes::mc_z,
-            draft::nodes::feature_type,
             draft::nodes::tags,
             draft::nodes::staged_by_user_id,
         ))
@@ -279,18 +262,15 @@ pub(crate) fn publish_sync(
             Option<f64>,
             Option<f64>,
             Option<f64>,
-            Option<String>,
             Option<Value>,
             i64,
         )>(c)?;
-    for (node_id, x, y, z, feature_type, tags, by) in node_updates {
+    for (node_id, x, y, z, tags, by) in node_updates {
         update(core::nodes::table.filter(core::nodes::id.eq(node_id)))
             .set((
                 core::nodes::mc_x.eq(x.ok_or_else(|| std::io::Error::other("invalid node draft"))?),
                 core::nodes::mc_y.eq(y.ok_or_else(|| std::io::Error::other("invalid node draft"))?),
                 core::nodes::mc_z.eq(z.ok_or_else(|| std::io::Error::other("invalid node draft"))?),
-                core::nodes::feature_type
-                    .eq(feature_type.ok_or_else(|| std::io::Error::other("invalid node draft"))?),
                 core::nodes::tags.eq(tags.unwrap_or_else(|| serde_json::json!({}))),
                 core::nodes::version.eq(core::nodes::version + 1),
                 core::nodes::updated_at.eq(diesel::dsl::now),
@@ -321,25 +301,15 @@ pub(crate) fn publish_sync(
         .filter(draft::ways::operation.eq("update"))
         .select((
             draft::ways::id,
-            draft::ways::feature_type,
             draft::ways::geometry_kind,
             draft::ways::is_closed,
             draft::ways::tags,
             draft::ways::staged_by_user_id,
         ))
-        .load::<(
-            i64,
-            Option<String>,
-            Option<String>,
-            Option<bool>,
-            Option<Value>,
-            i64,
-        )>(c)?;
-    for (way_id, feature_type, geometry_kind, is_closed, tags, by) in way_updates {
+        .load::<(i64, Option<String>, Option<bool>, Option<Value>, i64)>(c)?;
+    for (way_id, geometry_kind, is_closed, tags, by) in way_updates {
         update(core::ways::table.filter(core::ways::id.eq(way_id)))
             .set((
-                core::ways::feature_type
-                    .eq(feature_type.ok_or_else(|| std::io::Error::other("invalid way draft"))?),
                 core::ways::geometry_kind
                     .eq(geometry_kind.ok_or_else(|| std::io::Error::other("invalid way draft"))?),
                 core::ways::is_closed.eq(is_closed.unwrap_or(false)),
@@ -575,7 +545,6 @@ pub(crate) fn publish_sync(
             core::nodes::mc_x,
             core::nodes::mc_y,
             core::nodes::mc_z,
-            core::nodes::feature_type,
             core::nodes::tags,
             core::nodes::changeset_id,
             core::nodes::created_changeset_id,
@@ -589,14 +558,13 @@ pub(crate) fn publish_sync(
             f64,
             f64,
             f64,
-            String,
             Value,
             i64,
             i64,
             i64,
             i64,
         )>(c)?;
-    let nodes: Vec<_> = nodes.into_iter().map(|(node_id,version,deleted_at,x,y,z,feature_type,tags,changeset_id,created_changeset_id,created_by,updated_by)| NewNodeVersion { node_id,version,snapshot: serde_json::json!({"id":node_id,"version":version,"deletedAt":deleted_at,"geom":{"x":x,"y":y,"z":z},"featureType":feature_type,"tags":tags,"changesetId":changeset_id,"createdChangesetId":created_changeset_id,"createdByUserId":created_by,"updatedByUserId":updated_by}),changeset_id:id }).collect();
+    let nodes: Vec<_> = nodes.into_iter().map(|(node_id,version,deleted_at,x,y,z,tags,changeset_id,created_changeset_id,created_by,updated_by)| NewNodeVersion { node_id,version,snapshot: serde_json::json!({"id":node_id,"version":version,"deletedAt":deleted_at,"geom":{"x":x,"y":y,"z":z},"tags":tags,"changesetId":changeset_id,"createdChangesetId":created_changeset_id,"createdByUserId":created_by,"updatedByUserId":updated_by}),changeset_id:id }).collect();
     for chunk in nodes.chunks(INSERT_BATCH_SIZE) {
         insert_into(history::node_versions::table)
             .values(chunk)
@@ -608,7 +576,6 @@ pub(crate) fn publish_sync(
             core::ways::id,
             core::ways::version,
             core::ways::deleted_at,
-            core::ways::feature_type,
             core::ways::geometry_kind,
             core::ways::is_closed,
             core::ways::tags,
@@ -622,7 +589,6 @@ pub(crate) fn publish_sync(
             i32,
             Option<chrono::DateTime<chrono::Utc>>,
             String,
-            String,
             bool,
             Value,
             i64,
@@ -630,7 +596,7 @@ pub(crate) fn publish_sync(
             i64,
             i64,
         )>(c)?;
-    let ways: Vec<_> = ways.into_iter().map(|(way_id,version,deleted_at,feature_type,geometry_kind,is_closed,tags,changeset_id,created_changeset_id,created_by,updated_by)| NewWayVersion { way_id,version,snapshot: serde_json::json!({"id":way_id,"version":version,"deletedAt":deleted_at,"featureType":feature_type,"geometryKind":geometry_kind,"isClosed":is_closed,"tags":tags,"changesetId":changeset_id,"createdChangesetId":created_changeset_id,"createdByUserId":created_by,"updatedByUserId":updated_by}),changeset_id:id }).collect();
+    let ways: Vec<_> = ways.into_iter().map(|(way_id,version,deleted_at,geometry_kind,is_closed,tags,changeset_id,created_changeset_id,created_by,updated_by)| NewWayVersion { way_id,version,snapshot: serde_json::json!({"id":way_id,"version":version,"deletedAt":deleted_at,"geometryKind":geometry_kind,"isClosed":is_closed,"tags":tags,"changesetId":changeset_id,"createdChangesetId":created_changeset_id,"createdByUserId":created_by,"updatedByUserId":updated_by}),changeset_id:id }).collect();
     for chunk in ways.chunks(INSERT_BATCH_SIZE) {
         insert_into(history::way_versions::table)
             .values(chunk)
@@ -731,6 +697,10 @@ pub(crate) fn publish_sync(
         status: row.1,
         comment: row.2,
         created_by_user_id: row.3,
+        created_by_user_id_public: core::users::table
+            .filter(core::users::id.eq(row.3))
+            .select(core::users::user_id)
+            .first(c)?,
         created_by_username: core::users::table
             .filter(core::users::id.eq(row.3))
             .select(core::users::username)

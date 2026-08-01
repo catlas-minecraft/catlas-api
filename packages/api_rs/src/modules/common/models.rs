@@ -14,6 +14,7 @@ pub(crate) struct ChangesetRow {
     pub(crate) status: String,
     pub(crate) comment: Option<String>,
     pub(crate) created_by_user_id: i64,
+    pub(crate) created_by_user_id_public: String,
     pub(crate) created_by_username: String,
     pub(crate) created_at: chrono::DateTime<chrono::Utc>,
     pub(crate) published_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -28,7 +29,6 @@ pub(crate) struct NewDraftNode<'a> {
     pub(crate) mc_x: Option<f64>,
     pub(crate) mc_y: Option<f64>,
     pub(crate) mc_z: Option<f64>,
-    pub(crate) feature_type: Option<&'a str>,
     pub(crate) tags: Option<Value>,
     pub(crate) staged_by_user_id: i64,
 }
@@ -39,7 +39,6 @@ pub(crate) struct NewDraftWay<'a> {
     pub(crate) id: i64,
     pub(crate) operation: &'a str,
     pub(crate) base_version: Option<i32>,
-    pub(crate) feature_type: Option<&'a str>,
     pub(crate) geometry_kind: Option<&'a str>,
     pub(crate) is_closed: Option<bool>,
     pub(crate) tags: Option<Value>,
@@ -82,7 +81,6 @@ pub(crate) struct NewNode {
     pub(crate) mc_x: f64,
     pub(crate) mc_y: f64,
     pub(crate) mc_z: f64,
-    pub(crate) feature_type: String,
     pub(crate) tags: Value,
     pub(crate) created_changeset_id: i64,
     pub(crate) created_by_user_id: i64,
@@ -93,7 +91,6 @@ pub(crate) struct NewNode {
 #[diesel(table_name = core::ways)]
 pub(crate) struct NewWay {
     pub(crate) id: i64,
-    pub(crate) feature_type: String,
     pub(crate) geometry_kind: String,
     pub(crate) is_closed: bool,
     pub(crate) tags: Value,

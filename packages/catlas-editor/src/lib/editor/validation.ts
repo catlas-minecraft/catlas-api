@@ -2,7 +2,6 @@ import { Graph } from "../graph";
 import type { EntityRef, ValidationIssue } from "./types";
 
 const RESERVED_TAGS = new Set([
-  "feature_type",
   "relation_type",
   "geometry_kind",
   "is_closed",
@@ -23,12 +22,6 @@ export const validateGraph = (graph: Graph): readonly ValidationIssue[] => {
 
   for (const entity of graph.entities()) {
     const ref = { type: entity.type, id: entity.id } as const;
-
-    if (entity.featureType.trim() === "") {
-      issues.push(
-        issue(`${entity.type}-${entity.id}-feature`, "warning", "Feature type is empty.", ref),
-      );
-    }
 
     for (const key of Object.keys(entity.tags)) {
       if (RESERVED_TAGS.has(key)) {

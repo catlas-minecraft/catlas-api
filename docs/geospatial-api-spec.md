@@ -6,14 +6,18 @@ is rooted at `/api`; the retired TypeScript API is not a compatibility target.
 ## Session
 
 `GET`, `POST`, and `DELETE /api/auth/session` manage a temporary Poem
-`MemoryStorage` cookie session. `POST` accepts `{ "username": string }`,
-automatically creates or reuses the exact case-sensitive username, and returns
-`{ "user": { "id": number, "username": string } }`. Sessions store only the
+`MemoryStorage` cookie session. `POST` accepts `{ "userId": string }`, where the
+public ID is 1–128 lowercase ASCII letters, digits, `_`, or `-`. It creates or
+reuses that user ID without changing an existing display username, and returns
+`{ "user": { "id": number, "userId": string, "username": string } }`. Sessions store only the
 user ID; `GET` resolves it to a user (or returns `user: null` when stale).
 Sessions are intentionally development-only and are lost on restart.
 
 Viewport and entity reads are public. Changeset and entity writes require a
 session and may only mutate changesets owned by the session user ID.
+
+`GET /api/users/{userId}` is an unauthenticated public lookup. It returns the
+same user object (without `createdAt`) or `404` when the public ID is unknown.
 
 ## Coordinates
 
@@ -60,6 +64,9 @@ JSON fields use camelCase. Entity mutations include `changesetId`; patches and
 deletes also include `expectedVersion`. Node geometry is `{x,y,z}`. Ways use an
 ordered `nodeRefs` array. Relations currently support strict multipolygons made
 from area ways with `outer`, `inner`, or null roles.
+
+Nodes and ways have no dedicated semantic type field. Their meaning and other
+application-specific metadata are represented by tags.
 
 ## Publication
 

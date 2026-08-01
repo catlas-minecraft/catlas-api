@@ -5,21 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import type { CatlasEditor, EditorSnapshot } from "@/lib/editor";
 import { entityKey, geometryTypeForEntity } from "@/lib/editor/types";
 import { EditorChangesReview } from "./editor-changes-review";
 import { useEditorSnapshot } from "./use-editor-snapshot";
-
-const CUSTOM_PRESET = "__custom__";
 
 export function EditorInspector({ editor }: { readonly editor: CatlasEditor | null }) {
   if (!editor)
@@ -39,10 +29,6 @@ function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: Edito
   const [newTagValue, setNewTagValue] = useState("");
 
   const geometry = entity ? geometryTypeForEntity(entity) : null;
-  const presets = geometry ? editor.presets.filter((preset) => preset.geometry === geometry) : [];
-  const activePreset = entity
-    ? presets.find((preset) => preset.featureType === entity.featureType)
-    : undefined;
 
   if (!entity) {
     return <EditorChangesReview editor={editor} snapshot={snapshot} />;
@@ -64,7 +50,8 @@ function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: Edito
             {geometry}
           </span>
           <h2 className="text-sm font-[650] leading-tight mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
-            {activePreset?.label ?? (entity.featureType || "Untyped feature")}
+            {entity.tags.name ||
+              (geometry === "point" ? "Point" : geometry === "line" ? "Line" : "Area")}
           </h2>
         </div>
         <Badge variant="outline">
@@ -76,57 +63,8 @@ function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: Edito
       </header>
 
       <div className="inspector__body min-h-0 overflow-y-auto overscroll-contain">
-        <InspectorSection title="Feature">
+        <InspectorSection title="Geometry">
           <FieldGroup className="property-list gap-2">
-            <Field
-              className="property-row items-center grid gap-2 grid-cols-[minmax(64px,80px)_minmax(0,1fr)]"
-              orientation="horizontal"
-            >
-              <FieldLabel
-                className="text-muted-foreground text-[11px] min-w-0"
-                htmlFor="feature-preset"
-              >
-                Preset
-              </FieldLabel>
-              <Select
-                onValueChange={(presetId) => {
-                  if (presetId !== CUSTOM_PRESET) editor.applyPreset(presetId);
-                }}
-                value={activePreset?.id ?? CUSTOM_PRESET}
-              >
-                <SelectTrigger className="w-full h-7 min-w-0" id="feature-preset" size="sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value={CUSTOM_PRESET}>Custom</SelectItem>
-                    {presets.map((preset) => (
-                      <SelectItem key={preset.id} value={preset.id}>
-                        {preset.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field
-              className="property-row items-center grid gap-2 grid-cols-[minmax(64px,80px)_minmax(0,1fr)]"
-              orientation="horizontal"
-            >
-              <FieldLabel
-                className="text-muted-foreground text-[11px] min-w-0"
-                htmlFor="feature-type"
-              >
-                Type
-              </FieldLabel>
-              <Input
-                className="h-7 min-w-0 w-full"
-                defaultValue={entity.featureType}
-                id="feature-type"
-                key={`${entity.type}-${entity.id}-feature-${entity.featureType}`}
-                onBlur={(event) => editor.updateFeatureType(event.target.value.trim())}
-              />
-            </Field>
             {entity.type === "node" ? (
               <Field
                 className="property-row items-center grid gap-2 grid-cols-[minmax(64px,80px)_minmax(0,1fr)]"
@@ -151,38 +89,6 @@ function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: Edito
             ) : null}
           </FieldGroup>
         </InspectorSection>
-
-        {activePreset?.fields.length ? (
-          <>
-            <Separator />
-            <InspectorSection title="Details">
-              <FieldGroup className="property-list gap-2">
-                {activePreset.fields.map((field) => (
-                  <Field
-                    className="property-row items-center grid gap-2 grid-cols-[minmax(64px,80px)_minmax(0,1fr)]"
-                    key={field.key}
-                    orientation="horizontal"
-                  >
-                    <FieldLabel
-                      className="text-muted-foreground text-[11px] min-w-0"
-                      htmlFor={`preset-field-${field.key}`}
-                    >
-                      {field.label}
-                    </FieldLabel>
-                    <Input
-                      className="h-7 min-w-0 w-full"
-                      defaultValue={entity.tags[field.key] ?? ""}
-                      id={`preset-field-${field.key}`}
-                      key={`${entityKey(entity)}-${field.key}-${entity.tags[field.key] ?? ""}`}
-                      onBlur={(event) => editor.updateTag(field.key, event.target.value)}
-                      placeholder={field.placeholder}
-                    />
-                  </Field>
-                ))}
-              </FieldGroup>
-            </InspectorSection>
-          </>
-        ) : null}
 
         <Separator />
         <InspectorSection title="All tags">

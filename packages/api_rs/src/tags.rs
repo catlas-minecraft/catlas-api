@@ -6,5 +6,6 @@ pub enum CatlasTags {
     Auth,
     Changesets,
     Entities,
+    Users,
     Viewport,
 }

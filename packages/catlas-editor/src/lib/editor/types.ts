@@ -28,7 +28,6 @@ export type NodeEntity = {
   readonly type: "node";
   readonly id: number;
   readonly version: number;
-  readonly featureType: string;
   readonly tags: Readonly<Record<string, string>>;
   readonly geom: Point3D;
 };
@@ -37,7 +36,6 @@ export type WayEntity = {
   readonly type: "way";
   readonly id: number;
   readonly version: number;
-  readonly featureType: string;
   readonly tags: Readonly<Record<string, string>>;
   readonly geometryKind: "line" | "area";
   readonly nodeIds: readonly number[];
@@ -75,7 +73,7 @@ export type EditorAuthState =
   | { readonly status: "authenticating" }
   | {
       readonly status: "authenticated";
-      readonly user: { readonly id: number; readonly username: string };
+      readonly user: { readonly id: number; readonly userId: string; readonly username: string };
     }
   | { readonly status: "error"; readonly message: string };
 
@@ -97,22 +95,6 @@ export type EditorSnapshot = {
   readonly auth: EditorAuthState;
 };
 
-export type PresetField = {
-  readonly key: string;
-  readonly label: string;
-  readonly placeholder?: string;
-};
-
-export type PresetDefinition = {
-  readonly id: string;
-  readonly label: string;
-  readonly geometry: GeometryType;
-  readonly featureType: string;
-  readonly defaultTags: Readonly<Record<string, string>>;
-  readonly snapPolicy: SnapPolicy;
-  readonly fields: readonly PresetField[];
-};
-
 export type ViewportEntities = {
   readonly entities: readonly EditorEntity[];
   readonly loadedEntityKeys: ReadonlySet<string>;
@@ -132,7 +114,6 @@ const toNodeEntity = (node: components["schemas"]["ViewportNode"]): NodeEntity =
   type: "node",
   id: node.id,
   version: node.version,
-  featureType: node.featureType,
   tags: { ...node.tags },
   geom: { x: node.geom.x, y: node.geom.y, z: node.geom.z },
 });
@@ -144,7 +125,6 @@ const toWayEntity = (
   type: "way",
   id: way.id,
   version: way.version,
-  featureType: way.featureType,
   tags: { ...way.tags },
   geometryKind: way.geometryKind,
   nodeIds: wayNodes

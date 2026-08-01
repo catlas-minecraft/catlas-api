@@ -82,7 +82,10 @@ fn publishes_and_queries_a_spatial_graph() {
 
     connection.test_transaction::<_, database::DatabaseError, _>(|connection| {
         let user_id = insert_into(core::users::table)
-            .values(core::users::username.eq("integration-test"))
+            .values((
+                core::users::user_id.eq("integration-test"),
+                core::users::username.eq("integration-test"),
+            ))
             .returning(core::users::id)
             .get_result::<i64>(connection)?;
         let changeset_id = insert_into(core::changesets::table)
@@ -108,7 +111,6 @@ fn publishes_and_queries_a_spatial_graph() {
                     mc_x: Some(x),
                     mc_y: Some(0.0),
                     mc_z: Some(z),
-                    feature_type: Some("vertex"),
                     tags: Some(serde_json::json!({})),
                     staged_by_user_id: user_id,
                 })
@@ -126,7 +128,6 @@ fn publishes_and_queries_a_spatial_graph() {
                 id: way_id,
                 operation: "create",
                 base_version: None,
-                feature_type: Some("building"),
                 geometry_kind: Some("area"),
                 is_closed: Some(true),
                 tags: Some(serde_json::json!({})),

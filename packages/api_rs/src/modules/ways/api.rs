@@ -36,23 +36,16 @@ impl WaysModule {
                 .select((
                     core::ways::id,
                     core::ways::version,
-                    core::ways::feature_type,
                     core::ways::geometry_kind,
                     core::ways::tags,
                 ))
-                .first::<(
-                    i64,
-                    i32,
-                    String,
-                    String,
-                    crate::modules::common::models::DbJson,
-                )>(c)?;
+                .first::<(i64, i32, String, crate::modules::common::models::DbJson)>(c)?;
             let refs = core::way_nodes::table
                 .filter(core::way_nodes::way_id.eq(id))
                 .order_by(core::way_nodes::seq)
                 .select(core::way_nodes::node_id)
                 .load::<i64>(c)?;
-            Ok::<_, database::DatabaseError>((way.0, way.1, way.2, way.3, way.4, refs))
+            Ok::<_, database::DatabaseError>((way.0, way.1, way.2, way.3, refs))
         })
         .await
         .map_err(db_error)?;

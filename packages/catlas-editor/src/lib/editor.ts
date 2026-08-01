@@ -6,12 +6,7 @@ import { buildChangesetReview, type ChangesetReview } from "./editor/changeset";
 import { History } from "./editor/history";
 import { getOperation, type Operation, type OperationId } from "./editor/operations";
 import { CanvasClickSuppression } from "./editor/input";
-import {
-  DEFAULT_PRESETS,
-  defaultPresetForGeometry,
-  presetForFeature,
-  snapPoint,
-} from "./editor/presets";
+import { snapPoint } from "./editor/snapping";
 import { EntitySvgLayer } from "./editor/renderer";
 import { loadViewportEntities, saveGraph } from "./editor/sync";
 import { TileCanvasLayer } from "./editor/tiles";
@@ -24,10 +19,9 @@ import type {
   EditorSnapshot,
   EntityRef,
   Point3D,
-  PresetDefinition,
   SnapPolicy,
 } from "./editor/types";
-import { entityKey, geometryTypeForEntity, sameEntityRef } from "./editor/types";
+import { entityKey, sameEntityRef } from "./editor/types";
 import {
   createSvgElement,
   getElementSize,
@@ -42,7 +36,6 @@ import { validateGraph } from "./editor/validation";
 export type CatlasEditorOptions = {
   readonly apiBaseUrl?: string;
   readonly tileUrl?: string;
-  readonly presets?: readonly PresetDefinition[];
 };
 
 type ActiveDrag = {
@@ -100,7 +93,6 @@ export class CatlasEditor {
   readonly #history = new History();
   readonly #listeners = new Set<() => void>();
   readonly #overlay: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  readonly #presets: readonly PresetDefinition[];
   readonly #renderer: EntitySvgLayer;
   readonly #resizeObserver: ResizeObserver;
   readonly #root: HTMLDivElement;
@@ -134,7 +126,6 @@ export class CatlasEditor {
 
   constructor(root: HTMLDivElement, options: CatlasEditorOptions = {}) {
     this.#root = root;
-    this.#presets = options.presets ?? DEFAULT_PRESETS;
     this.#api = createEditorApi(options.apiBaseUrl ?? window.location.origin);
     this.#tiles = new TileCanvasLayer(root, options.tileUrl);
 
@@ -208,10 +199,6 @@ export class CatlasEditor {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
   };
-
-  get presets() {
-    return this.#presets;
-  }
 
   getChangesetReview() {
     const base = this.#history.base;
@@ -326,14 +313,14 @@ export class CatlasEditor {
     this.operation("delete").execute();
   }
 
-  async login(username: string) {
-    const normalizedUsername = username.trim();
-    if (!normalizedUsername || this.#authState.status === "authenticating") return;
+  async login(userId: string) {
+    const normalizedUserId = userId.trim();
+    if (!normalizedUserId || this.#authState.status === "authenticating") return;
 
     this.#authState = { status: "authenticating" };
     this.#emit();
     try {
-      const session = await this.#api.createSession(normalizedUsername);
+      const session = await this.#api.createSession(normalizedUserId);
       if (!session.user) throw new Error("The API did not create a session.");
       this.#authState = { status: "authenticated", user: session.user };
       this.#saveState = this.#saveState.status === "error" ? { status: "idle" } : this.#saveState;
@@ -353,27 +340,6 @@ export class CatlasEditor {
     } catch {
       // The local state is cleared even when the development session store is unavailable.
     }
-  }
-
-  applyPreset(presetId: string) {
-    if (!this.#selection) return;
-    const entity = this.#history.graph.entity(this.#selection);
-    const preset = this.#presets.find((candidate) => candidate.id === presetId);
-    if (!entity || !preset || preset.geometry !== geometryTypeForEntity(entity)) return;
-
-    const tags = { ...preset.defaultTags, ...entity.tags };
-    if (
-      this.#history.perform(
-        updateEntityProperties(this.#selection, { featureType: preset.featureType, tags }),
-        `Set preset ${preset.label}`,
-      )
-    ) {
-      this.#emit();
-    }
-  }
-
-  updateFeatureType(featureType: string) {
-    this.#updateSelection({ featureType }, "Change feature type");
   }
 
   updateSelectedY(y: number) {
@@ -403,9 +369,6 @@ export class CatlasEditor {
     const minimum = drawing.geometryKind === "area" ? 3 : 2;
     if (drawing.vertices.length < minimum) return;
 
-    const preset = defaultPresetForGeometry(this.#presets, drawing.geometryKind);
-    if (!preset) return;
-
     const createdNodes = drawing.vertices.flatMap((vertex) => {
       if (vertex.nodeId !== null) return [];
       const id = this.#nextLocalNodeId--;
@@ -414,7 +377,6 @@ export class CatlasEditor {
           type: "node" as const,
           id,
           version: 0,
-          featureType: `${preset.featureType}:vertex`,
           tags: {},
           geom: vertex.point,
           draftPoint: vertex.point,
@@ -433,14 +395,18 @@ export class CatlasEditor {
       type: "way" as const,
       id: wayId,
       version: 0,
-      featureType: preset.featureType,
-      tags: { ...preset.defaultTags },
+      tags: {},
       geometryKind: drawing.geometryKind,
       nodeIds,
     };
     const nodes = createdNodes.map(({ draftPoint: _draftPoint, ...node }) => node);
 
-    if (this.#history.perform(addEntities([...nodes, way]), `Add ${preset.label}`)) {
+    if (
+      this.#history.perform(
+        addEntities([...nodes, way]),
+        `Add ${drawing.geometryKind === "line" ? "Line" : "Area"}`,
+      )
+    ) {
       this.#clearContextMenu();
       this.#selection = { type: "way", id: wayId };
       this.#mode = "browse";
@@ -667,17 +633,12 @@ export class CatlasEditor {
       if (contextMenuCleared) this.#emit();
       return;
     }
-    const preset = presetForFeature(this.#presets, way.geometryKind, way.featureType);
-    const snapped = snapPoint(
-      point,
-      preset?.snapPolicy ?? (way.geometryKind === "area" ? "integer" : "half"),
-    );
+    const snapped = snapPoint(point, way.geometryKind === "area" ? "integer" : "half");
     const nodeId = this.#nextLocalNodeId--;
     const node = {
       type: "node" as const,
       id: nodeId,
       version: 0,
-      featureType: `${way.featureType}:vertex`,
       tags: {},
       geom: snapped,
     };
@@ -817,18 +778,15 @@ export class CatlasEditor {
   }
 
   #createPoint(point: Point3D) {
-    const preset = defaultPresetForGeometry(this.#presets, "point");
-    if (!preset) return;
     const id = this.#nextLocalNodeId--;
     const node = {
       type: "node" as const,
       id,
       version: 0,
-      featureType: preset.featureType,
-      tags: { ...preset.defaultTags },
-      geom: snapPoint(point, preset.snapPolicy),
+      tags: {},
+      geom: snapPoint(point, "half"),
     };
-    if (this.#history.perform(addEntities([node]), `Add ${preset.label}`)) {
+    if (this.#history.perform(addEntities([node]), "Add Point")) {
       this.#clearContextMenu();
       this.#selection = { type: "node", id };
       this.#mode = "browse";
@@ -839,8 +797,7 @@ export class CatlasEditor {
   #snapForMode(point: Point3D) {
     const geometry = modeGeometry(this.#mode);
     if (!geometry) return point;
-    const preset = defaultPresetForGeometry(this.#presets, geometry);
-    return snapPoint(point, preset?.snapPolicy ?? "free");
+    return snapPoint(point, geometry === "area" ? "integer" : "half");
   }
 
   #snapPolicyForNode(nodeId: number): SnapPolicy {
@@ -848,13 +805,11 @@ export class CatlasEditor {
       .parentWays(nodeId)
       .find((way) => way.geometryKind === "area");
     if (parentArea) {
-      return (
-        presetForFeature(this.#presets, "area", parentArea.featureType)?.snapPolicy ?? "integer"
-      );
+      return "integer";
     }
     const node = this.#history.graph.node(nodeId);
     if (!node) return "half";
-    return presetForFeature(this.#presets, "point", node.featureType)?.snapPolicy ?? "half";
+    return "half";
   }
 
   #pointFromEvent(event: MouseEvent | PointerEvent, y = 0) {
@@ -956,5 +911,4 @@ export type {
   EditorMode,
   EditorSnapshot,
   EntityRef,
-  PresetDefinition,
 } from "./editor/types";
