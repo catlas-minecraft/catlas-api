@@ -32,10 +32,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { CatlasEditor } from "@/lib/editor";
 import type { components } from "@/lib/editor/catlas-api.gen";
+import { changesetsQueryKey } from "@/lib/query-keys";
 
 const PAGE_SIZE = 50;
-
-export const changesetsQueryKey = ["changesets"] as const;
 
 export type ChangesetPanelMode = "dock" | "overlay";
 
@@ -64,7 +63,7 @@ export function EditorChangesetSidebar({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const query = useInfiniteQuery({
-    queryKey: changesetsQueryKey,
+    queryKey: changesetsQueryKey(editor.worldSlug),
     initialPageParam: null as number | null,
     queryFn: ({ pageParam }) =>
       editor.listChangesets({

@@ -78,6 +78,7 @@ pub(crate) struct NewDraftMember<'a> {
 #[diesel(table_name = core::nodes)]
 pub(crate) struct NewNode {
     pub(crate) id: i64,
+    pub(crate) world_id: i64,
     pub(crate) mc_x: f64,
     pub(crate) mc_y: f64,
     pub(crate) mc_z: f64,
@@ -91,6 +92,7 @@ pub(crate) struct NewNode {
 #[diesel(table_name = core::ways)]
 pub(crate) struct NewWay {
     pub(crate) id: i64,
+    pub(crate) world_id: i64,
     pub(crate) geometry_kind: String,
     pub(crate) is_closed: bool,
     pub(crate) tags: Value,
@@ -103,6 +105,7 @@ pub(crate) struct NewWay {
 #[diesel(table_name = core::relations)]
 pub(crate) struct NewRelation {
     pub(crate) id: i64,
+    pub(crate) world_id: i64,
     pub(crate) relation_type: String,
     pub(crate) tags: Value,
     pub(crate) created_changeset_id: i64,
@@ -114,6 +117,7 @@ pub(crate) struct NewRelation {
 #[diesel(table_name = core::way_nodes)]
 pub(crate) struct NewWayNode {
     pub(crate) way_id: i64,
+    pub(crate) world_id: i64,
     pub(crate) seq: i32,
     pub(crate) node_id: i64,
     pub(crate) changeset_id: i64,
@@ -122,6 +126,7 @@ pub(crate) struct NewWayNode {
 #[diesel(table_name = core::relation_members)]
 pub(crate) struct NewRelationMember {
     pub(crate) relation_id: i64,
+    pub(crate) world_id: i64,
     pub(crate) member_type: String,
     pub(crate) member_id: i64,
     pub(crate) seq: i32,

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useBlocker } from "@tanstack/react-router";
 import type { Layout } from "react-resizable-panels";
 import "./App.css";
 import {
@@ -11,6 +12,7 @@ import { EditorToolRail, EditorTopBar } from "./components/editor/editor-toolbar
 import { ContextMenu, ContextMenuTrigger } from "./components/ui/context-menu";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/ui/resizable";
 import { CatlasEditor } from "./lib/editor";
+import type { World } from "./lib/world-api";
 
 const INSPECTOR_LAYOUT_STORAGE_KEY = "catlas-editor:inspector-layout";
 const CHANGESET_PANEL_STORAGE_KEY = "catlas-editor:changeset-panel";
@@ -101,7 +103,17 @@ const storeLayout = (layout: Layout) => {
   }
 };
 
-export default function App() {
+export function EditorWorkspace({
+  worldSlug,
+  world,
+  onNavigateWorld,
+  onNavigateHome,
+}: {
+  readonly worldSlug: string;
+  readonly world: World;
+  readonly onNavigateWorld: (slug: string) => void;
+  readonly onNavigateHome: () => void;
+}) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<CatlasEditor | null>(null);
   const [defaultLayout] = useState(readStoredLayout);
@@ -112,13 +124,47 @@ export default function App() {
 
   useEffect(() => {
     if (!mapRef.current) return;
-    const nextEditor = new CatlasEditor(mapRef.current);
+    const nextEditor = new CatlasEditor(mapRef.current, { worldSlug });
     setEditor(nextEditor);
     return () => {
       setEditor(null);
       nextEditor.dispose();
     };
-  }, []);
+  }, [worldSlug]);
+
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (!editor || (!editor.getSnapshot().dirty && editor.getSnapshot().save.status !== "saving"))
+        return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [editor]);
+
+  const blocker = useBlocker({
+    withResolver: true,
+    enableBeforeUnload: false,
+    shouldBlockFn: () => {
+      const snapshot = editor?.getSnapshot();
+      return Boolean(snapshot?.dirty || snapshot?.save.status === "saving");
+    },
+  });
+
+  useEffect(() => {
+    if (blocker.status !== "blocked") return;
+    const snapshot = editor?.getSnapshot();
+    if (snapshot?.save.status === "saving") {
+      blocker.reset();
+      return;
+    }
+    if (window.confirm("Discard unsaved changes and leave this world?")) {
+      blocker.proceed();
+    } else {
+      blocker.reset();
+    }
+  }, [blocker, editor]);
 
   useEffect(() => {
     const updateCanDock = () => setCanDockChangesets(window.innerWidth >= DOCK_MIN_VIEWPORT_WIDTH);
@@ -143,7 +189,12 @@ export default function App() {
 
   return (
     <div className="editor-shell grid grid-rows-[44px_minmax(0,1fr)] h-dvh w-screen overflow-hidden bg-background text-foreground">
-      <EditorTopBar editor={editor} />
+      <EditorTopBar
+        editor={editor}
+        onNavigateHome={onNavigateHome}
+        onNavigateWorld={onNavigateWorld}
+        world={world}
+      />
       <div className="editor-body grid grid-cols-[48px_minmax(0,1fr)] min-h-0 min-w-0">
         <EditorToolRail
           changesetsOpen={changesetPanel.open}

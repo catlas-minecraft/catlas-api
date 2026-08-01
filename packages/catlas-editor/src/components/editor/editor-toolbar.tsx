@@ -1,4 +1,5 @@
 import {
+  ArrowLeftIcon,
   HistoryIcon,
   MapPinIcon,
   ListChecksIcon,
@@ -35,6 +36,18 @@ import type { CatlasEditor, EditorMode } from "@/lib/editor";
 import { EditorSavePanel } from "./editor-save-panel";
 import { type ThemeMode, useTheme } from "./editor-theme";
 import { useEditorSnapshot } from "./use-editor-snapshot";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { listWorlds, type World } from "@/lib/world-api";
 
 const MODE_BUTTONS: readonly {
   mode: EditorMode;
@@ -58,7 +71,17 @@ const THEME_OPTIONS: readonly {
   { value: "system", label: "System", icon: MonitorIcon },
 ];
 
-export function EditorTopBar({ editor }: { readonly editor: CatlasEditor | null }) {
+export function EditorTopBar({
+  editor,
+  world,
+  onNavigateWorld,
+  onNavigateHome,
+}: {
+  readonly editor: CatlasEditor | null;
+  readonly world: World;
+  readonly onNavigateWorld: (slug: string) => void;
+  readonly onNavigateHome: () => void;
+}) {
   return (
     <header
       className="topbar flex items-center gap-1.5 bg-background border-b border-border px-2 relative z-20 min-w-0"
@@ -71,13 +94,77 @@ export function EditorTopBar({ editor }: { readonly editor: CatlasEditor | null 
         >
           C
         </span>
-        <span className="topbar__title text-[13px] font-[650] whitespace-nowrap">
+        <span className="topbar__title hidden text-[13px] font-[650] whitespace-nowrap min-[560px]:inline">
           Catlas Editor
         </span>
       </div>
       <Separator className="topbar__separator h-5 mx-0.5" orientation="vertical" />
+      <WorldSelector
+        editor={editor}
+        onNavigateHome={onNavigateHome}
+        onNavigateWorld={onNavigateWorld}
+        world={world}
+      />
       {editor ? <TopBarContent editor={editor} /> : <TopBarLoading />}
     </header>
+  );
+}
+
+function WorldSelector({
+  editor,
+  world,
+  onNavigateWorld,
+  onNavigateHome,
+}: {
+  readonly editor: CatlasEditor | null;
+  readonly world: World;
+  readonly onNavigateWorld: (slug: string) => void;
+  readonly onNavigateHome: () => void;
+}) {
+  const worlds = useQuery({ queryKey: ["worlds"], queryFn: listWorlds });
+  const [editorState, setEditorState] = useState(() => editor?.getSnapshot());
+  useEffect(() => {
+    if (!editor) return;
+    const update = () => setEditorState(editor.getSnapshot());
+    update();
+    return editor.subscribe(update);
+  }, [editor]);
+  const saving = editorState?.save.status === "saving";
+  const worldsBySlug = new Map((worlds.data ?? []).map((item) => [item.slug, item]));
+  worldsBySlug.set(world.slug, world);
+  const change = (slug: string) => {
+    if (slug === world.slug || saving) return;
+    onNavigateWorld(slug);
+  };
+  return (
+    <div className="flex min-w-0 items-center gap-1.5">
+      <Select value={world.slug} onValueChange={change} disabled={saving}>
+        <SelectTrigger className="min-w-0 max-w-40 sm:max-w-56" aria-label="Select world">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectLabel>Worlds</SelectLabel>
+            {[...worldsBySlug.values()].map((item) => (
+              <SelectItem key={item.slug} value={item.slug}>
+                {item.name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      <Button
+        aria-label="Back to worlds"
+        disabled={saving}
+        onClick={onNavigateHome}
+        size="icon-sm"
+        title="Back to worlds"
+        type="button"
+        variant="ghost"
+      >
+        <ArrowLeftIcon />
+      </Button>
+    </div>
   );
 }
 

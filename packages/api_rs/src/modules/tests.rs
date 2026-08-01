@@ -2,8 +2,8 @@ use super::changesets::publication::publish_sync;
 use super::common::models::{
     EntityState, NewDraftMember, NewDraftNode, NewDraftRelation, NewDraftWay, NewDraftWayNode,
 };
-use super::common::queries::{expected_version, proposed_version};
-use super::common::types::Point;
+use super::common::queries::{create_way_typed, expected_version, proposed_version};
+use super::common::types::{GeometryKind, Point, WayInput};
 use super::common::validation::{validate_point, validate_tags, validate_way};
 use super::viewport::queries::{bbox_geometry, parse_bbox, viewport_typed};
 use crate::{
@@ -88,10 +88,19 @@ fn publishes_and_queries_a_spatial_graph() {
             ))
             .returning(core::users::id)
             .get_result::<i64>(connection)?;
+        let world_id = insert_into(core::worlds::table)
+            .values((
+                core::worlds::slug.eq("integration-test"),
+                core::worlds::name.eq("Integration Test"),
+                core::worlds::created_by_user_id.eq(user_id),
+            ))
+            .returning(core::worlds::id)
+            .get_result::<i64>(connection)?;
         let changeset_id = insert_into(core::changesets::table)
             .values((
                 core::changesets::status.eq("open"),
                 core::changesets::created_by_user_id.eq(user_id),
+                core::changesets::world_id.eq(world_id),
             ))
             .returning(core::changesets::id)
             .get_result::<i64>(connection)?;
@@ -181,7 +190,11 @@ fn publishes_and_queries_a_spatial_graph() {
             })
             .execute(connection)?;
 
-        let published = publish_sync(connection, changeset_id, user_id)?;
+        let world_id = core::changesets::table
+            .filter(core::changesets::id.eq(changeset_id))
+            .select(core::changesets::world_id)
+            .first::<i64>(connection)?;
+        let published = publish_sync(connection, changeset_id, user_id, world_id)?;
         assert_eq!(published.status, "published");
 
         for actor_ids in core::nodes::table
@@ -222,7 +235,7 @@ fn publishes_and_queries_a_spatial_graph() {
             assert!(snapshot.get("updatedBy").is_none());
         }
 
-        let viewport = viewport_typed(connection, [-1.0, -1.0, 11.0, 11.0], true)?;
+        let viewport = viewport_typed(connection, world_id, [-1.0, -1.0, 11.0, 11.0], true)?;
         assert_eq!(viewport.nodes.len(), 4);
         assert_eq!(viewport.ways.len(), 1);
         assert_eq!(viewport.way_nodes.len(), 5);
@@ -231,6 +244,115 @@ fn publishes_and_queries_a_spatial_graph() {
         assert!(viewport.ways[0].deleted_at.is_null());
         assert_eq!(viewport.ways[0].changeset_id, changeset_id);
 
+        Ok(())
+    });
+}
+
+#[test]
+#[ignore = "requires TEST_DATABASE_URL"]
+fn isolates_two_worlds_and_rejects_cross_world_references() {
+    let database_url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set");
+    let pool = database::connect_and_migrate(database_url).expect("database setup failed");
+    let mut connection = pool.get().expect("database connection failed");
+
+    connection.test_transaction::<_, database::DatabaseError, _>(|connection| {
+        let user_id = insert_into(core::users::table)
+            .values((
+                core::users::user_id.eq("world-isolation-test"),
+                core::users::username.eq("world-isolation-test"),
+            ))
+            .returning(core::users::id)
+            .get_result::<i64>(connection)?;
+        let world_a = insert_into(core::worlds::table)
+            .values((
+                core::worlds::slug.eq("isolation-a"),
+                core::worlds::name.eq("Isolation A"),
+                core::worlds::created_by_user_id.eq(user_id),
+            ))
+            .returning(core::worlds::id)
+            .get_result::<i64>(connection)?;
+        let world_b = insert_into(core::worlds::table)
+            .values((
+                core::worlds::slug.eq("isolation-b"),
+                core::worlds::name.eq("Isolation B"),
+                core::worlds::created_by_user_id.eq(user_id),
+            ))
+            .returning(core::worlds::id)
+            .get_result::<i64>(connection)?;
+
+        let publish_node = |connection: &mut database::DatabaseConnection,
+                            world_id: i64|
+         -> Result<(i64, i64), database::DatabaseError> {
+            let changeset_id = insert_into(core::changesets::table)
+                .values((
+                    core::changesets::status.eq("open"),
+                    core::changesets::created_by_user_id.eq(user_id),
+                    core::changesets::world_id.eq(world_id),
+                ))
+                .returning(core::changesets::id)
+                .get_result::<i64>(connection)?;
+            let node_id = diesel::select(diesel::dsl::sql::<diesel::sql_types::BigInt>(
+                "nextval('core.node_id_seq'::regclass)",
+            ))
+            .get_result::<i64>(connection)?;
+            insert_into(draft::nodes::table)
+                .values(NewDraftNode {
+                    changeset_id,
+                    id: node_id,
+                    operation: "create",
+                    base_version: None,
+                    mc_x: Some(1.0),
+                    mc_y: Some(0.0),
+                    mc_z: Some(1.0),
+                    tags: Some(serde_json::json!({})),
+                    staged_by_user_id: user_id,
+                })
+                .execute(connection)?;
+            publish_sync(connection, changeset_id, user_id, world_id)?;
+            Ok((changeset_id, node_id))
+        };
+
+        let (_, node_a) = publish_node(connection, world_a)?;
+        let (_, node_b) = publish_node(connection, world_b)?;
+        let viewport_a = viewport_typed(connection, world_a, [0.0, 0.0, 2.0, 2.0], false)?;
+        let viewport_b = viewport_typed(connection, world_b, [0.0, 0.0, 2.0, 2.0], false)?;
+        assert_eq!(
+            viewport_a
+                .nodes
+                .iter()
+                .map(|node| node.id)
+                .collect::<Vec<_>>(),
+            vec![node_a]
+        );
+        assert_eq!(
+            viewport_b
+                .nodes
+                .iter()
+                .map(|node| node.id)
+                .collect::<Vec<_>>(),
+            vec![node_b]
+        );
+
+        let cross_world_changeset = insert_into(core::changesets::table)
+            .values((
+                core::changesets::status.eq("open"),
+                core::changesets::created_by_user_id.eq(user_id),
+                core::changesets::world_id.eq(world_b),
+            ))
+            .returning(core::changesets::id)
+            .get_result::<i64>(connection)?;
+        let result = create_way_typed(
+            connection,
+            WayInput {
+                changeset_id: cross_world_changeset,
+                geometry_kind: GeometryKind::Line,
+                node_refs: vec![node_a, node_a],
+                tags: std::collections::BTreeMap::new(),
+            },
+            user_id,
+            world_b,
+        );
+        assert!(result.is_err());
         Ok(())
     });
 }

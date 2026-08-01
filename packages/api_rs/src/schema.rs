@@ -12,6 +12,7 @@ pub mod core {
             created_at -> Timestamptz,
             published_at -> Nullable<Timestamptz>,
             created_by_user_id -> Int8,
+            world_id -> Int8,
         }
     }
 
@@ -34,6 +35,7 @@ pub mod core {
             changeset_id -> Int8,
             created_by_user_id -> Int8,
             updated_by_user_id -> Int8,
+            world_id -> Int8,
         }
     }
 
@@ -48,6 +50,7 @@ pub mod core {
             seq -> Int4,
             role -> Nullable<Text>,
             changeset_id -> Int8,
+            world_id -> Int8,
         }
     }
 
@@ -67,6 +70,7 @@ pub mod core {
             changeset_id -> Int8,
             created_by_user_id -> Int8,
             updated_by_user_id -> Int8,
+            world_id -> Int8,
         }
     }
 
@@ -91,6 +95,7 @@ pub mod core {
             seq -> Int4,
             node_id -> Int8,
             changeset_id -> Int8,
+            world_id -> Int8,
         }
     }
 
@@ -111,15 +116,26 @@ pub mod core {
             changeset_id -> Int8,
             created_by_user_id -> Int8,
             updated_by_user_id -> Int8,
+            world_id -> Int8,
+        }
+    }
+
+    diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
+        core.worlds (id) {
+            id -> Int8,
+            slug -> Text,
+            name -> Text,
+            created_by_user_id -> Int8,
+            created_at -> Timestamptz,
         }
     }
 
     diesel::joinable!(changesets -> users (created_by_user_id));
-    diesel::joinable!(relation_members -> changesets (changeset_id));
-    diesel::joinable!(relation_members -> relations (relation_id));
-    diesel::joinable!(way_nodes -> changesets (changeset_id));
-    diesel::joinable!(way_nodes -> nodes (node_id));
-    diesel::joinable!(way_nodes -> ways (way_id));
+    diesel::joinable!(changesets -> worlds (world_id));
+    diesel::joinable!(worlds -> users (created_by_user_id));
 
     diesel::allow_tables_to_appear_in_same_query!(
         changesets,
@@ -129,6 +145,7 @@ pub mod core {
         users,
         way_nodes,
         ways,
+        worlds,
     );
 }
 

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/spinner";
 import type { CatlasEditor } from "@/lib/editor";
-import { changesetsQueryKey } from "./editor-changeset-sidebar";
+import { changesetsQueryKey } from "@/lib/query-keys";
 import { useEditorSnapshot } from "./use-editor-snapshot";
 
 export function EditorSavePanel({ editor }: { readonly editor: CatlasEditor | null }) {
@@ -44,7 +44,7 @@ function SavePanelContent({ editor }: { readonly editor: CatlasEditor }) {
     if (!canSave) return;
     void editor.save(comment.trim() || null).then(() => {
       if (editor.getSnapshot().save.status !== "saved") return;
-      void queryClient.invalidateQueries({ queryKey: changesetsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: changesetsQueryKey(editor.worldSlug) });
       setOpen(false);
       setComment("");
     });
