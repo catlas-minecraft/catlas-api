@@ -71,11 +71,13 @@ impl AuthModule {
             session.purge();
         }
         Ok(Json(SessionInfo {
-            user: Nullable(user.map(|(id, user_id, username)| User {
-                id,
-                user_id,
-                username,
-            })),
+            user: user
+                .map(|(id, user_id, username)| User {
+                    id,
+                    user_id,
+                    username,
+                })
+                .into(),
         }))
     }
 
