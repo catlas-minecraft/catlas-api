@@ -5,7 +5,7 @@ use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::queries::{
     create_node_typed, delete_node_typed, node_json, patch_node_typed,
 };
-use crate::modules::common::support::{db_error, session_user};
+use crate::modules::common::support::{db_error, resolve_world, session_user};
 use crate::modules::common::types::{DeleteInput, IdVersion, NodeInput, NodePatch};
 use crate::modules::common::validation::{tag_value, validate_point, validate_tags};
 use crate::{
@@ -23,15 +23,18 @@ impl NodesModule {
     /// Nodeを取得する
     ///
     /// 指定したIDの公開済みかつ削除されていないNodeを返す。
-    #[oai(path = "/nodes/:id", method = "get")]
+    #[oai(path = "/worlds/:worldSlug/nodes/:id", method = "get")]
     async fn get_node(
         &self,
+        #[oai(name = "worldSlug")] Path(world_slug): Path<String>,
         Path(id): Path<i64>,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<Value>> {
+        let world_id = resolve_world(pool, world_slug).await?;
         let row = database::blocking(pool, move |c| {
             core::nodes::table
                 .filter(core::nodes::id.eq(id))
+                .filter(core::nodes::world_id.eq(world_id))
                 .filter(core::nodes::deleted_at.is_null())
                 .select((
                     core::nodes::id,
@@ -59,20 +62,22 @@ impl NodesModule {
     /// Nodeを作成する
     ///
     /// 認証中のユーザーが所有するopen状態のChangesetに、新しいNodeをDraftとして追加する。
-    #[oai(path = "/nodes", method = "post")]
+    #[oai(path = "/worlds/:worldSlug/nodes", method = "post")]
     async fn create_node(
         &self,
+        #[oai(name = "worldSlug")] Path(world_slug): Path<String>,
         Json(input): Json<NodeInput>,
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<IdVersion>> {
         let user = session_user(session, pool).await?;
+        let world_id = resolve_world(pool, world_slug).await?;
         validate_point(&input.geom)?;
         validate_tags(&input.tags)?;
         let tags = tag_value(&input.tags)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, user)?;
+                lock_owned_changeset(c, input.changeset_id, user, world_id)?;
                 create_node_typed(c, input, tags, user)
             })
         })
@@ -84,22 +89,24 @@ impl NodesModule {
     /// Nodeを更新する
     ///
     /// expectedVersionを検証し、Nodeの座標とタグを指定したChangesetのDraftに保存する。
-    #[oai(path = "/nodes/:id", method = "patch")]
+    #[oai(path = "/worlds/:worldSlug/nodes/:id", method = "patch")]
     async fn patch_node(
         &self,
+        #[oai(name = "worldSlug")] Path(world_slug): Path<String>,
         #[oai(name = "id")] Path(node_id): Path<i64>,
         Json(input): Json<NodePatch>,
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<Json<IdVersion>> {
         let user = session_user(session, pool).await?;
+        let world_id = resolve_world(pool, world_slug).await?;
         validate_point(&input.geom)?;
         validate_tags(&input.tags)?;
         let tags = tag_value(&input.tags)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, user)?;
-                patch_node_typed(c, node_id, input, tags, user)
+                lock_owned_changeset(c, input.changeset_id, user, world_id)?;
+                patch_node_typed(c, node_id, input, tags, user, world_id)
             })
         })
         .await
@@ -110,19 +117,21 @@ impl NodesModule {
     /// Nodeを削除する
     ///
     /// expectedVersionを検証し、指定したChangesetにNodeの削除をDraftとして保存する。
-    #[oai(path = "/nodes/:id", method = "delete")]
+    #[oai(path = "/worlds/:worldSlug/nodes/:id", method = "delete")]
     async fn delete_node(
         &self,
+        #[oai(name = "worldSlug")] Path(world_slug): Path<String>,
         #[oai(name = "id")] Path(node_id): Path<i64>,
         Json(input): Json<DeleteInput>,
         session: &Session,
         Data(pool): Data<&DatabasePool>,
     ) -> Result<NoContent> {
         let user = session_user(session, pool).await?;
+        let world_id = resolve_world(pool, world_slug).await?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
-                lock_owned_changeset(c, input.changeset_id, user)?;
-                delete_node_typed(c, node_id, input, user)
+                lock_owned_changeset(c, input.changeset_id, user, world_id)?;
+                delete_node_typed(c, node_id, input, user, world_id)
             })
         })
         .await

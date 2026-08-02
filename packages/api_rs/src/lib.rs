@@ -19,6 +19,7 @@ pub fn openapi_service() -> OpenApiService<impl poem_openapi::OpenApi, ()> {
             modules::RelationsModule,
             modules::ViewportModule,
             modules::UsersModule,
+            modules::WorldsModule,
         ),
         "Catlas API",
         "1.0.0",

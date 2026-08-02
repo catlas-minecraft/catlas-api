@@ -117,6 +117,7 @@ impl Error for DomainFailure {}
 pub(crate) fn validate_publication_topology(
     c: &mut database::DatabaseConnection,
     id: i64,
+    world_id: i64,
 ) -> Result<(), database::DatabaseError> {
     let draft_nodes = draft::nodes::table
         .filter(draft::nodes::changeset_id.eq(id))
@@ -134,6 +135,7 @@ pub(crate) fn validate_publication_topology(
         .map(|row| row.0)
         .collect();
     let core_nodes = core::nodes::table
+        .filter(core::nodes::world_id.eq(world_id))
         .filter(core::nodes::deleted_at.is_null())
         .select((core::nodes::id, core::nodes::mc_x, core::nodes::mc_z))
         .load::<(i64, f64, f64)>(c)?;
@@ -152,6 +154,7 @@ pub(crate) fn validate_publication_topology(
     let effective_node_ids: HashSet<i64> = node_points.keys().copied().collect();
 
     let core_ways = core::ways::table
+        .filter(core::ways::world_id.eq(world_id))
         .filter(core::ways::deleted_at.is_null())
         .select((core::ways::id, core::ways::geometry_kind))
         .load::<(i64, String)>(c)?;
@@ -181,6 +184,7 @@ pub(crate) fn validate_publication_topology(
         }
     }
     let core_way_nodes = core::way_nodes::table
+        .filter(core::way_nodes::world_id.eq(world_id))
         .select((
             core::way_nodes::way_id,
             core::way_nodes::seq,
@@ -229,6 +233,7 @@ pub(crate) fn validate_publication_topology(
     }
 
     let core_relations = core::relations::table
+        .filter(core::relations::world_id.eq(world_id))
         .filter(core::relations::deleted_at.is_null())
         .select(core::relations::id)
         .load::<i64>(c)?;
@@ -252,6 +257,7 @@ pub(crate) fn validate_publication_topology(
         .collect();
     effective_relations.extend(active_draft_relations.iter().copied());
     let core_members = core::relation_members::table
+        .filter(core::relation_members::world_id.eq(world_id))
         .select((
             core::relation_members::relation_id,
             core::relation_members::seq,

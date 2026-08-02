@@ -13,11 +13,23 @@ reuses that user ID without changing an existing display username, and returns
 user ID; `GET` resolves it to a user (or returns `user: null` when stale).
 Sessions are intentionally development-only and are lost on restart.
 
-Viewport and entity reads are public. Changeset and entity writes require a
-session and may only mutate changesets owned by the session user ID.
+World, viewport, and entity reads are public. World, changeset, and entity
+writes require a session. Any authenticated user may edit any world, but a
+changeset may only be mutated, published, or abandoned by its creator.
 
 `GET /api/users/{userId}` is an unauthenticated public lookup. It returns the
 same user object (without `createdAt`) or `404` when the public ID is unknown.
+
+## Worlds
+
+A world is an independent namespace for changesets and geospatial entities.
+It has an internal numeric ID, an immutable public `slug`, a display `name`, a
+creator, and a creation timestamp. Slugs are 1–64 lowercase ASCII letters or
+digits separated by single hyphens and are used in API and editor URLs.
+
+`GET /api/worlds` and `GET /api/worlds/{worldSlug}` are public. Authenticated
+users create worlds with `POST /api/worlds` and `{ "slug": string, "name":
+string }`. World update and deletion are not currently supported.
 
 ## Coordinates
 
@@ -36,29 +48,34 @@ or `delete`; updates and deletes retain the published `base_version`. Draft
 ways and relations own complete ordered child lists in `draft.way_nodes` and
 `draft.relation_members`.
 
-Entity IDs are allocated from the core sequences when draft creates are
-staged. This allows draft-created ways to reference draft-created nodes. Gaps
-left by abandoned changesets are expected.
+Entity and changeset IDs remain globally allocated. Entity IDs are allocated
+from the core sequences when draft creates are staged, allowing draft-created
+ways to reference draft-created nodes. Gaps left by abandoned changesets are
+expected. An entity and every entity reference must belong to its changeset's
+world.
 
 ## Endpoints
 
-- `GET /api/viewport`
-- `GET /api/changesets`
-- `POST /api/changesets`
-- `POST /api/changesets/{id}/publish`
-- `POST /api/changesets/{id}/abandon`
-- `GET /api/nodes/{id}`
-- `POST /api/nodes`
-- `PATCH /api/nodes/{id}`
-- `DELETE /api/nodes/{id}`
-- `GET /api/ways/{id}`
-- `POST /api/ways`
-- `PATCH /api/ways/{id}`
-- `DELETE /api/ways/{id}`
-- `GET /api/relations/{id}`
-- `POST /api/relations`
-- `PATCH /api/relations/{id}`
-- `DELETE /api/relations/{id}`
+- `GET /api/worlds`
+- `GET /api/worlds/{worldSlug}`
+- `POST /api/worlds`
+- `GET /api/worlds/{worldSlug}/viewport`
+- `GET /api/worlds/{worldSlug}/changesets`
+- `POST /api/worlds/{worldSlug}/changesets`
+- `POST /api/worlds/{worldSlug}/changesets/{id}/publish`
+- `POST /api/worlds/{worldSlug}/changesets/{id}/abandon`
+- `GET /api/worlds/{worldSlug}/nodes/{id}`
+- `POST /api/worlds/{worldSlug}/nodes`
+- `PATCH /api/worlds/{worldSlug}/nodes/{id}`
+- `DELETE /api/worlds/{worldSlug}/nodes/{id}`
+- `GET /api/worlds/{worldSlug}/ways/{id}`
+- `POST /api/worlds/{worldSlug}/ways`
+- `PATCH /api/worlds/{worldSlug}/ways/{id}`
+- `DELETE /api/worlds/{worldSlug}/ways/{id}`
+- `GET /api/worlds/{worldSlug}/relations/{id}`
+- `POST /api/worlds/{worldSlug}/relations`
+- `PATCH /api/worlds/{worldSlug}/relations/{id}`
+- `DELETE /api/worlds/{worldSlug}/relations/{id}`
 
 JSON fields use camelCase. Entity mutations include `changesetId`; patches and
 deletes also include `expectedVersion`. Node geometry is `{x,y,z}`. Ways use an
@@ -73,8 +90,8 @@ application-specific metadata are represented by tags.
 Publication is a single database transaction:
 
 1. Lock and verify the open changeset and owner.
-2. Serialize publication and recheck all base versions.
-3. Validate the final core-plus-draft graph and geometry.
+2. Serialize publication within the world and recheck all base versions.
+3. Validate the world's final core-plus-draft graph and geometry.
 4. Apply parent and ordered child state to core.
 5. Increment each changed entity once and record resulting history snapshots.
 6. Rebuild XZ way and multipolygon relation geometry.
@@ -91,6 +108,7 @@ state.
 - Lines require at least two distinct nodes.
 - Areas require a closed ring with at least three distinct nodes.
 - Active ways and relations may reference only effective active entities.
+- Changesets, entities, way nodes, and relation members may not cross worlds.
 - Deletion is rejected while an effective active parent still references the
   entity.
 - Multipolygons require at least one outer area way and valid member roles.

@@ -6,6 +6,7 @@ pub mod relations;
 pub mod users;
 pub mod viewport;
 pub mod ways;
+pub mod worlds;
 
 #[cfg(test)]
 mod tests;
@@ -13,13 +14,15 @@ mod tests;
 pub use changesets::ChangesetsModule;
 pub use common::types::{
     Changeset, ChangesetInput, DeleteInput, GeometryKind, IdVersion, NodeInput, NodePatch, Point,
-    RelationInput, RelationMember, RelationPatch, User, Viewport, WayInput, WayPatch,
+    RelationInput, RelationMember, RelationPatch, User, Viewport, WayInput, WayPatch, World,
+    WorldInput,
 };
 pub use nodes::NodesModule;
 pub use relations::RelationsModule;
 pub use users::UsersModule;
 pub use viewport::ViewportModule;
 pub use ways::WaysModule;
+pub use worlds::WorldsModule;
 
 use std::borrow::Cow;
 

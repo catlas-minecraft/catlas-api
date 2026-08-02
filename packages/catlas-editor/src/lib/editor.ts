@@ -34,6 +34,7 @@ import {
 import { validateGraph } from "./editor/validation";
 
 export type CatlasEditorOptions = {
+  readonly worldSlug: string;
   readonly apiBaseUrl?: string;
   readonly tileUrl?: string;
 };
@@ -89,6 +90,7 @@ const errorMessage = (error: unknown) => {
 };
 
 export class CatlasEditor {
+  readonly worldSlug: string;
   readonly #api: EditorApiService;
   readonly #history = new History();
   readonly #listeners = new Set<() => void>();
@@ -124,9 +126,10 @@ export class CatlasEditor {
   #transform: d3.ZoomTransform;
   #transientNode: { readonly id: number; readonly geom: Point3D } | null = null;
 
-  constructor(root: HTMLDivElement, options: CatlasEditorOptions = {}) {
+  constructor(root: HTMLDivElement, options: CatlasEditorOptions) {
     this.#root = root;
-    this.#api = createEditorApi(options.apiBaseUrl ?? window.location.origin);
+    this.worldSlug = options.worldSlug;
+    this.#api = createEditorApi(options.apiBaseUrl ?? window.location.origin, options.worldSlug);
     this.#tiles = new TileCanvasLayer(root, options.tileUrl);
 
     const overlay = createSvgElement();
@@ -197,7 +200,9 @@ export class CatlasEditor {
 
   readonly subscribe = (listener: () => void) => {
     this.#listeners.add(listener);
-    return () => this.#listeners.delete(listener);
+    return () => {
+      this.#listeners.delete(listener);
+    };
   };
 
   getChangesetReview() {

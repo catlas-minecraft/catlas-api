@@ -79,7 +79,11 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://catlas:catlas@127.0.0.1:5432/catlas_test
       - name: Test geospatial publication
-        run: cargo test -p catlas-api modules::geospatial::tests::publishes_and_queries_a_spatial_graph --locked -- --ignored --exact
+        run: cargo test -p catlas-api --lib modules::tests::publishes_and_queries_a_spatial_graph --locked -- --ignored --exact --test-threads=1
+        env:
+          TEST_DATABASE_URL: postgresql://catlas:catlas@127.0.0.1:5432/catlas_test
+      - name: Test world isolation
+        run: cargo test -p catlas-api --lib modules::tests::isolates_two_worlds_and_rejects_cross_world_references --locked -- --ignored --exact --test-threads=1
         env:
           TEST_DATABASE_URL: postgresql://catlas:catlas@127.0.0.1:5432/catlas_test
       - name: Install Diesel CLI

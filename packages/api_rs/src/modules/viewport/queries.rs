@@ -6,7 +6,7 @@ use crate::{
     database,
     schema::{core, derived},
 };
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, RunQueryDsl};
 use postgis_diesel::types::{Point as PostgisPoint, Polygon};
 use postgis_diesel::{functions::st_intersects, functions_nullable, operators::intersects_2d};
 use serde_json::Value;
@@ -29,11 +29,14 @@ fn parse_geometry_kind(value: String) -> Result<GeometryKind, database::Database
 
 pub(crate) fn viewport_typed(
     c: &mut database::DatabaseConnection,
+    world_id: i64,
     bbox: [f64; 4],
     include_relations: bool,
 ) -> Result<Viewport, database::DatabaseError> {
     let envelope = bbox_geometry(bbox);
     let way_ids: Vec<i64> = derived::way_geometries::table
+        .inner_join(core::ways::table.on(core::ways::id.eq(derived::way_geometries::way_id)))
+        .filter(core::ways::world_id.eq(world_id))
         .filter(intersects_2d(
             derived::way_geometries::bbox,
             envelope.clone(),
@@ -47,6 +50,11 @@ pub(crate) fn viewport_typed(
         .load(c)?;
     let relation_ids: Vec<i64> = if include_relations {
         derived::relation_geometries::table
+            .inner_join(
+                core::relations::table
+                    .on(core::relations::id.eq(derived::relation_geometries::relation_id)),
+            )
+            .filter(core::relations::world_id.eq(world_id))
             .filter(intersects_2d(
                 derived::relation_geometries::bbox,
                 envelope.clone(),
@@ -63,6 +71,7 @@ pub(crate) fn viewport_typed(
     };
     let ways = core::ways::table
         .filter(core::ways::id.eq_any(&way_ids))
+        .filter(core::ways::world_id.eq(world_id))
         .filter(core::ways::deleted_at.is_null())
         .select((
             core::ways::id,
@@ -85,6 +94,14 @@ pub(crate) fn viewport_typed(
         )>(c)?;
     let way_nodes = core::way_nodes::table
         .filter(core::way_nodes::way_id.eq_any(&way_ids))
+        .filter(core::way_nodes::world_id.eq(world_id))
+        .filter(
+            core::way_nodes::changeset_id.eq_any(
+                core::changesets::table
+                    .filter(core::changesets::world_id.eq(world_id))
+                    .select(core::changesets::id),
+            ),
+        )
         .select((
             core::way_nodes::way_id,
             core::way_nodes::seq,
@@ -96,6 +113,7 @@ pub(crate) fn viewport_typed(
     let referenced: HashSet<i64> = way_nodes.iter().map(|row| row.2).collect();
     let spatial_nodes: Vec<i64> = core::nodes::table
         .filter(core::nodes::deleted_at.is_null())
+        .filter(core::nodes::world_id.eq(world_id))
         .filter(intersects_2d(core::nodes::geom_2d, envelope.clone()))
         .filter(
             functions_nullable::st_intersects(core::nodes::geom_2d, envelope.clone())
@@ -107,6 +125,7 @@ pub(crate) fn viewport_typed(
     node_ids.extend(spatial_nodes);
     let nodes = core::nodes::table
         .filter(core::nodes::id.eq_any(&node_ids))
+        .filter(core::nodes::world_id.eq(world_id))
         .filter(core::nodes::deleted_at.is_null())
         .select((
             core::nodes::id,
@@ -131,6 +150,7 @@ pub(crate) fn viewport_typed(
         )>(c)?;
     let relations = core::relations::table
         .filter(core::relations::id.eq_any(&relation_ids))
+        .filter(core::relations::world_id.eq(world_id))
         .filter(core::relations::deleted_at.is_null())
         .select((
             core::relations::id,
@@ -151,6 +171,14 @@ pub(crate) fn viewport_typed(
         )>(c)?;
     let relation_members = core::relation_members::table
         .filter(core::relation_members::relation_id.eq_any(&relation_ids))
+        .filter(core::relation_members::world_id.eq(world_id))
+        .filter(
+            core::relation_members::changeset_id.eq_any(
+                core::changesets::table
+                    .filter(core::changesets::world_id.eq(world_id))
+                    .select(core::changesets::id),
+            ),
+        )
         .select((
             core::relation_members::relation_id,
             core::relation_members::seq,

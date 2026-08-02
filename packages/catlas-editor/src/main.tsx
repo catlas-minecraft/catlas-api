@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
-import App from "./app.tsx";
+import { RouterProvider } from "@tanstack/react-router";
+import { router } from "./routes.tsx";
 import { initializeTheme, ThemeProvider } from "./components/editor/editor-theme.tsx";
 import { TooltipProvider } from "./components/ui/tooltip.tsx";
 
@@ -15,7 +16,7 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider delayDuration={300}>
-          <App />
+          <RouterProvider router={router} />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -51,8 +51,9 @@ pub(crate) fn patch_node_typed(
     input: NodePatch,
     tags: DbJson,
     user: i64,
+    world_id: i64,
 ) -> Result<IdRow, database::DatabaseError> {
-    let state = node_state(c, input.changeset_id, node_id)?;
+    let state = node_state(c, input.changeset_id, world_id, node_id)?;
     let required_version = expected_version(&state)?;
     if input.expected_version != required_version {
         return Err(std::io::Error::other("version conflict").into());
@@ -112,8 +113,9 @@ pub(crate) fn delete_node_typed(
     node_id: i64,
     input: DeleteInput,
     user: i64,
+    world_id: i64,
 ) -> Result<(), database::DatabaseError> {
-    let state = node_state(c, input.changeset_id, node_id)?;
+    let state = node_state(c, input.changeset_id, world_id, node_id)?;
     let want = expected_version(&state)?;
     if input.expected_version != want {
         return Err(std::io::Error::other("version conflict").into());
@@ -171,6 +173,7 @@ macro_rules! state_helper {
         pub(crate) fn $name(
             c: &mut database::DatabaseConnection,
             changeset_id: i64,
+            world_id: i64,
             id: i64,
         ) -> Result<EntityState, database::DatabaseError> {
             let draft_row = draft::$draft::table
@@ -181,6 +184,7 @@ macro_rules! state_helper {
                 .optional()?;
             let current = core::$core::table
                 .filter(core::$core::id.eq(id))
+                .filter(core::$core::world_id.eq(world_id))
                 .filter(core::$core::deleted_at.is_null())
                 .select(core::$core::version)
                 .first::<i32>(c)
@@ -236,10 +240,12 @@ pub(crate) fn lock_owned_changeset(
     c: &mut database::DatabaseConnection,
     changeset_id: i64,
     user: i64,
+    world_id: i64,
 ) -> Result<(), database::DatabaseError> {
     let row = core::changesets::table
         .filter(core::changesets::id.eq(changeset_id))
         .filter(core::changesets::created_by_user_id.eq(user))
+        .filter(core::changesets::world_id.eq(world_id))
         .filter(core::changesets::status.eq("open"))
         .select(core::changesets::id)
         .first::<i64>(c)
@@ -252,8 +258,9 @@ pub(crate) fn create_way_typed(
     c: &mut database::DatabaseConnection,
     input: WayInput,
     user: i64,
+    world_id: i64,
 ) -> Result<IdRow, database::DatabaseError> {
-    if !effective_nodes_exist(c, input.changeset_id, &input.node_refs)? {
+    if !effective_nodes_exist(c, input.changeset_id, world_id, &input.node_refs)? {
         return Err(std::io::Error::other("invalid reference").into());
     }
     let id = diesel::select(diesel::dsl::sql::<diesel::sql_types::BigInt>(
@@ -297,11 +304,12 @@ pub(crate) fn patch_way_typed(
     way_id: i64,
     input: WayPatch,
     user: i64,
+    world_id: i64,
 ) -> Result<IdRow, database::DatabaseError> {
-    if !effective_nodes_exist(c, input.changeset_id, &input.node_refs)? {
+    if !effective_nodes_exist(c, input.changeset_id, world_id, &input.node_refs)? {
         return Err(std::io::Error::other("invalid reference").into());
     }
-    let state = way_state(c, input.changeset_id, way_id)?;
+    let state = way_state(c, input.changeset_id, world_id, way_id)?;
     let version = expected_version(&state)?;
     if input.expected_version != version {
         return Err(std::io::Error::other("version conflict").into());
@@ -374,8 +382,9 @@ pub(crate) fn delete_way_typed(
     way_id: i64,
     input: DeleteInput,
     user: i64,
+    world_id: i64,
 ) -> Result<(), database::DatabaseError> {
-    let state = way_state(c, input.changeset_id, way_id)?;
+    let state = way_state(c, input.changeset_id, world_id, way_id)?;
     let version = expected_version(&state)?;
     if input.expected_version != version {
         return Err(std::io::Error::other("version conflict").into());
@@ -420,9 +429,10 @@ pub(crate) fn create_relation_typed(
     c: &mut database::DatabaseConnection,
     input: RelationInput,
     user: i64,
+    world_id: i64,
 ) -> Result<IdRow, database::DatabaseError> {
     for member in &input.members {
-        if !member_exists(c, input.changeset_id, member)? {
+        if !member_exists(c, input.changeset_id, world_id, member)? {
             return Err(std::io::Error::other("invalid reference").into());
         }
     }
@@ -468,13 +478,14 @@ pub(crate) fn patch_relation_typed(
     relation_id: i64,
     input: RelationPatch,
     user: i64,
+    world_id: i64,
 ) -> Result<IdRow, database::DatabaseError> {
     for member in &input.members {
-        if !member_exists(c, input.changeset_id, member)? {
+        if !member_exists(c, input.changeset_id, world_id, member)? {
             return Err(std::io::Error::other("invalid reference").into());
         }
     }
-    let state = relation_state(c, input.changeset_id, relation_id)?;
+    let state = relation_state(c, input.changeset_id, world_id, relation_id)?;
     let version = expected_version(&state)?;
     if input.expected_version != version {
         return Err(std::io::Error::other("version conflict").into());
@@ -547,8 +558,9 @@ pub(crate) fn delete_relation_typed(
     relation_id: i64,
     input: DeleteInput,
     user: i64,
+    world_id: i64,
 ) -> Result<(), database::DatabaseError> {
-    let state = relation_state(c, input.changeset_id, relation_id)?;
+    let state = relation_state(c, input.changeset_id, world_id, relation_id)?;
     let version = expected_version(&state)?;
     if input.expected_version != version {
         return Err(std::io::Error::other("version conflict").into());
@@ -590,10 +602,12 @@ pub(crate) fn delete_relation_typed(
 pub(crate) fn effective_nodes_exist(
     c: &mut database::DatabaseConnection,
     changeset_id: i64,
+    world_id: i64,
     refs: &[i64],
 ) -> Result<bool, database::DatabaseError> {
     let core_ids: HashSet<i64> = core::nodes::table
         .filter(core::nodes::id.eq_any(refs))
+        .filter(core::nodes::world_id.eq(world_id))
         .filter(core::nodes::deleted_at.is_null())
         .select(core::nodes::id)
         .load(c)?
@@ -623,6 +637,7 @@ pub(crate) fn effective_nodes_exist(
 pub(crate) fn member_exists(
     c: &mut database::DatabaseConnection,
     changeset_id: i64,
+    world_id: i64,
     member: &RelationMember,
 ) -> Result<bool, database::DatabaseError> {
     let deleted = match member.member_type.as_str() {
@@ -658,6 +673,7 @@ pub(crate) fn member_exists(
     let exists = match member.member_type.as_str() {
         "node" => core::nodes::table
             .filter(core::nodes::id.eq(member.member_id))
+            .filter(core::nodes::world_id.eq(world_id))
             .filter(core::nodes::deleted_at.is_null())
             .select(core::nodes::id)
             .first::<i64>(c)
@@ -665,6 +681,7 @@ pub(crate) fn member_exists(
             .is_some(),
         "way" => core::ways::table
             .filter(core::ways::id.eq(member.member_id))
+            .filter(core::ways::world_id.eq(world_id))
             .filter(core::ways::deleted_at.is_null())
             .select(core::ways::id)
             .first::<i64>(c)
@@ -672,6 +689,7 @@ pub(crate) fn member_exists(
             .is_some(),
         "relation" => core::relations::table
             .filter(core::relations::id.eq(member.member_id))
+            .filter(core::relations::world_id.eq(world_id))
             .filter(core::relations::deleted_at.is_null())
             .select(core::relations::id)
             .first::<i64>(c)

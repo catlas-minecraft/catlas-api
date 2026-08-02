@@ -81,7 +81,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/changesets": {
+    "/worlds/{worldSlug}/changesets": {
         parameters: {
             query?: never;
             header?: never;
@@ -96,7 +96,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    worldSlug: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -120,7 +122,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    worldSlug: string;
+                };
                 cookie?: never;
             };
             requestBody: {
@@ -145,7 +149,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/changesets/{id}/publish": {
+    "/worlds/{worldSlug}/changesets/{id}/publish": {
         parameters: {
             query?: never;
             header?: never;
@@ -163,6 +167,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -185,7 +190,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/changesets/{id}/abandon": {
+    "/worlds/{worldSlug}/changesets/{id}/abandon": {
         parameters: {
             query?: never;
             header?: never;
@@ -203,6 +208,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -223,7 +229,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/nodes/{id}": {
+    "/worlds/{worldSlug}/nodes/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -239,6 +245,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -266,6 +273,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -295,6 +303,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -317,7 +326,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/nodes": {
+    "/worlds/{worldSlug}/nodes": {
         parameters: {
             query?: never;
             header?: never;
@@ -334,7 +343,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    worldSlug: string;
+                };
                 cookie?: never;
             };
             requestBody: {
@@ -359,7 +370,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/ways/{id}": {
+    "/worlds/{worldSlug}/ways/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -375,6 +386,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -402,6 +414,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -431,6 +444,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -453,7 +467,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/ways": {
+    "/worlds/{worldSlug}/ways": {
         parameters: {
             query?: never;
             header?: never;
@@ -470,7 +484,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    worldSlug: string;
+                };
                 cookie?: never;
             };
             requestBody: {
@@ -495,7 +511,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/relations/{id}": {
+    "/worlds/{worldSlug}/relations/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -511,6 +527,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -538,6 +555,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -567,6 +585,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    worldSlug: string;
                     id: number;
                 };
                 cookie?: never;
@@ -589,7 +608,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/relations": {
+    "/worlds/{worldSlug}/relations": {
         parameters: {
             query?: never;
             header?: never;
@@ -606,7 +625,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    worldSlug: string;
+                };
                 cookie?: never;
             };
             requestBody: {
@@ -631,7 +652,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/viewport": {
+    "/worlds/{worldSlug}/viewport": {
         parameters: {
             query?: never;
             header?: never;
@@ -649,7 +670,9 @@ export interface paths {
                     includeRelations?: boolean;
                 };
                 header?: never;
-                path?: never;
+                path: {
+                    worldSlug: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -704,6 +727,98 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/worlds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["World"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json; charset=utf-8": components["schemas"]["WorldInput"];
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["World"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/worlds/{worldSlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    worldSlug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["World"];
+                    };
                 };
             };
         };
@@ -928,6 +1043,21 @@ export interface components {
             tags: {
                 [key: string]: string;
             };
+        };
+        /** World */
+        World: {
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            name: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: components["schemas"]["User"];
+        };
+        /** WorldInput */
+        WorldInput: {
+            slug: string;
+            name: string;
         };
     };
     responses: never;

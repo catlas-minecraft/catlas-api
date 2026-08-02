@@ -405,6 +405,7 @@ mod tests {
              FROM pg_tables
              WHERE (schemaname, tablename) IN (
                ('core', 'changesets'),
+               ('core', 'worlds'),
                ('core', 'users'),
                ('core', 'nodes'),
                ('core', 'ways'),
@@ -442,12 +443,35 @@ mod tests {
         )
         .get_result::<Count>(&mut connection)
         .expect("actor foreign key query failed");
+        let world_fk_count = sql_query(
+            "SELECT count(*)::bigint AS count
+             FROM pg_constraint
+             WHERE contype = 'f' AND conname IN (
+               'nodes_created_world_fk', 'nodes_current_world_fk',
+               'ways_created_world_fk', 'ways_current_world_fk',
+               'relations_created_world_fk', 'relations_current_world_fk',
+               'way_nodes_way_world_fk', 'way_nodes_node_world_fk',
+               'way_nodes_changeset_world_fk',
+               'relation_members_relation_world_fk',
+               'relation_members_changeset_world_fk'
+             )",
+        )
+        .get_result::<Count>(&mut connection)
+        .expect("world foreign key query failed");
+        let world_index_count = sql_query(
+            "SELECT count(*)::bigint AS count FROM pg_indexes
+             WHERE schemaname = 'core' AND indexname = 'changesets_world_status_id_idx'",
+        )
+        .get_result::<Count>(&mut connection)
+        .expect("world index query failed");
 
         assert_eq!(migration_count.count, expected_migration_count);
         assert_eq!(postgis_count.count, 1);
-        assert_eq!(application_table_count.count, 19);
+        assert_eq!(application_table_count.count, 20);
         assert_eq!(published_index_count.count, 1);
-        assert_eq!(actor_fk_count.count, 10);
+        assert_eq!(actor_fk_count.count, 11);
+        assert_eq!(world_fk_count.count, 11);
+        assert_eq!(world_index_count.count, 1);
 
         connection
             .batch_execute(

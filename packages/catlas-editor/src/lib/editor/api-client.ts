@@ -1,4 +1,5 @@
 import createClient from "openapi-fetch";
+import { json, noContent } from "../api-response";
 import type { components, paths } from "./catlas-api.gen";
 import type { ChangesetUploadDiffResult, ChangesetUploadPayload } from "./changeset";
 
@@ -9,44 +10,6 @@ type Changeset = components["schemas"]["Changeset"];
 export type ChangesetListPage = {
   readonly changesets: readonly Changeset[];
   readonly nextBeforeId: number | null;
-};
-
-const responseError = async (response: Response, error: unknown) => {
-  let detail = "";
-  if (error !== undefined) {
-    detail = typeof error === "string" ? error : JSON.stringify(error);
-  } else {
-    const text = await response.text();
-    if (text) {
-      try {
-        const body: unknown = JSON.parse(text);
-        detail =
-          typeof body === "object" && body !== null && "message" in body
-            ? String(body.message)
-            : text;
-      } catch {
-        detail = text;
-      }
-    }
-  }
-  return new Error(
-    detail || `API request failed (${response.status} ${response.statusText || "Unknown error"}).`,
-    { cause: response },
-  );
-};
-
-const json = async <T>(result: { data?: T; error?: unknown; response: Response }): Promise<T> => {
-  if (!result.response.ok) throw await responseError(result.response, result.error);
-  if (result.error !== undefined || result.data === undefined) {
-    throw await responseError(result.response, result.error);
-  }
-  return result.data;
-};
-
-const noContent = async (result: { error?: unknown; response: Response }) => {
-  if (!result.response.ok || result.error !== undefined) {
-    throw await responseError(result.response, result.error);
-  }
 };
 
 export type EditorApiService = {
@@ -66,14 +29,15 @@ export type EditorApiService = {
   ) => Promise<ChangesetUploadDiffResult>;
 };
 
-export const createEditorApi = (baseUrl: string): EditorApiService => {
+export const createEditorApi = (baseUrl: string, worldSlug: string): EditorApiService => {
   const client = createClient<paths>({
     baseUrl: `${baseUrl.replace(/\/$/, "")}/api`,
     credentials: "include",
   });
 
   const save: EditorApiService["save"] = async (payload, comment) => {
-    const changesetResult = await client.POST("/changesets", {
+    const changesetResult = await client.POST("/worlds/{worldSlug}/changesets", {
+      params: { path: { worldSlug } },
       body: { comment: comment ?? undefined },
     });
     const changeset = await json<Changeset>(changesetResult);
@@ -85,7 +49,8 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
 
     try {
       for (const node of payload.create.nodes) {
-        const result = await client.POST("/nodes", {
+        const result = await client.POST("/worlds/{worldSlug}/nodes", {
+          params: { path: { worldSlug } },
           body: { changesetId, geom: node.geom, tags: node.tags },
         });
         const created = await json<IdVersion>(result);
@@ -93,7 +58,8 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
         nodeResults.push({ oldId: node.id, newId: created.id, newVersion: created.version });
       }
       for (const way of payload.create.ways) {
-        const result = await client.POST("/ways", {
+        const result = await client.POST("/worlds/{worldSlug}/ways", {
+          params: { path: { worldSlug } },
           body: {
             changesetId,
             geometryKind: way.geometryKind,
@@ -105,8 +71,8 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
         wayResults.push({ oldId: way.id, newId: created.id, newVersion: created.version });
       }
       for (const node of payload.modify.nodes) {
-        const result = await client.PATCH("/nodes/{id}", {
-          params: { path: { id: node.id } },
+        const result = await client.PATCH("/worlds/{worldSlug}/nodes/{id}", {
+          params: { path: { worldSlug, id: node.id } },
           body: {
             changesetId,
             expectedVersion: node.expectedVersion,
@@ -118,8 +84,8 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
         nodeResults.push({ oldId: node.id, newId: updated.id, newVersion: updated.version });
       }
       for (const way of payload.modify.ways) {
-        const result = await client.PATCH("/ways/{id}", {
-          params: { path: { id: way.id } },
+        const result = await client.PATCH("/worlds/{worldSlug}/ways/{id}", {
+          params: { path: { worldSlug, id: way.id } },
           body: {
             changesetId,
             expectedVersion: way.expectedVersion,
@@ -133,30 +99,32 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
       }
       for (const way of payload.delete.ways) {
         await noContent(
-          await client.DELETE("/ways/{id}", {
-            params: { path: { id: way.id } },
+          await client.DELETE("/worlds/{worldSlug}/ways/{id}", {
+            params: { path: { worldSlug, id: way.id } },
             body: { changesetId, expectedVersion: way.expectedVersion },
           }),
         );
       }
       for (const node of payload.delete.nodes) {
         await noContent(
-          await client.DELETE("/nodes/{id}", {
-            params: { path: { id: node.id } },
+          await client.DELETE("/worlds/{worldSlug}/nodes/{id}", {
+            params: { path: { worldSlug, id: node.id } },
             body: { changesetId, expectedVersion: node.expectedVersion },
           }),
         );
       }
       await json<Changeset>(
-        await client.POST("/changesets/{id}/publish", {
-          params: { path: { id: changesetId } },
+        await client.POST("/worlds/{worldSlug}/changesets/{id}/publish", {
+          params: { path: { worldSlug, id: changesetId } },
         }),
       );
       return { nodes: nodeResults, ways: wayResults, relations: [] };
     } catch (error) {
       try {
         await noContent(
-          await client.POST("/changesets/{id}/abandon", { params: { path: { id: changesetId } } }),
+          await client.POST("/worlds/{worldSlug}/changesets/{id}/abandon", {
+            params: { path: { worldSlug, id: changesetId } },
+          }),
         );
       } catch {
         // Abandon is best effort; preserve the original operation failure.
@@ -181,12 +149,19 @@ export const createEditorApi = (baseUrl: string): EditorApiService => {
     deleteSession: async () => noContent(await client.DELETE("/auth/session")),
     loadViewport: async (bbox) =>
       json<components["schemas"]["Viewport"]>(
-        await client.GET("/viewport", {
-          params: { query: { bbox: bbox.join(","), includeRelations: false } },
+        await client.GET("/worlds/{worldSlug}/viewport", {
+          params: {
+            path: { worldSlug },
+            query: { bbox: bbox.join(","), includeRelations: false },
+          },
         }),
       ),
     listChangesets: async ({ beforeId, limit }) => {
-      const changesets = await json<readonly Changeset[]>(await client.GET("/changesets"));
+      const changesets = await json<readonly Changeset[]>(
+        await client.GET("/worlds/{worldSlug}/changesets", {
+          params: { path: { worldSlug } },
+        }),
+      );
       const filtered = changesets.filter(
         (changeset) => beforeId === undefined || changeset.id < beforeId,
       );
