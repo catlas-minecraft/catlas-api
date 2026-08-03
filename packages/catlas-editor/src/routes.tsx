@@ -8,7 +8,7 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeftIcon, PlusIcon } from "lucide-react";
+import { ArrowLeftIcon, LogInIcon, PlusIcon } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { EditorWorkspace } from "./app";
 import { Alert, AlertDescription } from "./components/ui/alert";
@@ -17,10 +17,12 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "./components/u
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "./components/ui/field";
 import { Input } from "./components/ui/input";
 import { Spinner } from "./components/ui/spinner";
+import { startOidcLogin } from "./lib/auth";
 import {
   createSession,
   createWorld,
   deleteSession,
+  getAuthConfig,
   getSession,
   getWorld,
   listWorlds,
@@ -100,6 +102,7 @@ function WorldCreateForm() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const session = useQuery({ queryKey: ["session"], queryFn: getSession });
+  const authConfig = useQuery({ queryKey: ["auth-config"], queryFn: getAuthConfig });
   const [userId, setUserId] = useState("demo-user");
   const [slug, setSlug] = useState("");
   const [name, setName] = useState("");
@@ -117,9 +120,11 @@ function WorldCreateForm() {
     },
   });
 
-  if (session.isLoading) return <Loading label="Checking session" />;
+  if (session.isLoading || authConfig.isLoading) return <Loading label="Checking session" />;
 
   const signedIn = Boolean(session.data?.user);
+  const oidcEnabled = authConfig.data?.oidcEnabled === true;
+  const developerAuthEnabled = authConfig.data?.developerAuthEnabled === true;
   const signIn = async () => {
     setFormError(null);
     try {
@@ -158,29 +163,56 @@ function WorldCreateForm() {
     <section className="max-w-xl rounded-xl border bg-card p-5">
       <h2 className="font-medium">Create a world</h2>
       {!signedIn ? (
-        <form
-          className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void signIn();
-          }}
-        >
-          <Field data-invalid={Boolean(formError)}>
-            <FieldLabel htmlFor="developer-user-id">Public user ID</FieldLabel>
-            <Input
-              aria-describedby={formError ? "developer-user-id-error" : undefined}
-              aria-invalid={Boolean(formError)}
-              id="developer-user-id"
-              required
-              value={userId}
-              onChange={(event) => setUserId(event.target.value)}
-            />
-            <FieldError id="developer-user-id-error">{formError}</FieldError>
-          </Field>
-          <Button className="self-end" disabled={!userId.trim()} type="submit">
-            Sign in
-          </Button>
-        </form>
+        <div className="mt-4 grid gap-3">
+          {oidcEnabled ? (
+            <Button onClick={() => startOidcLogin()} type="button" variant="outline">
+              <LogInIcon data-icon="inline-start" />
+              Sign in with OpenID Connect
+            </Button>
+          ) : null}
+          {oidcEnabled && developerAuthEnabled ? (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              or
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          ) : null}
+          {developerAuthEnabled ? (
+            <form
+              className="grid gap-3 sm:grid-cols-[1fr_auto]"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void signIn();
+              }}
+            >
+              <Field data-invalid={Boolean(formError)}>
+                <FieldLabel htmlFor="developer-user-id">Public user ID</FieldLabel>
+                <Input
+                  aria-describedby={formError ? "developer-user-id-error" : undefined}
+                  aria-invalid={Boolean(formError)}
+                  id="developer-user-id"
+                  required
+                  value={userId}
+                  onChange={(event) => setUserId(event.target.value)}
+                />
+                <FieldError id="developer-user-id-error">{formError}</FieldError>
+              </Field>
+              <Button className="self-end" disabled={!userId.trim()} type="submit">
+                Sign in
+              </Button>
+            </form>
+          ) : null}
+          {!oidcEnabled && !developerAuthEnabled ? (
+            <p
+              className="text-sm text-muted-foreground"
+              role={authConfig.isError ? "alert" : undefined}
+            >
+              {authConfig.isError
+                ? "Sign-in options are unavailable."
+                : "No sign-in method is configured."}
+            </p>
+          ) : null}
+        </div>
       ) : (
         <>
           <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">

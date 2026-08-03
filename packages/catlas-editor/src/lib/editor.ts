@@ -12,6 +12,7 @@ import { loadViewportEntities, saveGraph } from "./editor/sync";
 import { TileCanvasLayer } from "./editor/tiles";
 import type {
   DrawingState,
+  EditorAuthConfig,
   EditorAuthState,
   EditorContextMenu,
   EditorMode,
@@ -102,6 +103,7 @@ export class CatlasEditor {
   readonly #zoom: d3.ZoomBehavior<SVGSVGElement, unknown>;
   #activeDrag: ActiveDrag | null = null;
   #authState: EditorAuthState = { status: "checking" };
+  #authConfig: EditorAuthConfig = { oidcEnabled: false, developerAuthEnabled: false };
   readonly #canvasClickSuppression = new CanvasClickSuppression();
   #changePreview: ChangePreview | null = null;
   #changesetReviewCache: {
@@ -193,6 +195,7 @@ export class CatlasEditor {
     this.#snapshot = this.#createSnapshot();
     this.#render();
     void this.#checkSession();
+    void this.#loadAuthConfig();
     void this.#loadViewport();
   }
 
@@ -870,7 +873,17 @@ export class CatlasEditor {
       issues: validateGraph(this.#history.graph),
       save: this.#saveState,
       auth: this.#authState,
+      authConfig: this.#authConfig,
     };
+  }
+
+  async #loadAuthConfig() {
+    try {
+      this.#authConfig = await this.#api.getAuthConfig();
+      if (!this.#disposed) this.#emit();
+    } catch {
+      // Keep sign-in controls hidden when the API cannot provide its configuration.
+    }
   }
 
   async #checkSession() {
@@ -911,6 +924,7 @@ export class CatlasEditor {
 export type { Operation, OperationId } from "./editor/operations";
 export type { ChangesetReview } from "./editor/changeset";
 export type {
+  EditorAuthConfig,
   EditorAuthState,
   EditorContextMenu,
   EditorMode,

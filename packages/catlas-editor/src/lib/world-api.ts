@@ -5,6 +5,7 @@ import type { paths } from "./editor/catlas-api.gen";
 
 export type World = components["schemas"]["World"];
 export type Session = components["schemas"]["SessionInfo"];
+export type AuthConfig = components["schemas"]["AuthConfigInfo"];
 
 const client = createClient<paths>({
   baseUrl: "/api",
@@ -22,6 +23,7 @@ export const createWorld = async (body: components["schemas"]["WorldInput"]) =>
   json<World>(await client.POST("/worlds", { body }));
 
 export const getSession = async () => json<Session>(await client.GET("/auth/session"));
+export const getAuthConfig = async () => json<AuthConfig>(await client.GET("/auth/config"));
 export const createSession = async (userId: string) =>
   json<Session>(await client.POST("/auth/session", { body: { userId } }));
 export const deleteSession = async () => noContent(await client.DELETE("/auth/session"));

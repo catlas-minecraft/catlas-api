@@ -1,8 +1,9 @@
-use catlas_api::{database, openapi_service};
+use catlas_api::{database, modules::auth, openapi_service};
 use poem::{
     EndpointExt, Route, Server,
     listener::TcpListener,
     session::{CookieConfig, MemoryStorage, ServerSession},
+    web::cookie::SameSite,
 };
 
 use crate::middleware::RequestTracing;
@@ -23,6 +24,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let database_url = std::env::var("DATABASE_URL")?;
     let database =
         tokio::task::spawn_blocking(move || database::connect_and_migrate(database_url)).await??;
+    let auth_state = auth::AuthState::from_env().await?;
 
     let api_service = openapi_service();
 
@@ -36,7 +38,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let server_session = ServerSession::new(
         CookieConfig::default()
             .http_only(true)
-            .secure(secure_cookie),
+            .secure(secure_cookie)
+            .same_site(SameSite::Lax),
         MemoryStorage::new(),
     );
 
@@ -46,7 +49,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .nest("/docs", swagger_ui)
         .with(RequestTracing)
         .with(server_session)
-        .data(database);
+        .data(database)
+        .data(auth_state);
 
     let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_owned());
     let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_owned());

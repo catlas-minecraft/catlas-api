@@ -24,9 +24,12 @@ editor manageable:
 ## Authentication
 
 Editing is available without a session, but publishing requires a Catlas API session.
-The toolbar's developer sign-in creates a cookie-backed session through `POST /auth/session`.
-The editor checks that session on startup and immediately before publishing. Signing out deletes
-the session when the API is reachable and always clears the local authentication state.
+When OIDC is configured, the toolbar starts the API's OpenID Connect login and returns to the
+current editor route after authentication. The API stores the resulting identity in its
+HttpOnly session cookie. A developer sign-in through `POST /auth/session` remains available only
+when development auth is enabled. The editor checks the session on startup and immediately
+before publishing. Signing out deletes the session when the API is reachable and always clears
+the local authentication state.
 
 Relations are deliberately outside the current editing surface. The graph and API
 boundaries leave room for them without mixing relation behavior into the first

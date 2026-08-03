@@ -20,6 +20,7 @@ const notUsed = async (): Promise<never> => {
 
 const unusedApi = {
   getSession: notUsed,
+  getAuthConfig: notUsed,
   createSession: notUsed,
   deleteSession: notUsed,
   listChangesets: notUsed,

@@ -98,7 +98,7 @@ mod tests {
     };
 
     use super::{MIGRATIONS, connect_and_migrate};
-    use crate::modules::auth::provision_user;
+    use crate::modules::auth::{AuthState, provision_oidc_user, provision_user};
     use crate::modules::users::find_user;
     use crate::openapi_service;
 
@@ -286,6 +286,34 @@ mod tests {
             .is_err()
         );
 
+        let oidc_user = provision_oidc_user(
+            &mut connection,
+            "https://idp.example.com",
+            "subject-1",
+            "oidc-user",
+        )
+        .expect("OIDC user provisioning failed");
+        let updated_oidc_user = provision_oidc_user(
+            &mut connection,
+            "https://idp.example.com",
+            "subject-1",
+            "changed-name",
+        )
+        .expect("OIDC user reprovisioning failed");
+        assert_eq!(updated_oidc_user.0, oidc_user.0);
+        assert_eq!(updated_oidc_user.1, oidc_user.1);
+        assert_eq!(updated_oidc_user.2, "changed-name");
+        assert_ne!(
+            provision_oidc_user(
+                &mut connection,
+                "https://other-idp.example.com",
+                "subject-1",
+                "other-user",
+            )
+            .expect("OIDC identity from another issuer failed"),
+            oidc_user
+        );
+
         let http_user = provision_user(&mut connection, "http-user")
             .expect("HTTP test user provisioning failed");
         tokio::runtime::Runtime::new()
@@ -297,8 +325,23 @@ mod tests {
                         CookieConfig::default(),
                         MemoryStorage::new(),
                     ))
-                    .data(pool.clone());
+                    .data(pool.clone())
+                    .data(AuthState::for_tests());
                 let client = TestClient::new(app);
+                client
+                    .get("/api/auth/config")
+                    .send()
+                    .await
+                    .assert_json(serde_json::json!({
+                        "oidcEnabled": false,
+                        "developerAuthEnabled": true
+                    }))
+                    .await;
+                client
+                    .get("/api/auth/oidc/login")
+                    .send()
+                    .await
+                    .assert_status(StatusCode::NOT_FOUND);
                 client
                     .post("/api/auth/session")
                     .body_json(&serde_json::json!({ "userId": " padded-user " }))
@@ -412,6 +455,7 @@ mod tests {
                ('core', 'way_nodes'),
                ('core', 'relations'),
                ('core', 'relation_members'),
+               ('core', 'oidc_user_identities'),
                ('derived', 'way_geometries'),
                ('derived', 'relation_geometries'),
                ('draft', 'nodes'),
@@ -467,7 +511,7 @@ mod tests {
 
         assert_eq!(migration_count.count, expected_migration_count);
         assert_eq!(postgis_count.count, 1);
-        assert_eq!(application_table_count.count, 20);
+        assert_eq!(application_table_count.count, 21);
         assert_eq!(published_index_count.count, 1);
         assert_eq!(actor_fk_count.count, 11);
         assert_eq!(world_fk_count.count, 11);

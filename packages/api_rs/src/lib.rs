@@ -43,6 +43,14 @@ mod tests {
     }
 
     #[test]
+    fn oidc_auth_endpoints_are_openapi_routes() {
+        let spec: Value = serde_json::from_str(openapi_service().spec().as_str()).unwrap();
+        assert!(spec["paths"]["/auth/oidc/login"]["get"]["responses"]["303"].is_object());
+        assert!(spec["paths"]["/auth/oidc/callback"]["get"]["responses"]["303"].is_object());
+        assert!(spec["paths"]["/auth/config"]["get"].is_object());
+    }
+
+    #[test]
     fn node_and_way_openapi_schemas_have_no_feature_type() {
         let spec: Value = serde_json::from_str(openapi_service().spec().as_str()).unwrap();
 

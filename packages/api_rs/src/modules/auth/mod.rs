@@ -1,8 +1,18 @@
+mod oidc;
+
+pub use oidc::AuthState;
+#[cfg(test)]
+pub(crate) use oidc::provision_oidc_user;
+
 use diesel::upsert::excluded;
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, insert_into};
 use poem::session::Session;
 use poem::web::Data;
-use poem_openapi::{Object, OpenApi, payload::Json};
+use poem_openapi::{
+    ApiResponse, Object, OpenApi,
+    param::Query,
+    payload::{Json, Response},
+};
 use serde::Deserialize;
 
 use crate::database::{self, DatabaseConnection, DatabaseError, DatabasePool};
@@ -15,6 +25,21 @@ use crate::tags::CatlasTags;
 #[derive(Object)]
 pub struct SessionInfo {
     pub user: Nullable<User>,
+}
+
+#[derive(Object)]
+#[oai(rename_all = "camelCase")]
+pub struct AuthConfigInfo {
+    pub oidc_enabled: bool,
+    pub developer_auth_enabled: bool,
+}
+
+#[derive(ApiResponse)]
+#[oai(header(name = "Location", ty = "String"))]
+pub enum AuthRedirectResponse {
+    /// Browser redirect to the identity provider or the frontend.
+    #[oai(status = 303)]
+    Redirect,
 }
 
 #[derive(Object, Deserialize)]
@@ -45,6 +70,40 @@ pub(crate) fn provision_user(
 
 #[OpenApi(prefix_path = "/auth", tag = CatlasTags::Auth)]
 impl AuthModule {
+    /// OIDCログインを開始する
+    #[oai(path = "/oidc/login", method = "get")]
+    async fn oidc_login(
+        &self,
+        #[oai(name = "returnTo")] Query(return_to): Query<Option<String>>,
+        session: &Session,
+        Data(auth): Data<&AuthState>,
+    ) -> poem::Result<Response<AuthRedirectResponse>> {
+        oidc::begin_login(return_to, session, auth).await
+    }
+
+    /// OIDCログインのcallbackを処理する
+    #[oai(path = "/oidc/callback", method = "get")]
+    async fn oidc_callback(
+        &self,
+        #[oai(name = "code")] Query(code): Query<Option<String>>,
+        #[oai(name = "state")] Query(state): Query<Option<String>>,
+        #[oai(name = "error")] Query(error): Query<Option<String>>,
+        session: &Session,
+        Data(auth): Data<&AuthState>,
+        Data(pool): Data<&DatabasePool>,
+    ) -> poem::Result<Response<AuthRedirectResponse>> {
+        oidc::finish_callback(code, state, error, session, auth, pool).await
+    }
+
+    /// 認証設定の公開情報を取得する
+    #[oai(path = "/config", method = "get")]
+    async fn get_config(&self, Data(auth): Data<&AuthState>) -> poem::Result<Json<AuthConfigInfo>> {
+        Ok(Json(AuthConfigInfo {
+            oidc_enabled: auth.oidc_enabled(),
+            developer_auth_enabled: auth.developer_auth_enabled(),
+        }))
+    }
+
     /// セッションを取得する
     #[oai(path = "/session", method = "get")]
     async fn get_session(
@@ -89,8 +148,12 @@ impl AuthModule {
         &self,
         Json(request): Json<CreateSession>,
         session: &Session,
+        Data(auth): Data<&AuthState>,
         Data(pool): Data<&DatabasePool>,
     ) -> poem::Result<Json<SessionInfo>> {
+        if !auth.developer_auth_enabled() {
+            return Err(poem::Error::from_status(poem::http::StatusCode::NOT_FOUND));
+        }
         let user_id = request.user_id.as_str();
         if user_id.is_empty()
             || user_id.len() > 128

@@ -4,6 +4,7 @@ import type { components, paths } from "./catlas-api.gen";
 import type { ChangesetUploadDiffResult, ChangesetUploadPayload } from "./changeset";
 
 type SessionInfo = { readonly user: components["schemas"]["User"] | null };
+type AuthConfig = components["schemas"]["AuthConfigInfo"];
 type IdVersion = components["schemas"]["IdVersion"];
 type Changeset = components["schemas"]["Changeset"];
 
@@ -14,6 +15,7 @@ export type ChangesetListPage = {
 
 export type EditorApiService = {
   readonly getSession: () => Promise<SessionInfo>;
+  readonly getAuthConfig: () => Promise<AuthConfig>;
   readonly createSession: (userId: string) => Promise<SessionInfo>;
   readonly deleteSession: () => Promise<void>;
   readonly loadViewport: (
@@ -140,6 +142,8 @@ export const createEditorApi = (baseUrl: string, worldSlug: string): EditorApiSe
       );
       return { user: session.user ?? null };
     },
+    getAuthConfig: async () =>
+      json<components["schemas"]["AuthConfigInfo"]>(await client.GET("/auth/config")),
     createSession: async (userId) => {
       const session = await json<components["schemas"]["SessionInfo"]>(
         await client.POST("/auth/session", { body: { userId } }),

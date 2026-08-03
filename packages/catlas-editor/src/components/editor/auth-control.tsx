@@ -27,6 +27,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/spinner";
+import { startOidcLogin } from "@/lib/auth";
 import type { CatlasEditor, EditorSnapshot } from "@/lib/editor";
 
 type AuthControlProps = {
@@ -38,6 +39,7 @@ export function AuthControl({ editor, snapshot }: AuthControlProps) {
   const [open, setOpen] = useState(false);
   const [userId, setUserId] = useState("demo-user");
   const auth = snapshot.auth;
+  const { developerAuthEnabled, oidcEnabled } = snapshot.authConfig;
   const isBusy = auth.status === "checking" || auth.status === "authenticating";
 
   if (auth.status === "authenticated") {
@@ -104,52 +106,77 @@ export function AuthControl({ editor, snapshot }: AuthControlProps) {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80">
         <PopoverHeader>
-          <PopoverTitle>Developer sign in</PopoverTitle>
-          <PopoverDescription>Enter the public ID used to attribute changesets.</PopoverDescription>
+          <PopoverTitle>Sign in</PopoverTitle>
+          <PopoverDescription>
+            Choose how to authenticate before publishing changesets.
+          </PopoverDescription>
         </PopoverHeader>
-        <form
-          className="grid gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void editor.login(userId);
-          }}
-        >
-          <FieldGroup className="gap-3">
-            <Field data-invalid={auth.status === "error"}>
-              <FieldLabel htmlFor="developer-user-id">Public user ID</FieldLabel>
-              <Input
-                aria-invalid={auth.status === "error"}
-                autoFocus
-                disabled={isBusy}
-                id="developer-user-id"
-                onChange={(event) => setUserId(event.target.value)}
-                value={userId}
-              />
-              <FieldDescription>This id is attached to published changesets.</FieldDescription>
-              <FieldError>{auth.status === "error" ? auth.message : null}</FieldError>
-            </Field>
-          </FieldGroup>
-          <div className="flex justify-end gap-2">
-            <Button
-              onClick={() => {
-                setOpen(false);
-                if (auth.status === "error") void editor.logout();
-              }}
-              type="button"
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-            <Button disabled={isBusy || !userId.trim()} type="submit">
-              {auth.status === "authenticating" ? (
-                <Spinner data-icon="inline-start" />
-              ) : (
-                <LogInIcon data-icon="inline-start" />
-              )}
-              {auth.status === "authenticating" ? "Signing in..." : "Create session"}
-            </Button>
+        {oidcEnabled ? (
+          <Button
+            className="w-full"
+            disabled={isBusy}
+            onClick={() => startOidcLogin()}
+            type="button"
+          >
+            <LogInIcon data-icon="inline-start" />
+            Sign in with OpenID Connect
+          </Button>
+        ) : null}
+        {oidcEnabled && developerAuthEnabled ? (
+          <div className="my-3 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
           </div>
-        </form>
+        ) : null}
+        {developerAuthEnabled ? (
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void editor.login(userId);
+            }}
+          >
+            <FieldGroup className="gap-3">
+              <Field data-invalid={auth.status === "error"}>
+                <FieldLabel htmlFor="developer-user-id">Public user ID</FieldLabel>
+                <Input
+                  aria-invalid={auth.status === "error"}
+                  autoFocus={!oidcEnabled}
+                  disabled={isBusy}
+                  id="developer-user-id"
+                  onChange={(event) => setUserId(event.target.value)}
+                  value={userId}
+                />
+                <FieldDescription>This id is attached to published changesets.</FieldDescription>
+                <FieldError>{auth.status === "error" ? auth.message : null}</FieldError>
+              </Field>
+            </FieldGroup>
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={() => {
+                  setOpen(false);
+                  if (auth.status === "error") void editor.logout();
+                }}
+                type="button"
+                variant="ghost"
+              >
+                Cancel
+              </Button>
+              <Button disabled={isBusy || !userId.trim()} type="submit">
+                {auth.status === "authenticating" ? (
+                  <Spinner data-icon="inline-start" />
+                ) : (
+                  <LogInIcon data-icon="inline-start" />
+                )}
+                {auth.status === "authenticating" ? "Signing in..." : "Create session"}
+              </Button>
+            </div>
+          </form>
+        ) : null}
+        {!oidcEnabled && !developerAuthEnabled ? (
+          <p className="text-sm text-muted-foreground">No sign-in method is configured.</p>
+        ) : null}
       </PopoverContent>
     </Popover>
   );
