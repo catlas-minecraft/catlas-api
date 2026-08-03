@@ -16,6 +16,7 @@ use openidconnect::{
 };
 use poem::{Result as PoemResult, http::StatusCode, session::Session};
 use poem_openapi::payload::Response;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::AuthRedirectResponse;
@@ -23,11 +24,7 @@ use crate::config::AuthConfig;
 use crate::database::{self, DatabaseConnection, DatabaseError, DatabasePool};
 use crate::schema::core;
 
-const OIDC_STATE_KEY: &str = "oidc_state";
-const OIDC_NONCE_KEY: &str = "oidc_nonce";
-const OIDC_PKCE_VERIFIER_KEY: &str = "oidc_pkce_verifier";
-const OIDC_RETURN_TO_KEY: &str = "oidc_return_to";
-const OIDC_STATE_CREATED_AT_KEY: &str = "oidc_state_created_at";
+const OIDC_SESSION_KEY: &str = "oidc_session";
 const OIDC_STATE_TTL: Duration = Duration::from_secs(600);
 #[cfg(test)]
 const DEFAULT_POST_LOGIN_REDIRECT_URI: &str = "http://127.0.0.1:5173/";
@@ -41,6 +38,15 @@ type OidcClient = CoreClient<
     EndpointMaybeSet,
     EndpointMaybeSet,
 >;
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+struct OidcSessionState {
+    state: String,
+    nonce: String,
+    pkce_verifier: String,
+    return_to: String,
+    state_created_at: i64,
+}
 
 #[derive(Clone)]
 pub struct AuthState {
@@ -143,14 +149,16 @@ pub(crate) async fn begin_login(
     let (authorization_url, csrf_state, nonce) = authorization.url();
 
     session.renew();
-    session.set(OIDC_STATE_KEY, csrf_state.secret().to_owned());
-    session.set(OIDC_NONCE_KEY, nonce.secret().to_owned());
-    session.set(OIDC_PKCE_VERIFIER_KEY, pkce_verifier.secret().to_owned());
     session.set(
-        OIDC_RETURN_TO_KEY,
-        safe_return_to(return_to.as_deref()).unwrap_or_default(),
+        OIDC_SESSION_KEY,
+        OidcSessionState {
+            state: csrf_state.secret().to_owned(),
+            nonce: nonce.secret().to_owned(),
+            pkce_verifier: pkce_verifier.secret().to_owned(),
+            return_to: safe_return_to(return_to.as_deref()).unwrap_or_default(),
+            state_created_at: chrono::Utc::now().timestamp(),
+        },
     );
-    session.set(OIDC_STATE_CREATED_AT_KEY, chrono::Utc::now().timestamp());
 
     Ok(redirect_response(authorization_url.to_string()))
 }
@@ -163,35 +171,28 @@ pub(crate) async fn finish_callback(
     auth: &AuthState,
     pool: &DatabasePool,
 ) -> PoemResult<Response<AuthRedirectResponse>> {
-    let return_to = take_return_to(session);
+    let oidc_session = take_oidc_session(session);
+    let return_to = oidc_session
+        .as_ref()
+        .map(|oidc_session| oidc_session.return_to.clone());
     let Some(client) = auth.oidc.as_ref() else {
         return Ok(frontend_redirect(auth, return_to.as_deref(), true));
     };
 
-    let expected_state: Option<String> = session.get(OIDC_STATE_KEY);
-    let expected_nonce: Option<String> = session.get(OIDC_NONCE_KEY);
-    let pkce_verifier: Option<String> = session.get(OIDC_PKCE_VERIFIER_KEY);
-    let state_created_at: Option<i64> = session.get(OIDC_STATE_CREATED_AT_KEY);
-    clear_oidc_state(session);
+    let Some(oidc_session) = oidc_session else {
+        return Ok(frontend_redirect(auth, return_to.as_deref(), true));
+    };
 
-    let valid_timestamp = state_created_at
-        .and_then(|timestamp| chrono::DateTime::from_timestamp(timestamp, 0))
+    let valid_timestamp = chrono::DateTime::from_timestamp(oidc_session.state_created_at, 0)
         .is_some_and(|created_at| {
             chrono::Utc::now()
                 .signed_duration_since(created_at)
                 .to_std()
                 .is_ok_and(|age| age <= OIDC_STATE_TTL)
         });
-    let valid_state = expected_state
+    let valid_state = state
         .as_deref()
-        .zip(state.as_deref())
-        .is_some_and(|(expected, actual)| expected == actual);
-    let Some(nonce) = expected_nonce else {
-        return Ok(frontend_redirect(auth, return_to.as_deref(), true));
-    };
-    let Some(verifier) = pkce_verifier else {
-        return Ok(frontend_redirect(auth, return_to.as_deref(), true));
-    };
+        .is_some_and(|actual| oidc_session.state.as_str() == actual);
     if !valid_timestamp || !valid_state || error.is_some() {
         return Ok(frontend_redirect(auth, return_to.as_deref(), true));
     }
@@ -207,7 +208,7 @@ pub(crate) async fn finish_callback(
         }
     };
     let token_response = match token_request
-        .set_pkce_verifier(PkceCodeVerifier::new(verifier))
+        .set_pkce_verifier(PkceCodeVerifier::new(oidc_session.pkce_verifier))
         .request_async(&auth.http_client)
         .await
     {
@@ -232,7 +233,7 @@ pub(crate) async fn finish_callback(
         }
         None => client.id_token_verifier(),
     };
-    let nonce = Nonce::new(nonce);
+    let nonce = Nonce::new(oidc_session.nonce);
     let claims = match id_token.claims(&id_token_verifier, &nonce) {
         Ok(claims) => claims,
         Err(error) => {
@@ -367,17 +368,10 @@ fn safe_return_to(value: Option<&str>) -> Option<String> {
     }
 }
 
-fn take_return_to(session: &Session) -> Option<String> {
-    let value = session.get(OIDC_RETURN_TO_KEY);
-    session.remove(OIDC_RETURN_TO_KEY);
+fn take_oidc_session(session: &Session) -> Option<OidcSessionState> {
+    let value = session.get(OIDC_SESSION_KEY);
+    session.remove(OIDC_SESSION_KEY);
     value
-}
-
-fn clear_oidc_state(session: &Session) {
-    session.remove(OIDC_STATE_KEY);
-    session.remove(OIDC_NONCE_KEY);
-    session.remove(OIDC_PKCE_VERIFIER_KEY);
-    session.remove(OIDC_STATE_CREATED_AT_KEY);
 }
 
 fn redirect_response(location: String) -> Response<AuthRedirectResponse> {
