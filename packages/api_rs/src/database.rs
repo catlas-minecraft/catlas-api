@@ -139,8 +139,7 @@ mod tests {
     #[test]
     #[ignore = "requires TEST_DATABASE_URL"]
     fn applies_migrations_idempotently() {
-        let database_url =
-            std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set");
+        let database_url = crate::config::test_database_url();
         let mut connection =
             PgConnection::establish(&database_url).expect("database connection failed");
         let database_name = sql_query("SELECT current_database() AS name")

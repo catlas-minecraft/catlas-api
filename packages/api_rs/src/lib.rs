@@ -1,3 +1,4 @@
+pub mod config;
 pub mod database;
 pub mod modules;
 pub mod schema;

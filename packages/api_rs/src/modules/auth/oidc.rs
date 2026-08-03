@@ -1,4 +1,4 @@
-use std::{env, error::Error, ops::Deref, time::Duration};
+use std::{error::Error, ops::Deref, time::Duration};
 
 use diesel::{
     Connection, ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, insert_into,
@@ -19,6 +19,7 @@ use poem_openapi::payload::Response;
 use uuid::Uuid;
 
 use super::AuthRedirectResponse;
+use crate::config::AuthConfig;
 use crate::database::{self, DatabaseConnection, DatabaseError, DatabasePool};
 use crate::schema::core;
 
@@ -28,6 +29,7 @@ const OIDC_PKCE_VERIFIER_KEY: &str = "oidc_pkce_verifier";
 const OIDC_RETURN_TO_KEY: &str = "oidc_return_to";
 const OIDC_STATE_CREATED_AT_KEY: &str = "oidc_state_created_at";
 const OIDC_STATE_TTL: Duration = Duration::from_secs(600);
+#[cfg(test)]
 const DEFAULT_POST_LOGIN_REDIRECT_URI: &str = "http://127.0.0.1:5173/";
 const FALLBACK_OIDC_USERNAME: &str = "OIDC user";
 
@@ -47,53 +49,51 @@ pub struct AuthState {
     post_login_redirect_uri: Url,
     developer_auth_enabled: bool,
     oidc_audience: Option<String>,
+    scopes: Vec<Scope>,
 }
 
 impl AuthState {
-    pub async fn from_env() -> std::result::Result<Self, Box<dyn Error + Send + Sync>> {
-        let developer_auth_enabled =
-            env_bool("DEV_AUTH_ENABLED")?.unwrap_or(cfg!(debug_assertions));
+    pub async fn from_config(
+        config: &AuthConfig,
+    ) -> std::result::Result<Self, Box<dyn Error + Send + Sync>> {
         let post_login_redirect_uri = parse_url(
-            &optional_env("OIDC_POST_LOGIN_REDIRECT_URI")
-                .unwrap_or_else(|| DEFAULT_POST_LOGIN_REDIRECT_URI.to_owned()),
+            &config.oidc_post_login_redirect_uri,
             "OIDC_POST_LOGIN_REDIRECT_URI",
         )?;
-        let oidc_audience = optional_env("OIDC_AUDIENCE");
+        let oidc_audience = config.oidc_audience.clone();
         let http_client = reqwest::ClientBuilder::new()
             .redirect(reqwest::redirect::Policy::none())
             .build()?;
 
-        let oidc_values = [
-            optional_env("OIDC_ISSUER_URL"),
-            optional_env("OIDC_CLIENT_ID"),
-            optional_env("OIDC_CLIENT_SECRET"),
-            optional_env("OIDC_REDIRECT_URI"),
-        ];
-        let oidc = if oidc_values.iter().all(Option::is_none) {
-            None
-        } else {
-            let issuer_url = required_env("OIDC_ISSUER_URL")?;
-            let client_id = required_env("OIDC_CLIENT_ID")?;
-            let client_secret = required_env("OIDC_CLIENT_SECRET")?;
-            let redirect_uri = required_env("OIDC_REDIRECT_URI")?;
-            let issuer = IssuerUrl::new(issuer_url)?;
-            let provider_metadata =
-                CoreProviderMetadata::discover_async(issuer, &http_client).await?;
-            let client = CoreClient::from_provider_metadata(
-                provider_metadata,
-                ClientId::new(client_id),
-                Some(ClientSecret::new(client_secret)),
-            )
-            .set_redirect_uri(RedirectUrl::new(redirect_uri)?);
-            Some(client)
+        let oidc = match (
+            config.oidc_issuer_url.as_deref(),
+            config.oidc_client_id.as_deref(),
+            config.oidc_client_secret.as_deref(),
+            config.oidc_redirect_uri.as_deref(),
+        ) {
+            (None, None, None, None) => None,
+            (Some(issuer_url), Some(client_id), Some(client_secret), Some(redirect_uri)) => {
+                let issuer = IssuerUrl::new(issuer_url.to_owned())?;
+                let provider_metadata =
+                    CoreProviderMetadata::discover_async(issuer, &http_client).await?;
+                let client = CoreClient::from_provider_metadata(
+                    provider_metadata,
+                    ClientId::new(client_id.to_owned()),
+                    Some(ClientSecret::new(client_secret.to_owned())),
+                )
+                .set_redirect_uri(RedirectUrl::new(redirect_uri.to_owned())?);
+                Some(client)
+            }
+            _ => unreachable!("OIDC configuration was not validated"),
         };
 
         Ok(Self {
             oidc,
             http_client,
             post_login_redirect_uri,
-            developer_auth_enabled,
+            developer_auth_enabled: config.developer_auth_enabled,
             oidc_audience,
+            scopes: config.oidc_scopes.iter().cloned().map(Scope::new).collect(),
         })
     }
 
@@ -106,6 +106,10 @@ impl AuthState {
                 .expect("test redirect URI must be valid"),
             developer_auth_enabled: true,
             oidc_audience: None,
+            scopes: vec![
+                Scope::new("openid".to_owned()),
+                Scope::new("profile".to_owned()),
+            ],
         }
     }
 
@@ -128,14 +132,13 @@ pub(crate) async fn begin_login(
         .as_ref()
         .ok_or_else(|| poem::Error::from_status(StatusCode::NOT_FOUND))?;
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
-    let scopes = configured_scopes();
     let authorization = client
         .authorize_url(
             CoreAuthenticationFlow::AuthorizationCode,
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        .add_scopes(scopes)
+        .add_scopes(auth.scopes.clone())
         .set_pkce_challenge(pkce_challenge);
     let (authorization_url, csrf_state, nonce) = authorization.url();
 
@@ -270,44 +273,12 @@ pub(crate) async fn finish_callback(
     Ok(frontend_redirect(auth, return_to.as_deref(), false))
 }
 
-fn required_env(name: &str) -> std::result::Result<String, Box<dyn Error + Send + Sync>> {
-    optional_env(name).ok_or_else(|| format!("{name} must be set when OIDC is enabled").into())
-}
-
-fn optional_env(name: &str) -> Option<String> {
-    env::var(name).ok().filter(|value| !value.trim().is_empty())
-}
-
 fn parse_url(value: &str, name: &str) -> std::result::Result<Url, Box<dyn Error + Send + Sync>> {
     let url = Url::parse(value).map_err(|error| format!("{name} is invalid: {error}"))?;
     if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
         return Err(format!("{name} must be an absolute HTTP(S) URL").into());
     }
     Ok(url)
-}
-
-fn env_bool(name: &str) -> std::result::Result<Option<bool>, Box<dyn Error + Send + Sync>> {
-    let Ok(value) = env::var(name) else {
-        return Ok(None);
-    };
-    match value.trim().to_ascii_lowercase().as_str() {
-        "true" | "1" | "yes" => Ok(Some(true)),
-        "false" | "0" | "no" => Ok(Some(false)),
-        _ => Err(format!("{name} must be true or false").into()),
-    }
-}
-
-fn configured_scopes() -> Vec<Scope> {
-    let configured = optional_env("OIDC_SCOPES").unwrap_or_else(|| "openid profile".to_owned());
-    let mut scopes = configured
-        .split_whitespace()
-        .filter(|scope| !scope.is_empty())
-        .map(|scope| Scope::new(scope.to_owned()))
-        .collect::<Vec<_>>();
-    if !scopes.iter().any(|scope| scope.as_str() == "openid") {
-        scopes.insert(0, Scope::new("openid".to_owned()));
-    }
-    scopes
 }
 
 fn oidc_username(claims: &CoreIdTokenClaims) -> String {
