@@ -8,6 +8,7 @@ use diesel::{
 };
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use diesel_tracing::pg::InstrumentedPgConnection;
+use opentelemetry::Context;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 const MIGRATION_LOCK_ID: i64 = 0x43_61_74_6c_61_73;
@@ -25,7 +26,9 @@ where
 {
     let pool = pool.clone();
     let span = tracing::Span::current();
+    let otel_context = Context::current();
     tokio::task::spawn_blocking(move || {
+        let _otel_guard = otel_context.attach();
         span.in_scope(|| {
             let mut connection = pool.get()?;
             work(&mut connection)

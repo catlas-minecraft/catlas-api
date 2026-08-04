@@ -1,13 +1,13 @@
 use catlas_api::{config::Config, database, modules::auth, openapi_service};
+use opentelemetry_sdk::trace::SdkTracer;
 use poem::{
     EndpointExt, Route, Server,
     listener::TcpListener,
+    middleware::OpenTelemetryTracing,
     session::{CookieConfig, MemoryStorage, ServerSession},
     web::cookie::SameSite,
 };
 
-use crate::middleware::RequestTracing;
-mod middleware;
 mod telemetry;
 
 #[tokio::main]
@@ -15,13 +15,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     dotenvy::dotenv().ok();
     let config = Config::from_env()?;
     let telemetry = telemetry::Telemetry::init(config.telemetry())?;
-    let result = run(config).await;
+    let result = run(config, telemetry.tracer()).await;
     telemetry.shutdown();
 
     result
 }
 
-async fn run(config: Config) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn run(
+    config: Config,
+    tracer: SdkTracer,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let database_url = config.database_url().to_owned();
     let database =
         tokio::task::spawn_blocking(move || database::connect_and_migrate(database_url)).await??;
@@ -45,7 +48,7 @@ async fn run(config: Config) -> Result<(), Box<dyn std::error::Error + Send + Sy
         .nest("/api", api_service)
         .at("/api/openapi.json", spec_endpoint)
         .nest("/docs", swagger_ui)
-        .with(RequestTracing)
+        .with(OpenTelemetryTracing::new(tracer))
         .with(server_session)
         .data(config.clone())
         .data(database)
