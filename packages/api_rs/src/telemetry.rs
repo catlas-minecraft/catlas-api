@@ -1,27 +1,41 @@
-use std::env;
-
 use opentelemetry::trace::TracerProvider as _;
-use opentelemetry_otlp::SpanExporter;
+use opentelemetry_otlp::{Compression, Protocol, SpanExporter, WithExportConfig, WithHttpConfig};
 use opentelemetry_sdk::{
     Resource, runtime,
     trace::{SdkTracerProvider, span_processor_with_async_runtime::BatchSpanProcessor},
 };
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
+use catlas_api::config::TelemetryConfig;
+
 pub struct Telemetry {
     tracer_provider: Option<SdkTracerProvider>,
 }
 
 impl Telemetry {
-    pub fn init() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    pub fn init(
+        config: &TelemetryConfig,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let filter = config
+            .log_filter()
+            .and_then(|value| EnvFilter::try_new(value).ok())
+            .unwrap_or_else(|| EnvFilter::new("info"));
 
-        if otel_enabled() {
-            let exporter = SpanExporter::builder().with_http().build()?;
+        if config.enabled() {
+            let exporter_builder = SpanExporter::builder()
+                .with_http()
+                .with_endpoint(config.otlp_endpoint())
+                .with_protocol(Protocol::HttpBinary)
+                .with_timeout(config.otlp_timeout())
+                .with_headers(config.otlp_headers().clone());
+            let exporter_builder = if let Some(compression) = config.otlp_compression() {
+                exporter_builder.with_compression(compression.parse::<Compression>()?)
+            } else {
+                exporter_builder
+            };
+            let exporter = exporter_builder.build()?;
             let resource = Resource::builder()
-                .with_service_name(
-                    env::var("OTEL_SERVICE_NAME").unwrap_or_else(|_| "catlas-api-rs".into()),
-                )
+                .with_service_name(config.service_name().to_owned())
                 .build();
             let batch_processor = BatchSpanProcessor::builder(exporter, runtime::Tokio).build();
             let tracer_provider = SdkTracerProvider::builder()
@@ -63,10 +77,4 @@ impl Telemetry {
             eprintln!("failed to shut down OpenTelemetry: {error}");
         }
     }
-}
-
-fn otel_enabled() -> bool {
-    env::var("OTEL_ENABLED")
-        .map(|value| matches!(value.to_ascii_lowercase().as_str(), "1" | "true" | "yes"))
-        .unwrap_or(false)
 }

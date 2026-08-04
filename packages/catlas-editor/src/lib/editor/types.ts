@@ -77,6 +77,11 @@ export type EditorAuthState =
     }
   | { readonly status: "error"; readonly message: string };
 
+export type EditorAuthConfig = {
+  readonly oidcEnabled: boolean;
+  readonly developerAuthEnabled: boolean;
+};
+
 export type EditorSnapshot = {
   readonly mode: EditorMode;
   readonly cursor: Point3D | null;
@@ -93,6 +98,7 @@ export type EditorSnapshot = {
   readonly issues: readonly ValidationIssue[];
   readonly save: EditorSaveState;
   readonly auth: EditorAuthState;
+  readonly authConfig: EditorAuthConfig;
 };
 
 export type ViewportEntities = {

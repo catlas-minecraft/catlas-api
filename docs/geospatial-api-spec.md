@@ -5,13 +5,28 @@ is rooted at `/api`; the retired TypeScript API is not a compatibility target.
 
 ## Session
 
-`GET`, `POST`, and `DELETE /api/auth/session` manage a temporary Poem
-`MemoryStorage` cookie session. `POST` accepts `{ "userId": string }`, where the
-public ID is 1–128 lowercase ASCII letters, digits, `_`, or `-`. It creates or
-reuses that user ID without changing an existing display username, and returns
-`{ "user": { "id": number, "userId": string, "username": string } }`. Sessions store only the
-user ID; `GET` resolves it to a user (or returns `user: null` when stale).
-Sessions are intentionally development-only and are lost on restart.
+`GET`, `DELETE /api/auth/session`, and `GET /api/auth/config` manage and inspect
+the current Poem `MemoryStorage` cookie session. Sessions store only the
+internal numeric user ID; `GET` resolves it to a user (or returns `user: null`
+when stale). Sessions are lost on restart while the API uses in-memory storage.
+
+`GET /api/auth/oidc/login` starts a generic OpenID Connect Authorization Code flow
+with PKCE. `GET /api/auth/oidc/callback` validates the provider response, including
+state, nonce, PKCE, issuer, audience, signature, and expiration, then stores the
+resolved internal user ID in the existing session. OIDC is enabled when its
+required environment variables are configured. `OIDC_AUDIENCE` can trust an
+additional ID token audience while the client ID audience remains required. The
+`(issuer, subject)` pair is
+stored in `core.oidc_user_identities`; email and other profile data are not
+stored. The callback redirects to the configured frontend URL.
+
+`POST /api/auth/session` is a development-only login. It accepts
+`{ "userId": string }`, where the public ID is 1–128 lowercase ASCII letters,
+digits, `_`, or `-`. It creates or reuses that user ID without changing an
+existing display username, and returns
+`{ "user": { "id": number, "userId": string, "username": string } }`.
+The endpoint is disabled when `DEV_AUTH_ENABLED=false` and is disabled by
+default in release builds.
 
 World, viewport, and entity reads are public. World, changeset, and entity
 writes require a session. Any authenticated user may edit any world, but a

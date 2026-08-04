@@ -76,7 +76,7 @@ fn distinguishes_required_and_proposed_versions() {
 #[test]
 #[ignore = "requires TEST_DATABASE_URL"]
 fn publishes_and_queries_a_spatial_graph() {
-    let database_url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set");
+    let database_url = crate::config::test_database_url();
     let pool = database::connect_and_migrate(database_url).expect("database setup failed");
     let mut connection = pool.get().expect("database connection failed");
 
@@ -251,7 +251,7 @@ fn publishes_and_queries_a_spatial_graph() {
 #[test]
 #[ignore = "requires TEST_DATABASE_URL"]
 fn isolates_two_worlds_and_rejects_cross_world_references() {
-    let database_url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set");
+    let database_url = crate::config::test_database_url();
     let pool = database::connect_and_migrate(database_url).expect("database setup failed");
     let mut connection = pool.get().expect("database connection failed");
 

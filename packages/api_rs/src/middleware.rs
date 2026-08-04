@@ -35,6 +35,11 @@ impl<E: Endpoint> Endpoint for RequestTracingEndpoint<E> {
             .unwrap_or_else(|| req.remote_addr().to_string());
         let method = req.method().to_string();
         let fallback_span_name = format!("{method} {}", req.original_uri().path());
+        let request_uri = if req.original_uri().path() == "/api/auth/oidc/callback" {
+            req.original_uri().path().to_owned()
+        } else {
+            req.original_uri().to_string()
+        };
 
         let span = tracing::span!(
             target: module_path!(),
@@ -45,7 +50,7 @@ impl<E: Endpoint> Endpoint for RequestTracingEndpoint<E> {
             remote_addr = %remote_addr,
             version = ?req.version(),
             method = %method,
-            uri = %req.original_uri(),
+            uri = %request_uri,
             http.route = tracing::field::Empty,
         );
         let span_for_name = span.clone();

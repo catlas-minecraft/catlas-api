@@ -43,6 +43,19 @@ pub mod core {
         use diesel::sql_types::*;
         use postgis_diesel::sql_types::Geometry;
 
+        core.oidc_user_identities (id) {
+            id -> Int8,
+            user_id -> Int8,
+            issuer -> Text,
+            subject -> Text,
+            created_at -> Timestamptz,
+        }
+    }
+
+    diesel::table! {
+        use diesel::sql_types::*;
+        use postgis_diesel::sql_types::Geometry;
+
         core.relation_members (relation_id, seq) {
             relation_id -> Int8,
             member_type -> Text,
@@ -135,11 +148,13 @@ pub mod core {
 
     diesel::joinable!(changesets -> users (created_by_user_id));
     diesel::joinable!(changesets -> worlds (world_id));
+    diesel::joinable!(oidc_user_identities -> users (user_id));
     diesel::joinable!(worlds -> users (created_by_user_id));
 
     diesel::allow_tables_to_appear_in_same_query!(
         changesets,
         nodes,
+        oidc_user_identities,
         relation_members,
         relations,
         users,
