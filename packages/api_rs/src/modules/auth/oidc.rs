@@ -23,6 +23,7 @@ use super::AuthRedirectResponse;
 use crate::config::AuthConfig;
 use crate::database::{self, DatabaseConnection, DatabaseError, DatabasePool};
 use crate::schema::core;
+use crate::util::NonEmpty;
 
 const OIDC_SESSION_KEY: &str = "oidc_session";
 const OIDC_STATE_TTL: Duration = Duration::from_secs(600);
@@ -250,18 +251,17 @@ pub(crate) async fn finish_callback(
 
     let issuer = claims.issuer().as_str().to_owned();
     let subject = claims.subject().as_str().to_owned();
-    let username = oidc_username(claims);
-    let username = if username == FALLBACK_OIDC_USERNAME {
-        fetch_userinfo_username(
+
+    let username = match claims.resolve_username() {
+        Some(username) => username.to_owned(),
+        None => fetch_userinfo_username(
             client,
             token_response.access_token().to_owned(),
             &subject,
             &auth.http_client,
         )
         .await
-        .unwrap_or(username)
-    } else {
-        username
+        .unwrap_or_else(|| FALLBACK_OIDC_USERNAME.to_owned()),
     };
     let user = database::blocking(pool, move |connection| {
         provision_oidc_user(connection, &issuer, &subject, &username)
@@ -282,43 +282,40 @@ fn parse_url(value: &str, name: &str) -> std::result::Result<Url, Box<dyn Error 
     Ok(url)
 }
 
-fn oidc_username(claims: &CoreIdTokenClaims) -> String {
-    username_from_claims(
-        claim_text(claims.preferred_username()),
-        localized_claim_text(claims.name()),
-        localized_claim_text(claims.nickname()),
-        localized_claim_text(claims.given_name()),
-        localized_claim_text(claims.family_name()),
-    )
-    .unwrap_or_else(|| FALLBACK_OIDC_USERNAME.to_owned())
+trait ResolveUsername {
+    fn resolve_username(&self) -> Option<&str>;
 }
 
-fn userinfo_username_from_claims(claims: &CoreUserInfoClaims) -> Option<String> {
-    username_from_claims(
-        claim_text(claims.preferred_username()),
-        localized_claim_text(claims.name()),
-        localized_claim_text(claims.nickname()),
-        localized_claim_text(claims.given_name()),
-        localized_claim_text(claims.family_name()),
-    )
+impl ResolveUsername for CoreIdTokenClaims {
+    fn resolve_username(&self) -> Option<&str> {
+        [
+            claim_text(self.preferred_username()),
+            localized_claim_text(self.name()),
+            localized_claim_text(self.nickname()),
+            localized_claim_text(self.given_name()),
+            localized_claim_text(self.family_name()),
+        ]
+        .into_iter()
+        .flatten()
+        .map(str::trim)
+        .find(|value| !value.is_empty())
+    }
 }
 
-fn username_from_claims(
-    preferred_username: Option<String>,
-    name: Option<String>,
-    nickname: Option<String>,
-    given_name: Option<String>,
-    family_name: Option<String>,
-) -> Option<String> {
-    preferred_username
-        .or(name)
-        .or(nickname)
-        .or_else(|| match (given_name, family_name) {
-            (Some(given), Some(family)) => Some(format!("{given} {family}")),
-            (Some(given), None) => Some(given),
-            (None, Some(family)) => Some(family),
-            (None, None) => None,
-        })
+impl ResolveUsername for CoreUserInfoClaims {
+    fn resolve_username(&self) -> Option<&str> {
+        [
+            claim_text(self.preferred_username()),
+            localized_claim_text(self.name()),
+            localized_claim_text(self.nickname()),
+            localized_claim_text(self.given_name()),
+            localized_claim_text(self.family_name()),
+        ]
+        .into_iter()
+        .flatten()
+        .map(str::trim)
+        .find(|value| !value.is_empty())
+    }
 }
 
 async fn fetch_userinfo_username(
@@ -334,17 +331,17 @@ async fn fetch_userinfo_username(
         )
         .ok()?;
     let claims: CoreUserInfoClaims = request.request_async(http_client).await.ok()?;
-    userinfo_username_from_claims(&claims)
+    claims.resolve_username().map(ToOwned::to_owned)
 }
 
-fn claim_text<T>(value: Option<&T>) -> Option<String>
+fn claim_text<T>(value: Option<&T>) -> Option<&str>
 where
     T: Deref<Target = String>,
 {
-    non_empty(value.map(|value| value.as_str().to_owned()))
+    value.and_then(|value| value.as_str().non_empty())
 }
 
-fn localized_claim_text<T>(value: Option<&LocalizedClaim<T>>) -> Option<String>
+fn localized_claim_text<T>(value: Option<&LocalizedClaim<T>>) -> Option<&str>
 where
     T: Deref<Target = String>,
 {
@@ -353,10 +350,6 @@ where
         .get(None)
         .or_else(|| value.iter().next().map(|(_, value)| value));
     claim_text(value)
-}
-
-fn non_empty(value: Option<String>) -> Option<String> {
-    value.filter(|value| !value.trim().is_empty())
 }
 
 fn safe_return_to(value: Option<&str>) -> Option<String> {
@@ -486,33 +479,58 @@ pub(crate) fn provision_oidc_user(
 
 #[cfg(test)]
 mod tests {
-    use super::username_from_claims;
+    use openidconnect::core::{CoreIdTokenClaims, CoreUserInfoClaims};
+    use openidconnect::{
+        Audience, EndUserFamilyName, EndUserGivenName, EndUserName, EndUserNickname,
+        EndUserUsername, IssuerUrl, StandardClaims, SubjectIdentifier,
+    };
 
-    #[test]
-    fn prefers_username_claims_over_display_names() {
-        assert_eq!(
-            username_from_claims(
-                Some("preferred-user".to_owned()),
-                Some("Display Name".to_owned()),
-                Some("nickname".to_owned()),
-                Some("Given".to_owned()),
-                Some("Family".to_owned()),
-            ),
-            Some("preferred-user".to_owned())
-        );
+    use super::ResolveUsername;
+
+    fn id_token_claims() -> CoreIdTokenClaims {
+        CoreIdTokenClaims::new(
+            IssuerUrl::new("https://issuer.example".to_owned()).expect("valid issuer URL"),
+            vec![Audience::new("client".to_owned())],
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+            StandardClaims::new(SubjectIdentifier::new("subject".to_owned())),
+            Default::default(),
+        )
+    }
+
+    fn user_info_claims() -> CoreUserInfoClaims {
+        CoreUserInfoClaims::new(
+            StandardClaims::new(SubjectIdentifier::new("subject".to_owned())),
+            Default::default(),
+        )
     }
 
     #[test]
-    fn combines_given_and_family_names_as_a_fallback() {
-        assert_eq!(
-            username_from_claims(
-                None,
-                None,
-                None,
-                Some("Given".to_owned()),
-                Some("Family".to_owned())
-            ),
-            Some("Given Family".to_owned())
-        );
+    fn prefers_username_claims_over_display_names() {
+        let claims = id_token_claims()
+            .set_preferred_username(Some(EndUserUsername::new(" preferred-user ".to_owned())))
+            .set_name(Some(EndUserName::new("Display Name".to_owned()).into()))
+            .set_nickname(Some(EndUserNickname::new("nickname".to_owned()).into()))
+            .set_given_name(Some(EndUserGivenName::new("Given".to_owned()).into()))
+            .set_family_name(Some(EndUserFamilyName::new("Family".to_owned()).into()));
+
+        assert_eq!(claims.resolve_username(), Some("preferred-user"));
+    }
+
+    #[test]
+    fn uses_the_first_non_empty_name_claim_as_a_fallback() {
+        let claims = user_info_claims()
+            .set_preferred_username(Some(EndUserUsername::new("   ".to_owned())))
+            .set_name(Some(EndUserName::new("   ".to_owned()).into()))
+            .set_nickname(Some(EndUserNickname::new("   ".to_owned()).into()))
+            .set_given_name(Some(EndUserGivenName::new(" Given ".to_owned()).into()))
+            .set_family_name(Some(EndUserFamilyName::new("Family".to_owned()).into()));
+
+        assert_eq!(claims.resolve_username(), Some("Given"));
+    }
+
+    #[test]
+    fn returns_none_when_no_username_claim_is_available() {
+        assert_eq!(user_info_claims().resolve_username(), None);
     }
 }

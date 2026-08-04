@@ -3,6 +3,7 @@ pub mod database;
 pub mod modules;
 pub mod schema;
 pub mod tags;
+pub mod util;
 // Diesel's generated modules only declare same-schema relationships.  Keep
 // cross-schema visibility here, rather than in a feature module, so every
 // query sees the same deterministic set of table relationships.
