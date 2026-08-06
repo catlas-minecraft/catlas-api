@@ -5,10 +5,12 @@ use crate::modules::common::queries::{
     patch_node_typed, patch_relation_typed, patch_way_typed,
 };
 use crate::modules::common::types::{
-    ChangesetUploadDiffEntry, ChangesetUploadDiffResult, ChangesetUploadRequest, DeleteInput,
-    NodeInput, NodePatch, RelationInput, RelationMember, RelationPatch, WayInput, WayPatch,
+    DeleteInput, NodeInput, NodePatch, RelationInput, RelationMember, RelationPatch, WayInput,
+    WayPatch,
 };
 use std::collections::HashMap;
+
+use super::models::{ChangesetUploadDiffEntry, ChangesetUploadDiffResult, ChangesetUploadRequest};
 
 pub(crate) fn upload_sync(
     c: &mut database::DatabaseConnection,

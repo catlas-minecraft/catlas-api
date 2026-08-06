@@ -1,14 +1,15 @@
+use super::changesets::models::{
+    ChangesetUploadCreate, ChangesetUploadCreateNode, ChangesetUploadCreateRelation,
+    ChangesetUploadCreateWay, ChangesetUploadDeleteGroup, ChangesetUploadModify,
+    ChangesetUploadRequest,
+};
 use super::changesets::publication::publish_sync;
 use super::changesets::upload::upload_sync;
 use super::common::models::{
     EntityState, NewDraftMember, NewDraftNode, NewDraftRelation, NewDraftWay, NewDraftWayNode,
 };
 use super::common::queries::{create_way_typed, expected_version, proposed_version};
-use super::common::types::{
-    ChangesetUploadCreate, ChangesetUploadCreateNode, ChangesetUploadCreateRelation,
-    ChangesetUploadCreateWay, ChangesetUploadDeleteGroup, ChangesetUploadModify,
-    ChangesetUploadRequest, GeometryKind, Point, RelationMember, WayInput,
-};
+use super::common::types::{GeometryKind, Point, RelationMember, WayInput};
 use super::common::validation::{validate_point, validate_tags, validate_way};
 use super::viewport::queries::{bbox_geometry, parse_bbox, viewport_typed};
 use crate::{

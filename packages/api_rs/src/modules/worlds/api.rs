@@ -1,5 +1,8 @@
-use super::WorldsModule;
-use crate::modules::common::types::{User, World, WorldInput};
+use super::{
+    WorldsModule,
+    models::{World, WorldInput},
+};
+use crate::modules::common::types::User;
 use crate::{
     database::{self, DatabasePool},
     modules::common::support::{db_error, session_user},

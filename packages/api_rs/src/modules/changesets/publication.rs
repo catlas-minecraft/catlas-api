@@ -1,5 +1,5 @@
 use crate::modules::common::models::{
-    ChangesetRow, INSERT_BATCH_SIZE, NewNode, NewNodeVersion, NewRelation, NewRelationMember,
+    INSERT_BATCH_SIZE, NewNode, NewNodeVersion, NewRelation, NewRelationMember,
     NewRelationMemberVersion, NewRelationVersion, NewWay, NewWayNode, NewWayNodeVersion,
     NewWayVersion,
 };
@@ -14,6 +14,8 @@ use diesel::{
     sql_query, update,
 };
 use serde_json::Value;
+
+use super::models::ChangesetRow;
 
 pub(super) fn check_node_version_conflicts(
     c: &mut database::DatabaseConnection,

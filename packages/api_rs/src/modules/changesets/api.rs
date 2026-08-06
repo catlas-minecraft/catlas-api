@@ -1,13 +1,13 @@
 use super::ChangesetsModule;
+use super::models::{
+    Changeset, ChangesetInput, ChangesetRow, ChangesetUploadDiffResult, ChangesetUploadRequest,
+};
 use super::publication::publish_sync;
 use super::upload::upload_sync;
 use crate::modules::NoContent;
-use crate::modules::common::models::ChangesetRow;
 use crate::modules::common::queries::{lock_owned_changeset, lock_world_for_mutation};
 use crate::modules::common::support::{db_error, resolve_world, session_user};
-use crate::modules::common::types::{
-    Changeset, ChangesetInput, ChangesetUploadDiffResult, ChangesetUploadRequest,
-};
+use crate::modules::common::types::RelationMember;
 use crate::modules::common::validation::{
     validate_members, validate_point, validate_tags, validate_way,
 };
@@ -309,7 +309,7 @@ fn validate_upload(input: &ChangesetUploadRequest) -> Result<()> {
 
 fn validate_relation(
     relation_type: &str,
-    members: &[crate::modules::common::types::RelationMember],
+    members: &[RelationMember],
     tags: &std::collections::BTreeMap<String, String>,
 ) -> Result<()> {
     if relation_type != "multipolygon" {

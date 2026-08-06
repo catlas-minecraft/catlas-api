@@ -1,7 +1,7 @@
-use crate::modules::common::types::{
-    GeometryKind, Viewport, ViewportNode, ViewportRelation, ViewportRelationMember, ViewportWay,
-    ViewportWayNode,
+use super::models::{
+    Viewport, ViewportNode, ViewportRelation, ViewportRelationMember, ViewportWay, ViewportWayNode,
 };
+use crate::modules::common::types::{GeometryKind, Point};
 use crate::{
     database,
     schema::{core, derived},
@@ -199,7 +199,7 @@ pub(crate) fn viewport_typed(
                 Ok(ViewportNode {
                     id,
                     version,
-                    geom: crate::modules::common::types::Point { x, y, z },
+                    geom: Point { x, y, z },
                     tags: string_tags(value)?,
                     deleted_at: deleted_at.into(),
                     changeset_id,

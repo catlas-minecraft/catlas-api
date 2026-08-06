@@ -9,16 +9,6 @@ pub(crate) struct IdRow {
     pub(crate) id: i64,
     pub(crate) version: i32,
 }
-pub(crate) struct ChangesetRow {
-    pub(crate) id: i64,
-    pub(crate) status: String,
-    pub(crate) comment: Option<String>,
-    pub(crate) created_by_user_id: i64,
-    pub(crate) created_by_user_id_public: String,
-    pub(crate) created_by_username: String,
-    pub(crate) created_at: chrono::DateTime<chrono::Utc>,
-    pub(crate) published_at: Option<chrono::DateTime<chrono::Utc>>,
-}
 #[derive(Insertable)]
 #[diesel(table_name = draft::nodes)]
 pub(crate) struct NewDraftNode<'a> {
