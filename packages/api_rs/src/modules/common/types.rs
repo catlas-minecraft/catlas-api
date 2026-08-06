@@ -133,6 +133,116 @@ pub struct RelationPatch {
 
 #[derive(Debug, Object, Serialize, Deserialize)]
 #[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadCreateNode {
+    pub id: i64,
+    pub geom: Point,
+    pub tags: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadModifyNode {
+    pub id: i64,
+    pub expected_version: i32,
+    pub geom: Point,
+    pub tags: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadCreateWay {
+    pub id: i64,
+    pub geometry_kind: GeometryKind,
+    pub node_refs: Vec<i64>,
+    pub tags: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadModifyWay {
+    pub id: i64,
+    pub expected_version: i32,
+    pub geometry_kind: GeometryKind,
+    pub node_refs: Vec<i64>,
+    pub tags: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadCreateRelation {
+    pub id: i64,
+    pub relation_type: String,
+    pub members: Vec<RelationMember>,
+    pub tags: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadModifyRelation {
+    pub id: i64,
+    pub expected_version: i32,
+    pub relation_type: String,
+    pub members: Vec<RelationMember>,
+    pub tags: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadDeleteEntity {
+    pub id: i64,
+    pub expected_version: i32,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadCreate {
+    pub nodes: Vec<ChangesetUploadCreateNode>,
+    pub ways: Vec<ChangesetUploadCreateWay>,
+    pub relations: Vec<ChangesetUploadCreateRelation>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadModify {
+    pub nodes: Vec<ChangesetUploadModifyNode>,
+    pub ways: Vec<ChangesetUploadModifyWay>,
+    pub relations: Vec<ChangesetUploadModifyRelation>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadDeleteGroup {
+    pub nodes: Vec<ChangesetUploadDeleteEntity>,
+    pub ways: Vec<ChangesetUploadDeleteEntity>,
+    pub relations: Vec<ChangesetUploadDeleteEntity>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadRequest {
+    pub create: ChangesetUploadCreate,
+    pub modify: ChangesetUploadModify,
+    pub delete: ChangesetUploadDeleteGroup,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize, Clone)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadDiffEntry {
+    pub old_id: i64,
+    pub new_id: i64,
+    pub new_version: i32,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize, Clone)]
+#[oai(rename_all = "camelCase")]
+pub struct ChangesetUploadDiffResult {
+    pub nodes: Vec<ChangesetUploadDiffEntry>,
+    pub ways: Vec<ChangesetUploadDiffEntry>,
+    pub relations: Vec<ChangesetUploadDiffEntry>,
+}
+
+#[derive(Debug, Object, Serialize, Deserialize)]
+#[oai(rename_all = "camelCase")]
 pub struct ChangesetInput {
     pub comment: Option<String>,
 }

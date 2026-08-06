@@ -25,6 +25,8 @@ describe("changeset serialization", () => {
     expect(payload.modify.nodes[0]?.expectedVersion).toBe(3);
     expect(payload.create.ways[0]?.nodeRefs).toEqual([-1, 2, 1, -1]);
     expect(payload.delete.nodes).toEqual([{ id: 9, expectedVersion: 1 }]);
+    expect(payload.create.nodes[0]).not.toHaveProperty("changesetId");
+    expect(payload.create.ways[0]).not.toHaveProperty("changesetId");
   });
 
   test("builds field-level review entries from the upload payload source graphs", () => {

@@ -3,7 +3,7 @@ use crate::modules::NoContent;
 use crate::modules::common::models::IdRow;
 use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::queries::{
-    create_node_typed, delete_node_typed, node_json, patch_node_typed,
+    create_node_typed, delete_node_typed, lock_world_for_mutation, node_json, patch_node_typed,
 };
 use crate::modules::common::support::{db_error, resolve_world, session_user};
 use crate::modules::common::types::{DeleteInput, IdVersion, NodeInput, NodePatch};
@@ -77,6 +77,7 @@ impl NodesModule {
         let tags = tag_value(&input.tags)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
+                lock_world_for_mutation(c, world_id)?;
                 lock_owned_changeset(c, input.changeset_id, user, world_id)?;
                 create_node_typed(c, input, tags, user)
             })
@@ -105,6 +106,7 @@ impl NodesModule {
         let tags = tag_value(&input.tags)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
+                lock_world_for_mutation(c, world_id)?;
                 lock_owned_changeset(c, input.changeset_id, user, world_id)?;
                 patch_node_typed(c, node_id, input, tags, user, world_id)
             })
@@ -130,6 +132,7 @@ impl NodesModule {
         let world_id = resolve_world(pool, world_slug).await?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
+                lock_world_for_mutation(c, world_id)?;
                 lock_owned_changeset(c, input.changeset_id, user, world_id)?;
                 delete_node_typed(c, node_id, input, user, world_id)
             })

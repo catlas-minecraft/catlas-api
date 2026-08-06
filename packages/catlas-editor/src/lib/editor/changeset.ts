@@ -2,37 +2,9 @@ import { entityEqual, Graph } from "../graph";
 import type { components } from "./catlas-api.gen";
 import { entityKey, type EditorEntity, type NodeEntity, type WayEntity } from "./types";
 
-type WithLocalId<T> = Omit<T, "changesetId"> & { readonly id: number };
+export type ChangesetUploadPayload = components["schemas"]["ChangesetUploadRequest"];
 
-type ChangesetUploadDiffEntry = {
-  readonly oldId: number;
-  readonly newId: number;
-  readonly newVersion: number;
-};
-
-export type ChangesetUploadPayload = {
-  readonly create: {
-    readonly nodes: readonly WithLocalId<components["schemas"]["NodeInput"]>[];
-    readonly ways: readonly WithLocalId<components["schemas"]["WayInput"]>[];
-    readonly relations: readonly [];
-  };
-  readonly modify: {
-    readonly nodes: readonly WithLocalId<components["schemas"]["NodePatch"]>[];
-    readonly ways: readonly WithLocalId<components["schemas"]["WayPatch"]>[];
-    readonly relations: readonly [];
-  };
-  readonly delete: {
-    readonly nodes: readonly WithLocalId<components["schemas"]["DeleteInput"]>[];
-    readonly ways: readonly WithLocalId<components["schemas"]["DeleteInput"]>[];
-    readonly relations: readonly [];
-  };
-};
-
-export type ChangesetUploadDiffResult = {
-  readonly nodes: readonly ChangesetUploadDiffEntry[];
-  readonly ways: readonly ChangesetUploadDiffEntry[];
-  readonly relations: readonly ChangesetUploadDiffEntry[];
-};
+export type ChangesetUploadDiffResult = components["schemas"]["ChangesetUploadDiffResult"];
 
 export type GraphDifference = {
   readonly created: readonly EditorEntity[];

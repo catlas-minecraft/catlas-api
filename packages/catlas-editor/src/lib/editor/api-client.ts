@@ -5,7 +5,6 @@ import type { ChangesetUploadDiffResult, ChangesetUploadPayload } from "./change
 
 type SessionInfo = { readonly user: components["schemas"]["User"] | null };
 type AuthConfig = components["schemas"]["AuthConfigInfo"];
-type IdVersion = components["schemas"]["IdVersion"];
 type Changeset = components["schemas"]["Changeset"];
 
 export type ChangesetListPage = {
@@ -44,83 +43,19 @@ export const createEditorApi = (baseUrl: string, worldSlug: string): EditorApiSe
     });
     const changeset = await json<Changeset>(changesetResult);
     const changesetId = changeset.id;
-    const nodeIds = new Map<number, { id: number; version: number }>();
-    const nodeResults: ChangesetUploadDiffResult["nodes"][number][] = [];
-    const wayResults: ChangesetUploadDiffResult["ways"][number][] = [];
-    const remapNode = (id: number) => nodeIds.get(id)?.id ?? id;
 
     try {
-      for (const node of payload.create.nodes) {
-        const result = await client.POST("/worlds/{worldSlug}/nodes", {
-          params: { path: { worldSlug } },
-          body: { changesetId, geom: node.geom, tags: node.tags },
-        });
-        const created = await json<IdVersion>(result);
-        nodeIds.set(node.id, created);
-        nodeResults.push({ oldId: node.id, newId: created.id, newVersion: created.version });
-      }
-      for (const way of payload.create.ways) {
-        const result = await client.POST("/worlds/{worldSlug}/ways", {
-          params: { path: { worldSlug } },
-          body: {
-            changesetId,
-            geometryKind: way.geometryKind,
-            nodeRefs: way.nodeRefs.map(remapNode),
-            tags: way.tags,
-          },
-        });
-        const created = await json<IdVersion>(result);
-        wayResults.push({ oldId: way.id, newId: created.id, newVersion: created.version });
-      }
-      for (const node of payload.modify.nodes) {
-        const result = await client.PATCH("/worlds/{worldSlug}/nodes/{id}", {
-          params: { path: { worldSlug, id: node.id } },
-          body: {
-            changesetId,
-            expectedVersion: node.expectedVersion,
-            geom: node.geom,
-            tags: node.tags,
-          },
-        });
-        const updated = await json<IdVersion>(result);
-        nodeResults.push({ oldId: node.id, newId: updated.id, newVersion: updated.version });
-      }
-      for (const way of payload.modify.ways) {
-        const result = await client.PATCH("/worlds/{worldSlug}/ways/{id}", {
-          params: { path: { worldSlug, id: way.id } },
-          body: {
-            changesetId,
-            expectedVersion: way.expectedVersion,
-            geometryKind: way.geometryKind,
-            nodeRefs: way.nodeRefs.map(remapNode),
-            tags: way.tags,
-          },
-        });
-        const updated = await json<IdVersion>(result);
-        wayResults.push({ oldId: way.id, newId: updated.id, newVersion: updated.version });
-      }
-      for (const way of payload.delete.ways) {
-        await noContent(
-          await client.DELETE("/worlds/{worldSlug}/ways/{id}", {
-            params: { path: { worldSlug, id: way.id } },
-            body: { changesetId, expectedVersion: way.expectedVersion },
-          }),
-        );
-      }
-      for (const node of payload.delete.nodes) {
-        await noContent(
-          await client.DELETE("/worlds/{worldSlug}/nodes/{id}", {
-            params: { path: { worldSlug, id: node.id } },
-            body: { changesetId, expectedVersion: node.expectedVersion },
-          }),
-        );
-      }
+      const uploadResult = await client.POST("/worlds/{worldSlug}/changesets/{id}/upload", {
+        params: { path: { worldSlug, id: changesetId } },
+        body: payload,
+      });
+      const diff = await json<ChangesetUploadDiffResult>(uploadResult);
       await json<Changeset>(
         await client.POST("/worlds/{worldSlug}/changesets/{id}/publish", {
           params: { path: { worldSlug, id: changesetId } },
         }),
       );
-      return { nodes: nodeResults, ways: wayResults, relations: [] };
+      return diff;
     } catch (error) {
       try {
         await noContent(

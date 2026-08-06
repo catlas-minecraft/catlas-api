@@ -1,9 +1,14 @@
 use super::changesets::publication::publish_sync;
+use super::changesets::upload::upload_sync;
 use super::common::models::{
     EntityState, NewDraftMember, NewDraftNode, NewDraftRelation, NewDraftWay, NewDraftWayNode,
 };
 use super::common::queries::{create_way_typed, expected_version, proposed_version};
-use super::common::types::{GeometryKind, Point, WayInput};
+use super::common::types::{
+    ChangesetUploadCreate, ChangesetUploadCreateNode, ChangesetUploadCreateRelation,
+    ChangesetUploadCreateWay, ChangesetUploadDeleteGroup, ChangesetUploadModify,
+    ChangesetUploadRequest, GeometryKind, Point, RelationMember, WayInput,
+};
 use super::common::validation::{validate_point, validate_tags, validate_way};
 use super::viewport::queries::{bbox_geometry, parse_bbox, viewport_typed};
 use crate::{
@@ -71,6 +76,194 @@ fn distinguishes_required_and_proposed_versions() {
     };
     assert_eq!(expected_version(&staged).unwrap(), 5);
     assert_eq!(proposed_version(&staged).unwrap(), 5);
+}
+
+#[test]
+#[ignore = "requires TEST_DATABASE_URL"]
+fn uploads_entities_with_local_references_and_rolls_back_as_one_transaction() {
+    let database_url = crate::config::test_database_url();
+    let pool = database::connect_and_migrate(database_url).expect("database setup failed");
+    let mut connection = pool.get().expect("database connection failed");
+
+    connection.test_transaction::<_, database::DatabaseError, _>(|connection| {
+        let user_id = insert_into(core::users::table)
+            .values((
+                core::users::user_id.eq("bulk-upload-test"),
+                core::users::username.eq("bulk-upload-test"),
+            ))
+            .returning(core::users::id)
+            .get_result::<i64>(connection)?;
+        let world_id = insert_into(core::worlds::table)
+            .values((
+                core::worlds::slug.eq("bulk-upload-test"),
+                core::worlds::name.eq("Bulk Upload Test"),
+                core::worlds::created_by_user_id.eq(user_id),
+            ))
+            .returning(core::worlds::id)
+            .get_result::<i64>(connection)?;
+        let changeset_id = insert_into(core::changesets::table)
+            .values((
+                core::changesets::status.eq("open"),
+                core::changesets::created_by_user_id.eq(user_id),
+                core::changesets::world_id.eq(world_id),
+            ))
+            .returning(core::changesets::id)
+            .get_result::<i64>(connection)?;
+
+        let result = upload_sync(
+            connection,
+            changeset_id,
+            user_id,
+            world_id,
+            ChangesetUploadRequest {
+                create: ChangesetUploadCreate {
+                    nodes: vec![
+                        ChangesetUploadCreateNode {
+                            id: -1,
+                            geom: Point {
+                                x: 0.0,
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                            tags: std::collections::BTreeMap::new(),
+                        },
+                        ChangesetUploadCreateNode {
+                            id: -2,
+                            geom: Point {
+                                x: 1.0,
+                                y: 0.0,
+                                z: 1.0,
+                            },
+                            tags: std::collections::BTreeMap::new(),
+                        },
+                        ChangesetUploadCreateNode {
+                            id: -3,
+                            geom: Point {
+                                x: 1.0,
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                            tags: std::collections::BTreeMap::new(),
+                        },
+                    ],
+                    ways: vec![
+                        ChangesetUploadCreateWay {
+                            id: -10,
+                            geometry_kind: GeometryKind::Line,
+                            node_refs: vec![-1, -2],
+                            tags: std::collections::BTreeMap::new(),
+                        },
+                        ChangesetUploadCreateWay {
+                            id: -20,
+                            geometry_kind: GeometryKind::Area,
+                            node_refs: vec![-1, -2, -3, -1],
+                            tags: std::collections::BTreeMap::new(),
+                        },
+                    ],
+                    relations: vec![ChangesetUploadCreateRelation {
+                        id: -30,
+                        relation_type: "multipolygon".into(),
+                        members: vec![RelationMember {
+                            member_type: "way".into(),
+                            member_id: -20,
+                            role: Some("outer".into()),
+                        }],
+                        tags: std::collections::BTreeMap::new(),
+                    }],
+                },
+                modify: ChangesetUploadModify {
+                    nodes: vec![],
+                    ways: vec![],
+                    relations: vec![],
+                },
+                delete: ChangesetUploadDeleteGroup {
+                    nodes: vec![],
+                    ways: vec![],
+                    relations: vec![],
+                },
+            },
+        )?;
+
+        assert_eq!(result.nodes.len(), 3);
+        assert_eq!(result.ways.len(), 2);
+        assert_eq!(result.relations.len(), 1);
+        let node_ids: std::collections::HashMap<_, _> = result
+            .nodes
+            .iter()
+            .map(|entry| (entry.old_id, entry.new_id))
+            .collect();
+        let way_id = result.ways[0].new_id;
+        let refs = draft::way_nodes::table
+            .filter(draft::way_nodes::changeset_id.eq(changeset_id))
+            .filter(draft::way_nodes::way_id.eq(way_id))
+            .order_by(draft::way_nodes::seq)
+            .select(draft::way_nodes::node_id)
+            .load::<i64>(connection)?;
+        assert_eq!(refs, vec![node_ids[&-1], node_ids[&-2]]);
+        let area_way_id = result.ways[1].new_id;
+        let relation_id = result.relations[0].new_id;
+        let relation_member = draft::relation_members::table
+            .filter(draft::relation_members::changeset_id.eq(changeset_id))
+            .filter(draft::relation_members::relation_id.eq(relation_id))
+            .select(draft::relation_members::member_id)
+            .first::<i64>(connection)?;
+        assert_eq!(relation_member, area_way_id);
+
+        let failing_changeset_id = insert_into(core::changesets::table)
+            .values((
+                core::changesets::status.eq("open"),
+                core::changesets::created_by_user_id.eq(user_id),
+                core::changesets::world_id.eq(world_id),
+            ))
+            .returning(core::changesets::id)
+            .get_result::<i64>(connection)?;
+        let failure: Result<_, database::DatabaseError> = connection.transaction(|connection| {
+            upload_sync(
+                connection,
+                failing_changeset_id,
+                user_id,
+                world_id,
+                ChangesetUploadRequest {
+                    create: ChangesetUploadCreate {
+                        nodes: vec![ChangesetUploadCreateNode {
+                            id: -3,
+                            geom: Point {
+                                x: 2.0,
+                                y: 0.0,
+                                z: 2.0,
+                            },
+                            tags: std::collections::BTreeMap::new(),
+                        }],
+                        ways: vec![ChangesetUploadCreateWay {
+                            id: -11,
+                            geometry_kind: GeometryKind::Line,
+                            node_refs: vec![999, 999],
+                            tags: std::collections::BTreeMap::new(),
+                        }],
+                        relations: vec![],
+                    },
+                    modify: ChangesetUploadModify {
+                        nodes: vec![],
+                        ways: vec![],
+                        relations: vec![],
+                    },
+                    delete: ChangesetUploadDeleteGroup {
+                        nodes: vec![],
+                        ways: vec![],
+                        relations: vec![],
+                    },
+                },
+            )
+        });
+        assert!(failure.is_err());
+        let staged_ids = draft::nodes::table
+            .filter(draft::nodes::changeset_id.eq(failing_changeset_id))
+            .select(draft::nodes::id)
+            .load::<i64>(connection)?;
+        assert!(staged_ids.is_empty());
+
+        Ok(())
+    });
 }
 
 #[test]

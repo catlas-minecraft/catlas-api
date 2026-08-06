@@ -77,6 +77,7 @@ world.
 - `GET /api/worlds/{worldSlug}/viewport`
 - `GET /api/worlds/{worldSlug}/changesets`
 - `POST /api/worlds/{worldSlug}/changesets`
+- `POST /api/worlds/{worldSlug}/changesets/{id}/upload`
 - `POST /api/worlds/{worldSlug}/changesets/{id}/publish`
 - `POST /api/worlds/{worldSlug}/changesets/{id}/abandon`
 - `GET /api/worlds/{worldSlug}/nodes/{id}`
@@ -96,6 +97,25 @@ JSON fields use camelCase. Entity mutations include `changesetId`; patches and
 deletes also include `expectedVersion`. Node geometry is `{x,y,z}`. Ways use an
 ordered `nodeRefs` array. Relations currently support strict multipolygons made
 from area ways with `outer`, `inner`, or null roles.
+
+The changeset upload endpoint uses the changeset path parameter instead of
+including `changesetId` in each item.
+
+`POST /api/worlds/{worldSlug}/changesets/{id}/upload` stages a complete batch of
+entity operations for an open changeset. Its body contains `create`, `modify`,
+and `delete` groups, each with `nodes`, `ways`, and `relations` arrays. Create
+entries include a negative client-local `id`; references to those IDs are
+resolved to the allocated entity IDs before the draft rows are written. The
+response contains `oldId`, `newId`, and `newVersion` entries for created and
+modified entities grouped by entity type.
+
+The batch is applied in one transaction. Nodes are created before ways, ways
+before relations, and deletes are applied in the reverse dependency order.
+Validation or database failure rolls back every operation in the batch. Upload
+does not publish the changeset; clients must call the publish endpoint
+separately. Uploads are not idempotent: retrying a committed create batch
+allocates new entity IDs. The editor does not automatically retry an upload and
+abandons the changeset when the operation fails.
 
 Nodes and ways have no dedicated semantic type field. Their meaning and other
 application-specific metadata are represented by tags.

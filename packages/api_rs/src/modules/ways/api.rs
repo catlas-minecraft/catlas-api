@@ -3,7 +3,7 @@ use crate::modules::NoContent;
 use crate::modules::common::models::IdRow;
 use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::queries::{
-    create_way_typed, delete_way_typed, patch_way_typed, way_json,
+    create_way_typed, delete_way_typed, lock_world_for_mutation, patch_way_typed, way_json,
 };
 use crate::modules::common::support::{db_error, resolve_world, session_user};
 use crate::modules::common::types::{DeleteInput, IdVersion, WayInput, WayPatch};
@@ -73,6 +73,7 @@ impl WaysModule {
         validate_way(input.geometry_kind.as_str(), &input.node_refs)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
+                lock_world_for_mutation(c, world_id)?;
                 lock_owned_changeset(c, input.changeset_id, user, world_id)?;
                 create_way_typed(c, input, user, world_id)
             })
@@ -100,6 +101,7 @@ impl WaysModule {
         validate_way(input.geometry_kind.as_str(), &input.node_refs)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
+                lock_world_for_mutation(c, world_id)?;
                 lock_owned_changeset(c, input.changeset_id, user, world_id)?;
                 patch_way_typed(c, way_id, input, user, world_id)
             })
@@ -125,6 +127,7 @@ impl WaysModule {
         let world_id = resolve_world(pool, world_slug).await?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
+                lock_world_for_mutation(c, world_id)?;
                 lock_owned_changeset(c, input.changeset_id, user, world_id)?;
                 delete_way_typed(c, way_id, input, user, world_id)
             })

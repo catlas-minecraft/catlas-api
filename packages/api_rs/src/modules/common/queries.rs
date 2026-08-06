@@ -10,7 +10,9 @@ use crate::{
     database,
     schema::{core, draft},
 };
-use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, delete, insert_into};
+use diesel::{
+    ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, delete, insert_into, sql_query,
+};
 use serde_json::Value;
 use std::collections::HashSet;
 
@@ -252,6 +254,16 @@ pub(crate) fn lock_owned_changeset(
         .optional()?;
     row.map(|_| ())
         .ok_or_else(|| std::io::Error::other("changeset not found or not owned").into())
+}
+
+pub(crate) fn lock_world_for_mutation(
+    c: &mut database::DatabaseConnection,
+    world_id: i64,
+) -> Result<(), database::DatabaseError> {
+    sql_query("SELECT pg_advisory_xact_lock(hashtextextended('catlas.publish:' || $1::text, 0))")
+        .bind::<diesel::sql_types::BigInt, _>(world_id)
+        .execute(c)?;
+    Ok(())
 }
 
 pub(crate) fn create_way_typed(

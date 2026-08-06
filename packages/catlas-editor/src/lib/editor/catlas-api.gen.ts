@@ -260,6 +260,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/worlds/{worldSlug}/changesets/{id}/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Changesetのentityを一括でDraftへ追加する
+         * @description create、modify、deleteを依存関係順に適用し、全操作を1つのトランザクションで実行する。
+         *     createのidはクライアント側の一時IDとして扱い、レスポンスで永続IDとの対応を返す。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    worldSlug: string;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json; charset=utf-8": components["schemas"]["ChangesetUploadRequest"];
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["ChangesetUploadDiffResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/worlds/{worldSlug}/changesets/{id}/publish": {
         parameters: {
             query?: never;
@@ -968,6 +1014,116 @@ export interface components {
         };
         /** @enum {string} */
         ChangesetStatus: "open" | "published" | "abandoned";
+        /** ChangesetUploadCreate */
+        ChangesetUploadCreate: {
+            nodes: components["schemas"]["ChangesetUploadCreateNode"][];
+            ways: components["schemas"]["ChangesetUploadCreateWay"][];
+            relations: components["schemas"]["ChangesetUploadCreateRelation"][];
+        };
+        /** ChangesetUploadCreateNode */
+        ChangesetUploadCreateNode: {
+            /** Format: int64 */
+            id: number;
+            geom: components["schemas"]["Point"];
+            tags: {
+                [key: string]: string;
+            };
+        };
+        /** ChangesetUploadCreateRelation */
+        ChangesetUploadCreateRelation: {
+            /** Format: int64 */
+            id: number;
+            relationType: string;
+            members: components["schemas"]["RelationMember"][];
+            tags: {
+                [key: string]: string;
+            };
+        };
+        /** ChangesetUploadCreateWay */
+        ChangesetUploadCreateWay: {
+            /** Format: int64 */
+            id: number;
+            geometryKind: components["schemas"]["GeometryKind"];
+            nodeRefs: number[];
+            tags: {
+                [key: string]: string;
+            };
+        };
+        /** ChangesetUploadDeleteEntity */
+        ChangesetUploadDeleteEntity: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int32 */
+            expectedVersion: number;
+        };
+        /** ChangesetUploadDeleteGroup */
+        ChangesetUploadDeleteGroup: {
+            nodes: components["schemas"]["ChangesetUploadDeleteEntity"][];
+            ways: components["schemas"]["ChangesetUploadDeleteEntity"][];
+            relations: components["schemas"]["ChangesetUploadDeleteEntity"][];
+        };
+        /** ChangesetUploadDiffEntry */
+        ChangesetUploadDiffEntry: {
+            /** Format: int64 */
+            oldId: number;
+            /** Format: int64 */
+            newId: number;
+            /** Format: int32 */
+            newVersion: number;
+        };
+        /** ChangesetUploadDiffResult */
+        ChangesetUploadDiffResult: {
+            nodes: components["schemas"]["ChangesetUploadDiffEntry"][];
+            ways: components["schemas"]["ChangesetUploadDiffEntry"][];
+            relations: components["schemas"]["ChangesetUploadDiffEntry"][];
+        };
+        /** ChangesetUploadModify */
+        ChangesetUploadModify: {
+            nodes: components["schemas"]["ChangesetUploadModifyNode"][];
+            ways: components["schemas"]["ChangesetUploadModifyWay"][];
+            relations: components["schemas"]["ChangesetUploadModifyRelation"][];
+        };
+        /** ChangesetUploadModifyNode */
+        ChangesetUploadModifyNode: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int32 */
+            expectedVersion: number;
+            geom: components["schemas"]["Point"];
+            tags: {
+                [key: string]: string;
+            };
+        };
+        /** ChangesetUploadModifyRelation */
+        ChangesetUploadModifyRelation: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int32 */
+            expectedVersion: number;
+            relationType: string;
+            members: components["schemas"]["RelationMember"][];
+            tags: {
+                [key: string]: string;
+            };
+        };
+        /** ChangesetUploadModifyWay */
+        ChangesetUploadModifyWay: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int32 */
+            expectedVersion: number;
+            geometryKind: components["schemas"]["GeometryKind"];
+            nodeRefs: number[];
+            tags: {
+                [key: string]: string;
+            };
+        };
+        /** ChangesetUploadRequest */
+        ChangesetUploadRequest: {
+            create: components["schemas"]["ChangesetUploadCreate"];
+            modify: components["schemas"]["ChangesetUploadModify"];
+            delete: components["schemas"]["ChangesetUploadDeleteGroup"];
+        };
         /** CreateSession */
         CreateSession: {
             userId: string;

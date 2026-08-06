@@ -3,7 +3,8 @@ use crate::modules::NoContent;
 use crate::modules::common::models::IdRow;
 use crate::modules::common::queries::lock_owned_changeset;
 use crate::modules::common::queries::{
-    create_relation_typed, delete_relation_typed, patch_relation_typed, relation_json,
+    create_relation_typed, delete_relation_typed, lock_world_for_mutation, patch_relation_typed,
+    relation_json,
 };
 use crate::modules::common::support::{db_error, resolve_world, session_user};
 use crate::modules::common::types::{DeleteInput, IdVersion, RelationInput, RelationPatch};
@@ -72,6 +73,7 @@ impl RelationsModule {
         validate_members(&input.members)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
+                lock_world_for_mutation(c, world_id)?;
                 lock_owned_changeset(c, input.changeset_id, user, world_id)?;
                 create_relation_typed(c, input, user, world_id)
             })
@@ -104,6 +106,7 @@ impl RelationsModule {
         validate_members(&input.members)?;
         let r = database::blocking(pool, move |c| {
             c.transaction::<IdRow, database::DatabaseError, _>(|c| {
+                lock_world_for_mutation(c, world_id)?;
                 lock_owned_changeset(c, input.changeset_id, user, world_id)?;
                 patch_relation_typed(c, relation_id, input, user, world_id)
             })
@@ -129,6 +132,7 @@ impl RelationsModule {
         let world_id = resolve_world(pool, world_slug).await?;
         database::blocking(pool, move |c| {
             c.transaction::<(), database::DatabaseError, _>(|c| {
+                lock_world_for_mutation(c, world_id)?;
                 lock_owned_changeset(c, input.changeset_id, user, world_id)?;
                 delete_relation_typed(c, relation_id, input, user, world_id)
             })

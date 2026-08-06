@@ -86,6 +86,10 @@ jobs:
         run: cargo test -p catlas-api --lib modules::tests::isolates_two_worlds_and_rejects_cross_world_references --locked -- --ignored --exact --test-threads=1
         env:
           TEST_DATABASE_URL: postgresql://catlas:catlas@127.0.0.1:5432/catlas_test
+      - name: Test bulk changeset upload
+        run: cargo test -p catlas-api --lib modules::tests::uploads_entities_with_local_references_and_rolls_back_as_one_transaction --locked -- --ignored --exact --test-threads=1
+        env:
+          TEST_DATABASE_URL: postgresql://catlas:catlas@127.0.0.1:5432/catlas_test
       - name: Install Diesel CLI
         run: cargo install diesel_cli --version 2.3.10 --no-default-features --features postgres --locked
       - name: Check Diesel schema
