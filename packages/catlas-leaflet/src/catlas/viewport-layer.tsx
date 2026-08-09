@@ -103,7 +103,9 @@ const ICON_PATHS: Readonly<Record<string, string>> = {
   chest: '<path d="M4 7h16v12H4zM4 11h16M10 11v3h4v-3M6 7V5h12v2"/>',
   "automatic-storage":
     '<path d="M4 6h7v6H4zM13 12h7v6h-7zM15 5h4v4M19 5l-5 5M9 19H5v-4M5 19l5-5"/>',
+  farm: '<path d="M4 5h16M4 10h16M4 15h16M4 20h16M7 5v15M12 5v15M17 5v15"/>',
   "nether-portal": '<path d="M6 3h12v18H6zM9 6h6v12H9zM10.5 8.5l3 3-3 3"/>',
+  "tree-farm": '<path d="m12 4-7 9h4l-3 4h12l-3-4h4zM12 17v4"/>',
 };
 
 const formatView = (map: LeafletMap): ViewState => {

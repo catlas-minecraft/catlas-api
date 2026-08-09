@@ -5,7 +5,9 @@ export const DEFAULT_FEATURE_ICON_IDS = new Set([
   "automatic-storage",
   "base",
   "chest",
+  "farm",
   "nether-portal",
+  "tree-farm",
 ]);
 
 export const defaultFeatureRegistry = createFeatureRegistry(featureDocumentJson, {

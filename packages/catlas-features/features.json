@@ -155,6 +155,252 @@
       }
     },
     {
+      "id": "facility.farm",
+      "displayName": {
+        "ja": "畑",
+        "en": "Farm"
+      },
+      "category": "facility",
+      "appliesTo": ["node", "area"],
+      "match": {
+        "tags": {
+          "facility": "farm"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "area",
+          "tags": {
+            "facility": "farm"
+          }
+        },
+        "snapPolicy": "half",
+        "fields": [
+          {
+            "type": "text",
+            "tag": "name",
+            "label": {
+              "ja": "名前",
+              "en": "Name"
+            }
+          },
+          {
+            "type": "select",
+            "tag": "crop",
+            "label": {
+              "ja": "作物",
+              "en": "Crop"
+            },
+            "allowUnset": true,
+            "options": [
+              {
+                "value": "wheat",
+                "label": {
+                  "ja": "小麦",
+                  "en": "Wheat"
+                }
+              },
+              {
+                "value": "carrot",
+                "label": {
+                  "ja": "ニンジン",
+                  "en": "Carrot"
+                }
+              },
+              {
+                "value": "potato",
+                "label": {
+                  "ja": "ジャガイモ",
+                  "en": "Potato"
+                }
+              },
+              {
+                "value": "beetroot",
+                "label": {
+                  "ja": "ビートルート",
+                  "en": "Beetroot"
+                }
+              },
+              {
+                "value": "pumpkin",
+                "label": {
+                  "ja": "カボチャ",
+                  "en": "Pumpkin"
+                }
+              },
+              {
+                "value": "melon",
+                "label": {
+                  "ja": "スイカ",
+                  "en": "Melon"
+                }
+              },
+              {
+                "value": "sugar_cane",
+                "label": {
+                  "ja": "サトウキビ",
+                  "en": "Sugar cane"
+                }
+              },
+              {
+                "value": "cactus",
+                "label": {
+                  "ja": "サボテン",
+                  "en": "Cactus"
+                }
+              },
+              {
+                "value": "mixed",
+                "label": {
+                  "ja": "混合",
+                  "en": "Mixed"
+                }
+              },
+              {
+                "value": "other",
+                "label": {
+                  "ja": "その他",
+                  "en": "Other"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "viewer": {
+        "minZoom": 2,
+        "icon": "farm",
+        "label": {
+          "tag": "name",
+          "minZoom": 7,
+          "collisionPriority": 50
+        }
+      }
+    },
+    {
+      "id": "facility.tree_farm",
+      "displayName": {
+        "ja": "植林場",
+        "en": "Tree farm"
+      },
+      "category": "facility",
+      "appliesTo": ["node", "area"],
+      "match": {
+        "tags": {
+          "facility": "tree_farm"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "area",
+          "tags": {
+            "facility": "tree_farm"
+          }
+        },
+        "snapPolicy": "half",
+        "fields": [
+          {
+            "type": "text",
+            "tag": "name",
+            "label": {
+              "ja": "名前",
+              "en": "Name"
+            }
+          },
+          {
+            "type": "select",
+            "tag": "tree",
+            "label": {
+              "ja": "樹種",
+              "en": "Tree"
+            },
+            "allowUnset": true,
+            "options": [
+              {
+                "value": "oak",
+                "label": {
+                  "ja": "オーク",
+                  "en": "Oak"
+                }
+              },
+              {
+                "value": "spruce",
+                "label": {
+                  "ja": "トウヒ",
+                  "en": "Spruce"
+                }
+              },
+              {
+                "value": "birch",
+                "label": {
+                  "ja": "シラカバ",
+                  "en": "Birch"
+                }
+              },
+              {
+                "value": "jungle",
+                "label": {
+                  "ja": "ジャングル",
+                  "en": "Jungle"
+                }
+              },
+              {
+                "value": "acacia",
+                "label": {
+                  "ja": "アカシア",
+                  "en": "Acacia"
+                }
+              },
+              {
+                "value": "dark_oak",
+                "label": {
+                  "ja": "ダークオーク",
+                  "en": "Dark oak"
+                }
+              },
+              {
+                "value": "mangrove",
+                "label": {
+                  "ja": "マングローブ",
+                  "en": "Mangrove"
+                }
+              },
+              {
+                "value": "cherry",
+                "label": {
+                  "ja": "サクラ",
+                  "en": "Cherry"
+                }
+              },
+              {
+                "value": "mixed",
+                "label": {
+                  "ja": "混合",
+                  "en": "Mixed"
+                }
+              },
+              {
+                "value": "other",
+                "label": {
+                  "ja": "その他",
+                  "en": "Other"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "viewer": {
+        "minZoom": 5,
+        "icon": "tree-farm",
+        "label": {
+          "tag": "name",
+          "minZoom": 7,
+          "collisionPriority": 50
+        }
+      }
+    },
+    {
       "id": "place.base",
       "displayName": {
         "ja": "拠点",

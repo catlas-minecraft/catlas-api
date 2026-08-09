@@ -7,13 +7,58 @@ describe("feature assignment", () => {
   test("offers only features compatible with the entity geometry", () => {
     expect(
       assignableFeaturesForEntity(defaultFeatureRegistry, node(1)).map((feature) => feature.id),
-    ).toEqual(["portal.nether", "facility.automatic_storage", "facility.storage", "place.base"]);
+    ).toEqual([
+      "portal.nether",
+      "facility.automatic_storage",
+      "facility.storage",
+      "facility.farm",
+      "facility.tree_farm",
+      "place.base",
+    ]);
     expect(
       assignableFeaturesForEntity(defaultFeatureRegistry, area(1, [1, 2, 3, 1])).map(
         (feature) => feature.id,
       ),
-    ).toEqual(["facility.automatic_storage", "facility.storage", "place.base"]);
+    ).toEqual([
+      "facility.automatic_storage",
+      "facility.storage",
+      "facility.farm",
+      "facility.tree_farm",
+      "place.base",
+    ]);
     expect(assignableFeaturesForEntity(defaultFeatureRegistry, line(1, [1, 2]))).toEqual([]);
+  });
+
+  test("resolves optional crop and tree tags without requiring them", () => {
+    expect(
+      defaultFeatureRegistry.resolve({
+        kind: "area",
+        tags: { facility: "farm", crop: "wheat" },
+      }).primary?.id,
+    ).toBe("facility.farm");
+    expect(
+      defaultFeatureRegistry.resolve({
+        kind: "area",
+        tags: { facility: "tree_farm", tree: "oak" },
+      }).primary?.id,
+    ).toBe("facility.tree_farm");
+    expect(
+      defaultFeatureRegistry.resolve({ kind: "area", tags: { facility: "farm" } }).primary?.id,
+    ).toBe("facility.farm");
+    expect(
+      defaultFeatureRegistry.resolve({ kind: "area", tags: { facility: "tree_farm" } }).primary?.id,
+    ).toBe("facility.tree_farm");
+  });
+
+  test("round trips each creation tag set to its feature", () => {
+    for (const id of ["facility.farm", "facility.tree_farm"] as const) {
+      const feature = defaultFeatureRegistry.featuresById.get(id)!;
+      const create = feature.editor?.create!;
+
+      expect(
+        defaultFeatureRegistry.resolve({ kind: create.kind, tags: create.tags }).primary?.id,
+      ).toBe(id);
+    }
   });
 
   test("preserves existing tags while applying canonical feature tags", () => {
