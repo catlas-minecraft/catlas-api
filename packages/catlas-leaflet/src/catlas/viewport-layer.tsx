@@ -80,6 +80,7 @@ type ResolvedPath = {
   readonly coordinate: LatLngTuple;
   readonly coordinates: readonly LatLngTuple[];
   readonly feature: ViewportFeature | null;
+  readonly featureVisible: boolean;
   readonly id: number;
 };
 
@@ -347,13 +348,15 @@ const ViewportLayerInner = ({
       if (coordinates.length < 2) continue;
 
       const feature = featureRegistry.resolve({ kind: way.geometryKind, tags: way.tags }).primary;
-      if (feature?.viewer && view.zoom < feature.viewer.minZoom) continue;
+      const featureVisible = !feature?.viewer || view.zoom >= feature.viewer.minZoom;
+      if (way.geometryKind !== "area" && !featureVisible) continue;
       const coordinate = anchorForPath(coordinates, way.geometryKind);
       const path = {
         id: way.id,
         coordinates,
         coordinate,
         feature,
+        featureVisible,
         accessibleName: accessibleNameFor(
           way.geometryKind,
           way.tags,
@@ -412,19 +415,23 @@ const ViewportLayerInner = ({
           opacity={0.95}
         />
       ))}
-      {layers.polygons.concat(layers.polylines).map(({ id, coordinate, feature }) => {
-        const iconId = feature?.viewer?.icon;
-        const icon = iconId ? iconForFeature(iconId) : null;
-        return icon ? (
-          <Marker
-            key={`path-marker-${id}-${iconId}`}
-            icon={icon}
-            interactive={false}
-            keyboard={false}
-            position={coordinate}
-          />
-        ) : null;
-      })}
+      {layers.polygons
+        .concat(layers.polylines)
+        .map(({ id, coordinate, feature, featureVisible }) => {
+          if (!featureVisible) return null;
+
+          const iconId = feature?.viewer?.icon;
+          const icon = iconId ? iconForFeature(iconId) : null;
+          return icon ? (
+            <Marker
+              key={`path-marker-${id}-${iconId}`}
+              icon={icon}
+              interactive={false}
+              keyboard={false}
+              position={coordinate}
+            />
+          ) : null;
+        })}
       {layers.markers.map(({ id, coordinate, feature }) => {
         const iconId = feature?.viewer?.icon;
         const icon = iconId ? iconForFeature(iconId) : null;
