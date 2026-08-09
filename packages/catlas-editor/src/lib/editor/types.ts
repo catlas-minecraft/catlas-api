@@ -84,6 +84,7 @@ export type EditorAuthConfig = {
 
 export type EditorSnapshot = {
   readonly mode: EditorMode;
+  readonly activeFeatureId: string | null;
   readonly cursor: Point3D | null;
   readonly selection: EntityRef | null;
   readonly selectedEntity: EditorEntity | null;

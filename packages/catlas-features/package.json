@@ -1,0 +1,20 @@
+{
+  "name": "@catlas/features",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./localization": "./src/localization.ts",
+    "./features.json": "./features.json",
+    "./features.schema.json": "./features.schema.json"
+  },
+  "scripts": {
+    "check": "vp check",
+    "test": "vp test"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite-plus": "catalog:"
+  }
+}

@@ -1,6 +1,12 @@
-# vite-plus-starter
+# @catlas/leaflet
 
-A starter for creating a Vite Plus project.
+Shared React and Leaflet components for Catlas maps.
+
+Import the feature marker and label styles once in the consuming application:
+
+```ts
+import "@catlas/leaflet/styles.css";
+```
 
 ## Development
 

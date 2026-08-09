@@ -1,0 +1,53 @@
+.catlas-feature-icon-wrapper,
+.catlas-feature-label-wrapper {
+  background: transparent;
+  border: 0;
+}
+
+.catlas-feature-icon {
+  align-items: center;
+  background: rgb(15 23 42 / 92%);
+  border: 1px solid rgb(255 255 255 / 38%);
+  border-radius: 7px;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 35%);
+  color: #f8fafc;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.catlas-feature-icon svg {
+  fill: none;
+  height: 19px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+  width: 19px;
+}
+
+.catlas-feature-label {
+  background: rgb(15 23 42 / 88%);
+  border-radius: 5px;
+  box-shadow: 0 1px 4px rgb(15 23 42 / 28%);
+  color: #f8fafc;
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 24px;
+  overflow: hidden;
+  padding-inline: 8px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catlas-map-summary {
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

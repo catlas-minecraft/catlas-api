@@ -4,6 +4,7 @@ import { routeTree } from "./routeTree.gen";
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "@catlas/leaflet/styles.css";
 
 // Fix Leaflet marker icon paths for Vite/production build
 import icon from "leaflet/dist/images/marker-icon.png";

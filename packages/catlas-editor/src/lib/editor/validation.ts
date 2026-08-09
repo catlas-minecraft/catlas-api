@@ -1,3 +1,4 @@
+import type { FeatureRegistry } from "@catlas/features";
 import { Graph } from "../graph";
 import type { EntityRef, ValidationIssue } from "./types";
 
@@ -88,5 +89,33 @@ export const validateGraph = (graph: Graph): readonly ValidationIssue[] => {
     }
   }
 
+  return issues;
+};
+
+export const validateFeatureFields = (
+  graph: Graph,
+  registry: FeatureRegistry,
+): readonly ValidationIssue[] => {
+  const issues: ValidationIssue[] = [];
+  for (const entity of graph.entities()) {
+    const feature = registry.resolve({
+      kind: entity.type === "node" ? "node" : entity.geometryKind,
+      tags: entity.tags,
+    }).primary;
+    if (!feature) continue;
+    for (const field of feature.editor?.fields ?? []) {
+      if (!field.required || (Object.hasOwn(entity.tags, field.tag) && entity.tags[field.tag])) {
+        continue;
+      }
+      issues.push(
+        issue(
+          `required-${entity.type[0]}${entity.id}-${field.tag}`,
+          "error",
+          `${field.tag} is required for ${feature.id}.`,
+          { type: entity.type, id: entity.id },
+        ),
+      );
+    }
+  }
   return issues;
 };

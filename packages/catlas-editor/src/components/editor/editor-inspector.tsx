@@ -1,10 +1,14 @@
 import { Badge } from "@/components/ui/badge";
+import { resolveLocalizedText } from "@catlas/features";
+import { useState } from "react";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import type { CatlasEditor, EditorSnapshot } from "@/lib/editor";
 import { entityKey, geometryTypeForEntity } from "@/lib/editor/types";
 import { EditorChangesReview } from "./editor-changes-review";
+import { EditorFeaturePickerSection } from "./inspector/editor-feature-picker-section";
 import { InspectorSection } from "./inspector/editor-inspector-section";
+import { EditorFeatureSection } from "./inspector/editor-feature-section";
 import { EditorTagsSection } from "./inspector/editor-tags-section";
 import { useEditorSnapshot } from "./use-editor-snapshot";
 
@@ -21,6 +25,7 @@ function InspectorContent({ editor }: { readonly editor: CatlasEditor }) {
 }
 
 function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: EditorSnapshot }) {
+  const [focusAppliedFeature, setFocusAppliedFeature] = useState(false);
   const entity = snapshot.selectedEntity;
 
   const geometry = entity ? geometryTypeForEntity(entity) : null;
@@ -29,15 +34,26 @@ function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: Edito
     return <EditorChangesReview editor={editor} snapshot={snapshot} />;
   }
 
+  const resolution = editor.resolveFeature(entity);
+  const feature = resolution.primary;
+  const featureName = feature
+    ? resolveLocalizedText(
+        feature.displayName,
+        navigator.language,
+        editor.featureRegistry.document.defaultLocale,
+      )
+    : null;
+
   return (
     <aside className="inspector tags-inspector dark flex h-full min-h-0 min-w-0 flex-col bg-background text-foreground">
       <header className="inspector__header flex min-h-16 flex-[0_0_auto] items-start justify-between gap-2 border-b border-border/70 bg-background p-3 [&>div]:min-w-0">
         <div>
           <span className="eyebrow text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-            {geometry}
+            {geometry} · {featureName ?? "Unknown feature"}
           </span>
           <h2 className="mt-0.5 truncate text-sm font-semibold leading-tight text-foreground">
             {entity.tags.name ||
+              featureName ||
               (geometry === "point" ? "Point" : geometry === "line" ? "Line" : "Area")}
           </h2>
         </div>
@@ -76,6 +92,24 @@ function Inspector({ editor, snapshot }: { editor: CatlasEditor; snapshot: Edito
             ) : null}
           </FieldGroup>
         </InspectorSection>
+        {feature ? (
+          <EditorFeatureSection
+            editor={editor}
+            entity={entity}
+            feature={feature}
+            focusOnMount={focusAppliedFeature}
+          />
+        ) : (
+          <EditorFeaturePickerSection
+            editor={editor}
+            entity={entity}
+            onApplyFeature={(featureId) => {
+              if (editor.applyFeature({ type: entity.type, id: entity.id }, featureId)) {
+                setFocusAppliedFeature(true);
+              }
+            }}
+          />
+        )}
         <EditorTagsSection editor={editor} entity={entity} />
       </div>
     </aside>

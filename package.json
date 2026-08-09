@@ -2,6 +2,7 @@
   "private": true,
   "workspaces": [
     "packages/catlas-editor",
+    "packages/catlas-features",
     "packages/catlas-leaflet",
     "packages/catlas-viewer",
     "packages/domain",
@@ -17,7 +18,7 @@
     "db:down:volumes": "docker compose down -v",
     "db:up": "docker compose up -d",
     "db:schema": "bash scripts/generate-diesel-schema.sh",
-    "build": "tsc -b tsconfig.build.json && pnpm --recursive --parallel run build",
+    "build": "tsc -b tsconfig.build.json && pnpm --recursive run build",
     "check": "tsc -b tsconfig.json",
     "check-recursive": "pnpm --recursive exec tsc -b tsconfig.json",
     "db:migrate": "cargo run -p catlas-api --bin migrate --quiet",

@@ -1,0 +1,200 @@
+{
+  "$schema": "./features.schema.json",
+  "schemaVersion": "1.0.0",
+  "defaultLocale": "ja",
+  "categories": [
+    {
+      "id": "portal",
+      "displayName": {
+        "ja": "ポータル",
+        "en": "Portal"
+      }
+    },
+    {
+      "id": "facility",
+      "displayName": {
+        "ja": "施設",
+        "en": "Facility"
+      }
+    },
+    {
+      "id": "place",
+      "displayName": {
+        "ja": "場所",
+        "en": "Place"
+      }
+    }
+  ],
+  "features": [
+    {
+      "id": "portal.nether",
+      "displayName": {
+        "ja": "ネザーポータル",
+        "en": "Nether portal"
+      },
+      "category": "portal",
+      "appliesTo": ["node"],
+      "match": {
+        "tags": {
+          "portal": "nether"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "node",
+          "tags": {
+            "portal": "nether"
+          }
+        },
+        "snapPolicy": "half",
+        "fields": [
+          {
+            "type": "text",
+            "tag": "name",
+            "label": {
+              "ja": "名前",
+              "en": "Name"
+            }
+          }
+        ]
+      },
+      "viewer": {
+        "minZoom": 4,
+        "icon": "nether-portal",
+        "label": {
+          "tag": "name",
+          "minZoom": 6,
+          "collisionPriority": 80
+        }
+      }
+    },
+    {
+      "id": "facility.automatic_storage",
+      "displayName": {
+        "ja": "自動倉庫",
+        "en": "Automatic storage"
+      },
+      "category": "facility",
+      "appliesTo": ["node", "area"],
+      "match": {
+        "tags": {
+          "facility": "storage",
+          "automation": "redstone"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "node",
+          "tags": {
+            "facility": "storage",
+            "automation": "redstone"
+          }
+        },
+        "snapPolicy": "half",
+        "fields": [
+          {
+            "type": "text",
+            "tag": "name",
+            "label": {
+              "ja": "名前",
+              "en": "Name"
+            }
+          }
+        ]
+      },
+      "viewer": {
+        "minZoom": 5,
+        "icon": "automatic-storage",
+        "label": {
+          "tag": "name",
+          "minZoom": 7,
+          "collisionPriority": 60
+        }
+      }
+    },
+    {
+      "id": "facility.storage",
+      "displayName": {
+        "ja": "倉庫",
+        "en": "Storage"
+      },
+      "category": "facility",
+      "appliesTo": ["node", "area"],
+      "match": {
+        "tags": {
+          "facility": "storage"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "node",
+          "tags": {
+            "facility": "storage"
+          }
+        },
+        "snapPolicy": "half",
+        "fields": [
+          {
+            "type": "text",
+            "tag": "name",
+            "label": {
+              "ja": "名前",
+              "en": "Name"
+            }
+          }
+        ]
+      },
+      "viewer": {
+        "minZoom": 6,
+        "icon": "chest",
+        "label": {
+          "tag": "name",
+          "minZoom": 8,
+          "collisionPriority": 40
+        }
+      }
+    },
+    {
+      "id": "place.base",
+      "displayName": {
+        "ja": "拠点",
+        "en": "Base"
+      },
+      "category": "place",
+      "appliesTo": ["node", "area"],
+      "match": {
+        "tags": {
+          "place": "base"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "node",
+          "tags": {
+            "place": "base"
+          }
+        },
+        "snapPolicy": "half",
+        "fields": [
+          {
+            "type": "text",
+            "tag": "name",
+            "label": {
+              "ja": "名前",
+              "en": "Name"
+            }
+          }
+        ]
+      },
+      "viewer": {
+        "minZoom": 2,
+        "icon": "base",
+        "label": {
+          "tag": "name",
+          "minZoom": 3,
+          "collisionPriority": 100
+        }
+      }
+    }
+  ]
+}

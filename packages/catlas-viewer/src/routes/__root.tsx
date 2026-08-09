@@ -4,13 +4,14 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 
 import "../style.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 
 export const Route = createRootRoute({
   component: RootComponent,
 });
 
 function RootComponent() {
-  const client = new QueryClient();
+  const [client] = useState(() => new QueryClient());
   return (
     <>
       <QueryClientProvider client={client}>

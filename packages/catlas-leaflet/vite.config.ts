@@ -7,10 +7,15 @@ export default defineConfig({
   },
   pack: {
     entry: ["src/index.ts"],
-    dts: {
-      tsgo: true,
+    deps: {
+      alwaysBundle: ["@catlas/features"],
     },
-    exports: true,
+    dts: true,
+    exports: {
+      customExports: {
+        "./styles.css": "./src/catlas/features.css",
+      },
+    },
   },
   lint: {
     options: {

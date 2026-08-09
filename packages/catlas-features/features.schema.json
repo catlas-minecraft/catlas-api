@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://catlas.dev/schemas/features-1.0.0.json",
+  "title": "Catlas feature registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "defaultLocale", "categories", "features"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "defaultLocale": { "$ref": "#/$defs/nonEmptyString" },
+    "categories": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/category" }
+    },
+    "features": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/feature" }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "localizedText": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[A-Za-z0-9-]+$" },
+      "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "tags": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/nonEmptyString" },
+      "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "category": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "displayName": { "$ref": "#/$defs/localizedText" }
+      }
+    },
+    "fieldOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "label"],
+      "properties": {
+        "value": { "$ref": "#/$defs/nonEmptyString" },
+        "label": { "$ref": "#/$defs/localizedText" }
+      }
+    },
+    "field": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "tag", "label"],
+          "properties": {
+            "type": { "const": "text" },
+            "tag": { "$ref": "#/$defs/nonEmptyString" },
+            "label": { "$ref": "#/$defs/localizedText" },
+            "required": { "type": "boolean" },
+            "placeholder": { "$ref": "#/$defs/localizedText" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "tag", "label", "options"],
+          "properties": {
+            "type": { "const": "select" },
+            "tag": { "$ref": "#/$defs/nonEmptyString" },
+            "label": { "$ref": "#/$defs/localizedText" },
+            "required": { "type": "boolean" },
+            "allowUnset": { "type": "boolean" },
+            "options": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/fieldOption" }
+            }
+          }
+        }
+      ]
+    },
+    "feature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "category", "appliesTo", "match"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*(?:\\.[a-z][a-z0-9_-]*)+$"
+        },
+        "displayName": { "$ref": "#/$defs/localizedText" },
+        "category": { "$ref": "#/$defs/nonEmptyString" },
+        "appliesTo": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["node", "line", "area", "relation"] }
+        },
+        "match": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tags"],
+          "properties": {
+            "priority": { "type": "integer" },
+            "tags": { "$ref": "#/$defs/tags" }
+          }
+        },
+        "editor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "create": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "tags"],
+              "properties": {
+                "kind": { "enum": ["node", "line", "area"] },
+                "tags": { "$ref": "#/$defs/tags" }
+              }
+            },
+            "snapPolicy": { "enum": ["integer", "half", "free"] },
+            "fields": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/field" }
+            }
+          }
+        },
+        "viewer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["minZoom"],
+          "properties": {
+            "minZoom": { "type": "integer", "minimum": 0 },
+            "icon": { "$ref": "#/$defs/nonEmptyString" },
+            "label": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["tag", "minZoom", "collisionPriority"],
+              "properties": {
+                "tag": { "$ref": "#/$defs/nonEmptyString" },
+                "minZoom": { "type": "integer", "minimum": 0 },
+                "collisionPriority": { "type": "integer" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

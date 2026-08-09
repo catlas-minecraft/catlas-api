@@ -1,4 +1,10 @@
 import * as d3 from "d3";
+import {
+  defaultFeatureRegistry,
+  type FeatureRegistry,
+  type FeatureResolution,
+  type ResolvedFeature,
+} from "@catlas/features";
 import type { Graph } from "./graph";
 import { addEntities, insertNodeIntoWay, moveNode, updateEntityProperties } from "./editor/actions";
 import { createEditorApi, type EditorApiService } from "./editor/api-client";
@@ -15,6 +21,7 @@ import type {
   EditorAuthConfig,
   EditorAuthState,
   EditorContextMenu,
+  EditorEntity,
   EditorMode,
   EditorSaveState,
   EditorSnapshot,
@@ -32,11 +39,13 @@ import {
   getZoomScaleExtent,
   screenToWorld,
 } from "./editor/util";
-import { validateGraph } from "./editor/validation";
+import { validateFeatureFields, validateGraph } from "./editor/validation";
+import { featureAssignmentTags } from "./editor/features";
 
 export type CatlasEditorOptions = {
   readonly worldSlug: string;
   readonly apiBaseUrl?: string;
+  readonly featureRegistry?: FeatureRegistry;
   readonly tileUrl?: string;
 };
 
@@ -93,6 +102,7 @@ const errorMessage = (error: unknown) => {
 export class CatlasEditor {
   readonly worldSlug: string;
   readonly #api: EditorApiService;
+  readonly #featureRegistry: FeatureRegistry;
   readonly #history = new History();
   readonly #listeners = new Set<() => void>();
   readonly #overlay: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -102,6 +112,7 @@ export class CatlasEditor {
   readonly #tiles: TileCanvasLayer;
   readonly #zoom: d3.ZoomBehavior<SVGSVGElement, unknown>;
   #activeDrag: ActiveDrag | null = null;
+  #activeFeatureId: string | null = null;
   #authState: EditorAuthState = { status: "checking" };
   #authConfig: EditorAuthConfig = { oidcEnabled: false, developerAuthEnabled: false };
   readonly #canvasClickSuppression = new CanvasClickSuppression();
@@ -132,6 +143,7 @@ export class CatlasEditor {
     this.#root = root;
     this.worldSlug = options.worldSlug;
     this.#api = createEditorApi(options.apiBaseUrl ?? window.location.origin, options.worldSlug);
+    this.#featureRegistry = options.featureRegistry ?? defaultFeatureRegistry;
     this.#tiles = new TileCanvasLayer(root, options.tileUrl);
 
     const overlay = createSvgElement();
@@ -208,6 +220,17 @@ export class CatlasEditor {
     };
   };
 
+  get featureRegistry() {
+    return this.#featureRegistry;
+  }
+
+  resolveFeature(entity: EditorEntity): FeatureResolution {
+    return this.#featureRegistry.resolve({
+      kind: entity.type === "node" ? "node" : entity.geometryKind,
+      tags: entity.tags,
+    });
+  }
+
   getChangesetReview() {
     const base = this.#history.base;
     const current = this.#history.graph;
@@ -270,13 +293,27 @@ export class CatlasEditor {
   }
 
   setMode(mode: EditorMode) {
+    this.#setMode(mode, null);
+  }
+
+  setCreationFeature(featureId: string) {
+    const feature = this.#featureRegistry.featuresById.get(featureId);
+    const create = feature?.editor?.create;
+    if (!feature || !create) return;
+    const mode =
+      create.kind === "node" ? "add-point" : create.kind === "line" ? "draw-line" : "draw-area";
+    this.#setMode(mode, feature.id);
+  }
+
+  #setMode(mode: EditorMode, activeFeatureId: string | null) {
     const previewCleared = this.#clearChangePreview();
     const contextMenuCleared = this.#clearContextMenu();
-    if (mode === this.#mode) {
+    if (mode === this.#mode && activeFeatureId === this.#activeFeatureId) {
       if (previewCleared || contextMenuCleared) this.#emit();
       return;
     }
     this.#mode = mode;
+    this.#activeFeatureId = activeFeatureId;
     const geometry = modeGeometry(mode);
     this.#drawing =
       geometry === "line" || geometry === "area"
@@ -356,19 +393,37 @@ export class CatlasEditor {
   }
 
   updateTag(key: string, value: string) {
-    if (!this.#selection || key.trim() === "") return;
-    const entity = this.#history.graph.entity(this.#selection);
+    if (!this.#selection) return;
+    this.updateEntityTag(this.#selection, key, value);
+  }
+
+  updateEntityTag(ref: EntityRef, key: string, value: string) {
+    if (key.trim() === "") return;
+    const entity = this.#history.graph.entity(ref);
     if (!entity) return;
-    this.#updateSelection({ tags: { ...entity.tags, [key.trim()]: value } }, `Change ${key} tag`);
+    this.#updateEntity(ref, { tags: { ...entity.tags, [key.trim()]: value } }, `Change ${key} tag`);
   }
 
   removeTag(key: string) {
     if (!this.#selection) return;
-    const entity = this.#history.graph.entity(this.#selection);
-    if (!entity || !(key in entity.tags)) return;
+    this.removeEntityTag(this.#selection, key);
+  }
+
+  removeEntityTag(ref: EntityRef, key: string) {
+    const entity = this.#history.graph.entity(ref);
+    if (!entity || !Object.hasOwn(entity.tags, key)) return;
     const tags = { ...entity.tags };
     delete tags[key];
-    this.#updateSelection({ tags }, `Remove ${key} tag`);
+    this.#updateEntity(ref, { tags }, `Remove ${key} tag`);
+  }
+
+  applyFeature(ref: EntityRef, featureId: string) {
+    const entity = this.#history.graph.entity(ref);
+    const feature = this.#featureRegistry.featuresById.get(featureId);
+    if (!entity || !feature || this.resolveFeature(entity).primary) return false;
+    const tags = featureAssignmentTags(this.#featureRegistry, entity, feature);
+    if (!tags) return false;
+    return this.#updateEntity(ref, { tags }, `Apply ${feature.id} feature`);
   }
 
   finishDrawing() {
@@ -403,7 +458,7 @@ export class CatlasEditor {
       type: "way" as const,
       id: wayId,
       version: 0,
-      tags: {},
+      tags: { ...this.#activeCreationFeature(drawing.geometryKind)?.editor?.create?.tags },
       geometryKind: drawing.geometryKind,
       nodeIds,
     };
@@ -418,6 +473,7 @@ export class CatlasEditor {
       this.#clearContextMenu();
       this.#selection = { type: "way", id: wayId };
       this.#mode = "browse";
+      this.#activeFeatureId = null;
       this.#drawing = null;
       this.#emit();
     }
@@ -427,6 +483,7 @@ export class CatlasEditor {
     if (!this.#drawing) return;
     this.#clearContextMenu();
     this.#mode = "browse";
+    this.#activeFeatureId = null;
     this.#drawing = null;
     this.#emit();
   }
@@ -441,7 +498,7 @@ export class CatlasEditor {
       this.#emit();
       return;
     }
-    const issues = validateGraph(this.#history.graph);
+    const issues = this.#validationIssues();
     if (issues.some((issue) => issue.severity === "error")) {
       this.#saveState = {
         status: "error",
@@ -523,9 +580,19 @@ export class CatlasEditor {
 
   #updateSelection(properties: Parameters<typeof updateEntityProperties>[1], annotation: string) {
     if (!this.#selection) return;
-    if (this.#history.perform(updateEntityProperties(this.#selection, properties), annotation)) {
+    this.#updateEntity(this.#selection, properties, annotation);
+  }
+
+  #updateEntity(
+    ref: EntityRef,
+    properties: Parameters<typeof updateEntityProperties>[1],
+    annotation: string,
+  ) {
+    if (this.#history.perform(updateEntityProperties(ref, properties), annotation)) {
       this.#emit();
+      return true;
     }
+    return false;
   }
 
   #handleCanvasClick(event: MouseEvent) {
@@ -594,6 +661,7 @@ export class CatlasEditor {
 
     if (this.#mode === "add-point") {
       this.#mode = "browse";
+      this.#activeFeatureId = null;
       this.select(ref);
       if (contextMenuCleared) this.#emit();
       return;
@@ -641,7 +709,11 @@ export class CatlasEditor {
       if (contextMenuCleared) this.#emit();
       return;
     }
-    const snapped = snapPoint(point, way.geometryKind === "area" ? "integer" : "half");
+    const feature = this.resolveFeature(way).primary;
+    const snapped = snapPoint(
+      point,
+      feature?.editor?.snapPolicy ?? (way.geometryKind === "area" ? "integer" : "half"),
+    );
     const nodeId = this.#nextLocalNodeId--;
     const node = {
       type: "node" as const,
@@ -786,18 +858,20 @@ export class CatlasEditor {
   }
 
   #createPoint(point: Point3D) {
+    const feature = this.#activeCreationFeature("node");
     const id = this.#nextLocalNodeId--;
     const node = {
       type: "node" as const,
       id,
       version: 0,
-      tags: {},
-      geom: snapPoint(point, "half"),
+      tags: { ...feature?.editor?.create?.tags },
+      geom: snapPoint(point, feature?.editor?.snapPolicy ?? "half"),
     };
     if (this.#history.perform(addEntities([node]), "Add Point")) {
       this.#clearContextMenu();
       this.#selection = { type: "node", id };
       this.#mode = "browse";
+      this.#activeFeatureId = null;
       this.#emit();
     }
   }
@@ -805,19 +879,32 @@ export class CatlasEditor {
   #snapForMode(point: Point3D) {
     const geometry = modeGeometry(this.#mode);
     if (!geometry) return point;
-    return snapPoint(point, geometry === "area" ? "integer" : "half");
+    const feature = this.#activeCreationFeature(geometry === "point" ? "node" : geometry);
+    return snapPoint(
+      point,
+      feature?.editor?.snapPolicy ?? (geometry === "area" ? "integer" : "half"),
+    );
   }
 
   #snapPolicyForNode(nodeId: number): SnapPolicy {
-    const parentArea = this.#history.graph
-      .parentWays(nodeId)
-      .find((way) => way.geometryKind === "area");
-    if (parentArea) {
-      return "integer";
-    }
+    const parentWays = this.#history.graph.parentWays(nodeId);
+    const parentPolicies = parentWays.map(
+      (way) =>
+        this.resolveFeature(way).primary?.editor?.snapPolicy ??
+        (way.geometryKind === "area" ? "integer" : "half"),
+    );
+    if (parentPolicies.includes("integer")) return "integer";
+    if (parentPolicies.includes("half")) return "half";
+    if (parentPolicies.includes("free")) return "free";
     const node = this.#history.graph.node(nodeId);
     if (!node) return "half";
-    return "half";
+    return this.resolveFeature(node).primary?.editor?.snapPolicy ?? "half";
+  }
+
+  #activeCreationFeature(kind: "node" | "line" | "area"): ResolvedFeature | null {
+    if (!this.#activeFeatureId) return null;
+    const feature = this.#featureRegistry.featuresById.get(this.#activeFeatureId);
+    return feature?.editor?.create?.kind === kind ? feature : null;
   }
 
   #pointFromEvent(event: MouseEvent | PointerEvent, y = 0) {
@@ -859,6 +946,7 @@ export class CatlasEditor {
       : null;
     return {
       mode: this.#mode,
+      activeFeatureId: this.#activeFeatureId,
       cursor: this.#cursor,
       selection: this.#selection,
       selectedEntity,
@@ -870,11 +958,18 @@ export class CatlasEditor {
       loadError: this.#loadError,
       drawing: this.#drawing,
       contextMenu: this.#contextMenu,
-      issues: validateGraph(this.#history.graph),
+      issues: this.#validationIssues(),
       save: this.#saveState,
       auth: this.#authState,
       authConfig: this.#authConfig,
     };
+  }
+
+  #validationIssues() {
+    return [
+      ...validateGraph(this.#history.graph),
+      ...validateFeatureFields(this.#history.graph, this.#featureRegistry),
+    ];
   }
 
   async #loadAuthConfig() {
