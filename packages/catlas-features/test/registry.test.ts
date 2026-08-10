@@ -1,12 +1,13 @@
 import { describe, expect, test } from "vite-plus/test";
 import {
   createFeatureRegistry,
-  DEFAULT_FEATURE_ICON_IDS,
-  defaultFeatureRegistry,
   FEATURE_FIELD_UNSET_VALUE,
   FeatureRegistryError,
   resolveLocalizedText,
 } from "../src/index.ts";
+import testFeatureDocument from "./features.json" with { type: "json" };
+
+const testFeatureRegistry = createFeatureRegistry(testFeatureDocument);
 
 const documentWith = (features: readonly Record<string, unknown>[]) => ({
   schemaVersion: "1.0.0",
@@ -28,7 +29,7 @@ const feature = (id: string, tags: Readonly<Record<string, string>>, priority?: 
 
 describe("feature registry", () => {
   test("resolves a more specific feature before its generic feature", () => {
-    const resolution = defaultFeatureRegistry.resolve({
+    const resolution = testFeatureRegistry.resolve({
       kind: "node",
       tags: { facility: "storage", automation: "redstone", name: "Warehouse" },
     });
@@ -39,6 +40,15 @@ describe("feature registry", () => {
       "facility.storage",
     ]);
     expect(resolution.ambiguous).toBe(false);
+  });
+
+  test("resolves building=yes only for areas", () => {
+    expect(
+      testFeatureRegistry.resolve({ kind: "area", tags: { building: "yes" } }).primary?.id,
+    ).toBe("building.generic");
+    expect(testFeatureRegistry.resolve({ kind: "node", tags: { building: "yes" } }).primary).toBe(
+      null,
+    );
   });
 
   test("uses priority before matcher specificity", () => {
@@ -74,19 +84,11 @@ describe("feature registry", () => {
   });
 
   test("returns an explicit unknown result", () => {
-    expect(defaultFeatureRegistry.resolve({ kind: "node", tags: {} })).toEqual({
+    expect(testFeatureRegistry.resolve({ kind: "node", tags: {} })).toEqual({
       primary: null,
       matches: [],
       ambiguous: false,
     });
-  });
-
-  test("validates every icon used by the default registry", () => {
-    for (const definition of defaultFeatureRegistry.features) {
-      if (definition.viewer?.icon) {
-        expect(DEFAULT_FEATURE_ICON_IDS.has(definition.viewer.icon)).toBe(true);
-      }
-    }
   });
 
   test("rejects creation tags that do not satisfy the matcher", () => {

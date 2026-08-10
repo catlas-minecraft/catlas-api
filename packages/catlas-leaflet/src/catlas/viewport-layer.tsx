@@ -101,6 +101,7 @@ type LabelCandidate = {
 
 const ICON_PATHS: Readonly<Record<string, string>> = {
   base: '<path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/>',
+  building: '<path d="M4 21V9l8-5 8 5v12M4 21h16M9 21v-5h6v5M8 11h2M14 11h2"/>',
   chest: '<path d="M4 7h16v12H4zM4 11h16M10 11v3h4v-3M6 7V5h12v2"/>',
   "automatic-storage":
     '<path d="M4 6h7v6H4zM13 12h7v6h-7zM15 5h4v4M19 5l-5 5M9 19H5v-4M5 19l5-5"/>',

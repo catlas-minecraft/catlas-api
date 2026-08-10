@@ -11,6 +11,13 @@
       }
     },
     {
+      "id": "building",
+      "displayName": {
+        "ja": "建物",
+        "en": "Building"
+      }
+    },
+    {
       "id": "facility",
       "displayName": {
         "ja": "施設",
@@ -63,8 +70,49 @@
         "icon": "nether-portal",
         "label": {
           "tag": "name",
-          "minZoom": 6,
+          "minZoom": 8,
           "collisionPriority": 80
+        }
+      }
+    },
+    {
+      "id": "building.generic",
+      "displayName": {
+        "ja": "建物",
+        "en": "Building"
+      },
+      "category": "building",
+      "appliesTo": ["area"],
+      "match": {
+        "tags": {
+          "building": "yes"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "area",
+          "tags": {
+            "building": "yes"
+          }
+        },
+        "snapPolicy": "half",
+        "fields": [
+          {
+            "type": "text",
+            "tag": "name",
+            "label": {
+              "ja": "名前",
+              "en": "Name"
+            }
+          }
+        ]
+      },
+      "viewer": {
+        "minZoom": 4,
+        "label": {
+          "tag": "name",
+          "minZoom": 6,
+          "collisionPriority": 60
         }
       }
     },
@@ -119,7 +167,7 @@
         "en": "Storage"
       },
       "category": "facility",
-      "appliesTo": ["node", "area"],
+      "appliesTo": ["node"],
       "match": {
         "tags": {
           "facility": "storage"
@@ -145,7 +193,7 @@
         ]
       },
       "viewer": {
-        "minZoom": 6,
+        "minZoom": 5,
         "icon": "chest",
         "label": {
           "tag": "name",
@@ -268,7 +316,7 @@
         ]
       },
       "viewer": {
-        "minZoom": 2,
+        "minZoom": 4,
         "icon": "farm",
         "label": {
           "tag": "name",
@@ -407,7 +455,7 @@
         "en": "Base"
       },
       "category": "place",
-      "appliesTo": ["node", "area"],
+      "appliesTo": ["node"],
       "match": {
         "tags": {
           "place": "base"
@@ -437,7 +485,7 @@
         "icon": "base",
         "label": {
           "tag": "name",
-          "minZoom": 3,
+          "minZoom": 5,
           "collisionPriority": 100
         }
       }

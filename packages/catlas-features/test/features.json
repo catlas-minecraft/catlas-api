@@ -1,0 +1,193 @@
+{
+  "$schema": "../features.schema.json",
+  "schemaVersion": "1.0.0",
+  "defaultLocale": "ja",
+  "categories": [
+    {
+      "id": "portal",
+      "displayName": {
+        "ja": "ポータル",
+        "en": "Portal"
+      }
+    },
+    {
+      "id": "building",
+      "displayName": {
+        "ja": "建物",
+        "en": "Building"
+      }
+    },
+    {
+      "id": "facility",
+      "displayName": {
+        "ja": "施設",
+        "en": "Facility"
+      }
+    },
+    {
+      "id": "place",
+      "displayName": {
+        "ja": "場所",
+        "en": "Place"
+      }
+    }
+  ],
+  "features": [
+    {
+      "id": "portal.nether",
+      "displayName": {
+        "ja": "ネザーポータル",
+        "en": "Nether portal"
+      },
+      "category": "portal",
+      "appliesTo": ["node"],
+      "match": {
+        "tags": {
+          "portal": "nether"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "node",
+          "tags": {
+            "portal": "nether"
+          }
+        }
+      }
+    },
+    {
+      "id": "building.generic",
+      "displayName": {
+        "ja": "建物",
+        "en": "Building"
+      },
+      "category": "building",
+      "appliesTo": ["area"],
+      "match": {
+        "tags": {
+          "building": "yes"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "area",
+          "tags": {
+            "building": "yes"
+          }
+        }
+      }
+    },
+    {
+      "id": "facility.automatic_storage",
+      "displayName": {
+        "ja": "自動倉庫",
+        "en": "Automatic storage"
+      },
+      "category": "facility",
+      "appliesTo": ["node", "area"],
+      "match": {
+        "tags": {
+          "facility": "storage",
+          "automation": "redstone"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "node",
+          "tags": {
+            "facility": "storage",
+            "automation": "redstone"
+          }
+        }
+      }
+    },
+    {
+      "id": "facility.storage",
+      "displayName": {
+        "ja": "倉庫",
+        "en": "Storage"
+      },
+      "category": "facility",
+      "appliesTo": ["node", "area"],
+      "match": {
+        "tags": {
+          "facility": "storage"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "node",
+          "tags": {
+            "facility": "storage"
+          }
+        }
+      }
+    },
+    {
+      "id": "facility.farm",
+      "displayName": {
+        "ja": "畑",
+        "en": "Farm"
+      },
+      "category": "facility",
+      "appliesTo": ["node", "area"],
+      "match": {
+        "tags": {
+          "facility": "farm"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "area",
+          "tags": {
+            "facility": "farm"
+          }
+        }
+      }
+    },
+    {
+      "id": "facility.tree_farm",
+      "displayName": {
+        "ja": "植林場",
+        "en": "Tree farm"
+      },
+      "category": "facility",
+      "appliesTo": ["node", "area"],
+      "match": {
+        "tags": {
+          "facility": "tree_farm"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "area",
+          "tags": {
+            "facility": "tree_farm"
+          }
+        }
+      }
+    },
+    {
+      "id": "place.base",
+      "displayName": {
+        "ja": "拠点",
+        "en": "Base"
+      },
+      "category": "place",
+      "appliesTo": ["node", "area"],
+      "match": {
+        "tags": {
+          "place": "base"
+        }
+      },
+      "editor": {
+        "create": {
+          "kind": "node",
+          "tags": {
+            "place": "base"
+          }
+        }
+      }
+    }
+  ]
+}
