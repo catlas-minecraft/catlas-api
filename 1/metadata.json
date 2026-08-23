@@ -1,0 +1,68 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01M0R2TNEXTMA9YBFG102SKAA8",
+  "session_id": "01a02fc2-881d-7832-b3be-145994e5ef9d",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-23T19:51:14.840198Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/catlas-solid-ol/src/map-binding.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-luna",
+  "turn_id": "3cd5c813fd8a",
+  "initial_attribution": {
+    "calculated_at": "2026-08-23T19:51:14.839411Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 263,
+    "human_modified": 149,
+    "human_removed": 0,
+    "total_committed": 263,
+    "total_lines_changed": 502,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 3190,
+      "user_lines_removed": 90,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/.gitignore": 4,
+        "packages/catlas-solid-ol/.vscode/extensions.json": 3,
+        "packages/catlas-solid-ol/.vscode/settings.json": 10,
+        "packages/catlas-solid-ol/README.md": 65,
+        "packages/catlas-solid-ol/package.json": 38,
+        "packages/catlas-solid-ol/src/context.ts": 14,
+        "packages/catlas-solid-ol/src/index.ts": 11,
+        "packages/catlas-solid-ol/src/map-binding.ts": 148,
+        "packages/catlas-solid-ol/src/map-item.ts": 32,
+        "packages/catlas-solid-ol/src/map.ts": 33,
+        "packages/catlas-solid-ol/src/types.ts": 33,
+        "packages/catlas-solid-ol/tests/index.test.ts": 265,
+        "packages/catlas-solid-ol/tsconfig.json": 20,
+        "packages/catlas-solid-ol/vite.config.ts": 29,
+        "packages/catlas-viewer-next/.gitignore": 24,
+        "packages/catlas-viewer-next/.vscode/extensions.json": 3,
+        "packages/catlas-viewer-next/index.html": 13,
+        "packages/catlas-viewer-next/package.json": 16,
+        "packages/catlas-viewer-next/public/favicon.svg": 1,
+        "packages/catlas-viewer-next/public/icons.svg": 24,
+        "packages/catlas-viewer-next/src/assets/typescript.svg": 1,
+        "packages/catlas-viewer-next/src/assets/vite.svg": 1,
+        "packages/catlas-viewer-next/src/counter.ts": 9,
+        "packages/catlas-viewer-next/src/main.ts": 60,
+        "packages/catlas-viewer-next/src/style.css": 292,
+        "packages/catlas-viewer-next/tsconfig.json": 24,
+        "pnpm-lock.yaml": 2017
+      },
+      "user_removed_per_file": {
+        "pnpm-lock.yaml": 90
+      }
+    }
+  ]
+}
