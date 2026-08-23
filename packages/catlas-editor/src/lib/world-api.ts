@@ -1,7 +1,6 @@
 import createClient from "openapi-fetch";
 import { json, noContent } from "./api-response";
-import type { components } from "./editor/catlas-api.gen";
-import type { paths } from "./editor/catlas-api.gen";
+import type { components, paths } from "@catlas/api-client";
 
 export type World = components["schemas"]["World"];
 export type Session = components["schemas"]["SessionInfo"];

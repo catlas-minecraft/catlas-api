@@ -1,1 +1,1 @@
-packages/catlas-editor/src/lib/editor/catlas-api.gen.ts
+packages/catlas-api-client/src/generated.ts

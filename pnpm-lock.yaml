@@ -46,9 +46,6 @@ importers:
       glob:
         specifier: ^11.1.0
         version: 11.1.0
-      openapi-typescript:
-        specifier: ^7.13.0
-        version: 7.13.0(typescript@5.9.3)
       portless:
         specifier: 'catalog:'
         version: 0.13.0
@@ -68,8 +65,17 @@ importers:
         specifier: npm:@voidzero-dev/vite-plus-test@^0.1.18
         version: '@voidzero-dev/vite-plus-test@0.1.18(@opentelemetry/api@1.9.1)(@types/node@22.19.17)(@voidzero-dev/vite-plus-core@0.1.18(@types/node@22.19.17)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3))(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)'
 
+  packages/catlas-api-client:
+    devDependencies:
+      openapi-typescript:
+        specifier: ^7.13.0
+        version: 7.13.0(typescript@6.0.3)
+
   packages/catlas-editor:
     dependencies:
+      '@catlas/api-client':
+        specifier: workspace:^
+        version: link:../catlas-api-client
       '@catlas/features':
         specifier: workspace:^
         version: link:../catlas-features
@@ -7489,14 +7495,14 @@ snapshots:
 
   openapi-typescript-helpers@0.1.0: {}
 
-  openapi-typescript@7.13.0(typescript@5.9.3):
+  openapi-typescript@7.13.0(typescript@6.0.3):
     dependencies:
       '@redocly/openapi-core': 1.34.17(supports-color@10.2.2)
       ansi-colors: 4.1.3
       change-case: 5.4.4
       parse-json: 8.3.0
       supports-color: 10.2.2
-      typescript: 5.9.3
+      typescript: 6.0.3
       yargs-parser: 21.1.1
 
   ora@8.2.0:

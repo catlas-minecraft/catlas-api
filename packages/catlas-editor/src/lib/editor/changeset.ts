@@ -1,5 +1,5 @@
 import { entityEqual, Graph } from "../graph";
-import type { components } from "./catlas-api.gen";
+import type { components } from "@catlas/api-client";
 import { entityKey, type EditorEntity, type NodeEntity, type WayEntity } from "./types";
 
 export type ChangesetUploadPayload = components["schemas"]["ChangesetUploadRequest"];

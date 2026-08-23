@@ -25,7 +25,7 @@ jobs:
         uses: ./.github/actions/setup
       - name: Install PostgreSQL client library
         run: sudo apt-get update && sudo apt-get install -y libpq-dev
-      - run: vp run codegen
+      - run: vp run @catlas/api-client#codegen
       - name: Check source state
         run: git add packages/*/src && git diff-index --cached HEAD --exit-code
           packages/*/src

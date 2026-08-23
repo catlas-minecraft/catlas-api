@@ -1,6 +1,7 @@
 {
   "private": true,
   "workspaces": [
+    "packages/catlas-api-client",
     "packages/catlas-editor",
     "packages/catlas-features",
     "packages/catlas-leaflet",
@@ -13,7 +14,7 @@
   "scripts": {
     "dev": "pnpm --recursive --parallel run dev",
     "clean": "node scripts/clean.mjs",
-    "codegen": "pnpm --recursive --parallel run codegen",
+    "codegen": "vp run @catlas/api-client#codegen",
     "db:down": "docker compose down",
     "db:down:volumes": "docker compose down -v",
     "db:up": "docker compose up -d",
@@ -24,7 +25,6 @@
     "db:migrate": "cargo run -p catlas-api --bin migrate --quiet",
     "test": "vp test",
     "coverage": "vp test --coverage",
-    "api:codegen": "cargo run --quiet --locked -p catlas-api --bin print-openapi | openapi-typescript --output packages/catlas-editor/src/lib/editor/catlas-api.gen.ts",
     "prepare": "vp config"
   },
   "dependencies": {
@@ -38,7 +38,6 @@
     "babel-plugin-annotate-pure-calls": "^0.5.0",
     "effect": "^3.21.1",
     "glob": "^11.1.0",
-    "openapi-typescript": "^7.13.0",
     "portless": "catalog:",
     "tslib": "^2.8.1",
     "tsx": "^4.21.0",

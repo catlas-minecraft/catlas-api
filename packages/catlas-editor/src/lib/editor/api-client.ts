@@ -1,6 +1,6 @@
 import createClient from "openapi-fetch";
+import type { components, paths } from "@catlas/api-client";
 import { json, noContent } from "../api-response";
-import type { components, paths } from "./catlas-api.gen";
 import type { ChangesetUploadDiffResult, ChangesetUploadPayload } from "./changeset";
 
 type SessionInfo = { readonly user: components["schemas"]["User"] | null };

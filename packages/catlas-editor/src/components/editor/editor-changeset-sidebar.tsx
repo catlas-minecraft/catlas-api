@@ -30,8 +30,8 @@ import {
 } from "@/components/ui/item";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { components } from "@catlas/api-client";
 import type { CatlasEditor } from "@/lib/editor";
-import type { components } from "@/lib/editor/catlas-api.gen";
 import { changesetsQueryKey } from "@/lib/query-keys";
 
 const PAGE_SIZE = 50;

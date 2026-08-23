@@ -121,7 +121,7 @@ Run these commands from the repository root.
 
 ### API and Database
 
-- `vp run api:codegen`: Generate Editor API types from the Rust API OpenAPI document
+- `vp run @catlas/api-client#codegen`: Generate API client types from the Rust API OpenAPI document
 - `vp run db:up`: Start local PostGIS and Jaeger
 - `vp run db:down`: Stop local database services
 - `vp run db:down:volumes`: Stop services and remove database volumes

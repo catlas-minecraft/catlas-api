@@ -1,4 +1,4 @@
-import type { components } from "./catlas-api.gen";
+import type { components } from "@catlas/api-client";
 
 export type EntityType = "node" | "way";
 export type GeometryType = "point" | "line" | "area";
