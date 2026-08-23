@@ -1,0 +1,429 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01M0R2TNEXTMA9YBFG102SKAA8",
+  "session_id": "01a02c2f-979d-7b91-82eb-ceecc6e15804",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-23T19:51:14.492982Z",
+  "branch": "main",
+  "checkpoints_count": 14,
+  "save_step_count": 14,
+  "files_touched": [
+    "packages/catlas-solid-ol/README.md",
+    "packages/catlas-solid-ol/package.json",
+    "packages/catlas-solid-ol/src/context.ts",
+    "packages/catlas-solid-ol/src/index.ts",
+    "packages/catlas-solid-ol/src/map-binding.test.ts",
+    "packages/catlas-solid-ol/src/map-binding.ts",
+    "packages/catlas-solid-ol/src/map-item.test.ts",
+    "packages/catlas-solid-ol/src/map-item.ts",
+    "packages/catlas-solid-ol/src/map.test.ts",
+    "packages/catlas-solid-ol/src/map.ts",
+    "packages/catlas-solid-ol/src/test-utils.ts",
+    "packages/catlas-solid-ol/src/types.ts",
+    "packages/catlas-solid-ol/tsconfig.json",
+    "packages/catlas-solid-ol/vite.config.ts",
+    "pnpm-lock.yaml"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-luna",
+  "turn_id": "d18ffce8bb95",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 1412259,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 21585664,
+    "output_tokens": 133305,
+    "api_call_count": 244
+  },
+  "session_metrics": {
+    "turn_count": 14
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-23T19:51:14.405509Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 940,
+    "human_modified": 882,
+    "human_removed": 0,
+    "total_committed": 940,
+    "total_lines_changed": 1822,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 2395,
+      "user_lines_removed": 88,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/.gitignore": 4,
+        "packages/catlas-solid-ol/.vscode/extensions.json": 3,
+        "packages/catlas-solid-ol/.vscode/settings.json": 10,
+        "packages/catlas-solid-ol/README.md": 23,
+        "packages/catlas-solid-ol/package.json": 39,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/tests/index.test.ts": 6,
+        "packages/catlas-solid-ol/tsconfig.json": 20,
+        "packages/catlas-solid-ol/vite.config.ts": 17,
+        "packages/catlas-viewer-next/.gitignore": 24,
+        "packages/catlas-viewer-next/.vscode/extensions.json": 3,
+        "packages/catlas-viewer-next/index.html": 13,
+        "packages/catlas-viewer-next/package.json": 16,
+        "packages/catlas-viewer-next/public/favicon.svg": 1,
+        "packages/catlas-viewer-next/public/icons.svg": 24,
+        "packages/catlas-viewer-next/src/assets/typescript.svg": 1,
+        "packages/catlas-viewer-next/src/assets/vite.svg": 1,
+        "packages/catlas-viewer-next/src/counter.ts": 9,
+        "packages/catlas-viewer-next/src/main.ts": 60,
+        "packages/catlas-viewer-next/src/style.css": 292,
+        "packages/catlas-viewer-next/tsconfig.json": 24,
+        "pnpm-lock.yaml": 1802
+      },
+      "user_removed_per_file": {
+        "pnpm-lock.yaml": 88
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2395,
+      "agent_lines_removed": 88
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 364,
+      "user_lines_removed": 20,
+      "agent_lines_added": 2862,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 60,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/index.ts": 14,
+        "packages/catlas-solid-ol/tests/index.test.ts": 268,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/tests/index.test.ts": 4,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 387,
+      "user_lines_removed": 30,
+      "agent_lines_added": 2862,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 54,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/index.ts": 14,
+        "packages/catlas-solid-ol/src/map-binding.ts": 13,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tests/index.test.ts": 283,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 9,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tests/index.test.ts": 4,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 387,
+      "user_lines_removed": 30,
+      "agent_lines_added": 2862,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 54,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/index.ts": 14,
+        "packages/catlas-solid-ol/src/map-binding.ts": 13,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tests/index.test.ts": 283,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 9,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tests/index.test.ts": 4,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 387,
+      "user_lines_removed": 30,
+      "agent_lines_added": 2862,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 54,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/index.ts": 14,
+        "packages/catlas-solid-ol/src/map-binding.ts": 13,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tests/index.test.ts": 283,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 9,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tests/index.test.ts": 4,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 363,
+      "user_lines_removed": 35,
+      "agent_lines_added": 2862,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 44,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/index.ts": 11,
+        "packages/catlas-solid-ol/src/map-binding.ts": 22,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tests/index.test.ts": 263,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 13,
+        "packages/catlas-solid-ol/src/types.ts": 2,
+        "packages/catlas-solid-ol/tests/index.test.ts": 4,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 361,
+      "user_lines_removed": 69,
+      "agent_lines_added": 2862,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 44,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/index.ts": 11,
+        "packages/catlas-solid-ol/src/map-binding.ts": 20,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tests/index.test.ts": 263,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 47,
+        "packages/catlas-solid-ol/src/types.ts": 2,
+        "packages/catlas-solid-ol/tests/index.test.ts": 4,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 361,
+      "user_lines_removed": 69,
+      "agent_lines_added": 2862,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 44,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/index.ts": 11,
+        "packages/catlas-solid-ol/src/map-binding.ts": 20,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tests/index.test.ts": 263,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 47,
+        "packages/catlas-solid-ol/src/types.ts": 2,
+        "packages/catlas-solid-ol/tests/index.test.ts": 4,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 386,
+      "user_lines_removed": 81,
+      "agent_lines_added": 2862,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 44,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/index.ts": 11,
+        "packages/catlas-solid-ol/src/map-binding.ts": 22,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tests/index.test.ts": 286,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 59,
+        "packages/catlas-solid-ol/src/types.ts": 2,
+        "packages/catlas-solid-ol/tests/index.test.ts": 4,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 100,
+      "user_lines_removed": 77,
+      "agent_lines_added": 3155,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 44,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/index.ts": 11,
+        "packages/catlas-solid-ol/src/map-binding.ts": 22,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 59,
+        "packages/catlas-solid-ol/src/types.ts": 2,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 100,
+      "user_lines_removed": 77,
+      "agent_lines_added": 3162,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 44,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/index.ts": 11,
+        "packages/catlas-solid-ol/src/map-binding.ts": 22,
+        "packages/catlas-solid-ol/src/types.ts": 1,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 59,
+        "packages/catlas-solid-ol/src/types.ts": 2,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 13,
+      "user_lines_added": 225,
+      "user_lines_removed": 77,
+      "agent_lines_added": 3162,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 44,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/context.ts": 32,
+        "packages/catlas-solid-ol/src/index.ts": 11,
+        "packages/catlas-solid-ol/src/map-binding.ts": 22,
+        "packages/catlas-solid-ol/src/map-item.ts": 36,
+        "packages/catlas-solid-ol/src/map.ts": 32,
+        "packages/catlas-solid-ol/src/types.ts": 26,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 59,
+        "packages/catlas-solid-ol/src/types.ts": 2,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 14,
+      "user_lines_added": 225,
+      "user_lines_removed": 77,
+      "agent_lines_added": 3162,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 44,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/context.ts": 32,
+        "packages/catlas-solid-ol/src/index.ts": 11,
+        "packages/catlas-solid-ol/src/map-binding.ts": 22,
+        "packages/catlas-solid-ol/src/map-item.ts": 36,
+        "packages/catlas-solid-ol/src/map.ts": 32,
+        "packages/catlas-solid-ol/src/types.ts": 26,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 59,
+        "packages/catlas-solid-ol/src/types.ts": 2,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 15,
+      "user_lines_added": 184,
+      "user_lines_removed": 77,
+      "agent_lines_added": 3162,
+      "agent_lines_removed": 90,
+      "user_added_per_file": {
+        "packages/catlas-solid-ol/README.md": 44,
+        "packages/catlas-solid-ol/package.json": 9,
+        "packages/catlas-solid-ol/src/context.ts": 24,
+        "packages/catlas-solid-ol/src/index.ts": 11,
+        "packages/catlas-solid-ol/src/map-binding.ts": 22,
+        "packages/catlas-solid-ol/src/map-item.ts": 26,
+        "packages/catlas-solid-ol/src/map.ts": 18,
+        "packages/catlas-solid-ol/src/types.ts": 17,
+        "packages/catlas-solid-ol/tsconfig.json": 1,
+        "packages/catlas-solid-ol/vite.config.ts": 12
+      },
+      "user_removed_per_file": {
+        "packages/catlas-solid-ol/README.md": 2,
+        "packages/catlas-solid-ol/package.json": 10,
+        "packages/catlas-solid-ol/src/index.ts": 3,
+        "packages/catlas-solid-ol/src/map-binding.ts": 59,
+        "packages/catlas-solid-ol/src/types.ts": 2,
+        "packages/catlas-solid-ol/tsconfig.json": 1
+      }
+    }
+  ]
+}

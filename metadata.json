@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01M0R2TNEXTMA9YBFG102SKAA8",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 14,
+  "files_touched": [
+    "packages/catlas-solid-ol/README.md",
+    "packages/catlas-solid-ol/package.json",
+    "packages/catlas-solid-ol/src/context.ts",
+    "packages/catlas-solid-ol/src/index.ts",
+    "packages/catlas-solid-ol/src/map-binding.test.ts",
+    "packages/catlas-solid-ol/src/map-binding.ts",
+    "packages/catlas-solid-ol/src/map-item.test.ts",
+    "packages/catlas-solid-ol/src/map-item.ts",
+    "packages/catlas-solid-ol/src/map.test.ts",
+    "packages/catlas-solid-ol/src/map.ts",
+    "packages/catlas-solid-ol/src/test-utils.ts",
+    "packages/catlas-solid-ol/src/types.ts",
+    "packages/catlas-solid-ol/tsconfig.json",
+    "packages/catlas-solid-ol/vite.config.ts",
+    "pnpm-lock.yaml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1412259,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 21585664,
+    "output_tokens": 133305,
+    "api_call_count": 244
+  }
+}

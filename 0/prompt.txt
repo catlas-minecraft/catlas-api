@@ -1,0 +1,91 @@
+codex
+
+---
+
+solidでopenlayersを使いためのライブラリを作りたい。
+
+で一個特殊なことをしたくて。
+
+onMountedとrefを使うんじゃなくてsolid/webから出てるspreadって関数を使ってやりたい。
+
+---
+
+solidでopenlayersを使いためのライブラリを作りたい。
+
+  で一個特殊なことをしたくて。
+
+  onMountedとrefを使うんじゃなくてsolid/webから出てる
+  spreadって関数を使ってやりたい。
+
+---
+
+ちなみにSSRのサポートは今は全く考えなくていいよ
+
+---
+
+templateである必要性あるか？
+普通にdocument.createElementで良くはないか話し合いたい
+
+childrenは実装したいかも。
+
+---
+
+Implement the plan.
+
+---
+
+createMapはOptionにして指定なくてもデフォで作るようんいして
+
+---
+
+componentの外で packages/catlas-solid-ol/src/map-binding.ts を使いたいケースがかなり薄いからdsiposeを返さないようにしたいと思っているけどどう？
+
+---
+
+そもそもcomponentの外で packages/catlas-solid-ol/src/map-binding.ts を使い
+  たいケースが少ないよねって思うんだけどそれについてどう思う？
+
+---
+
+do
+
+---
+
+Implement the plan.
+
+---
+
+なぜ勝手にdisposeEffectsを変えているの。。。？
+
+---
+
+これinstanceofじゃだめなの？
+
+---
+
+isLayerGroupってinstanceofじゃだめなの？
+
+---
+
+impl
+
+---
+
+テスト移動させてほしいな。
+mapのテストはmap.test.tsみたいに
+
+---
+
+横においてほしい
+
+---
+
+主要コンポーネントに説明と誓約とSampleのJSDoc追加して
+
+---
+
+ゴメン制約してええよ
+
+---
+
+ゴメン制約けしてええよ
