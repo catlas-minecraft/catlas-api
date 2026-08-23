@@ -1,0 +1,15 @@
+{
+  "name": "@catlas/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "codegen": "cargo run --quiet --locked -p catlas-api --bin print-openapi | openapi-typescript --output src/generated.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0"
+  }
+}

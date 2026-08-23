@@ -5,7 +5,7 @@ export default defineConfig({
     "*": "vp check --fix",
   },
   lint: {
-    ignorePatterns: ["packages/catlas-editor/src/lib/editor/catlas-api.gen.ts", ".opencode/"],
+    ignorePatterns: ["packages/catlas-api-client/src/generated.ts", ".opencode/"],
     options: { typeAware: true, typeCheck: true },
   },
 });

@@ -48,14 +48,15 @@ and `DELETE` logs out.
 `GET /api/users/{userId}` is an unauthenticated lookup by public ID and returns
 the user object or `404` when it does not exist.
 
-Regenerate the Editor's `openapi-fetch` types directly from the Rust service:
+Regenerate the shared API client's `openapi-fetch` types directly from the Rust service:
 
 ```sh
-vp run -w api:codegen
+vp run @catlas/api-client#codegen
 ```
 
-The OpenAPI JSON is streamed from `print-openapi` to `openapi-typescript`; no
-intermediate specification file is written.
+The OpenAPI JSON is streamed from `print-openapi` to `openapi-typescript` and
+written to `packages/catlas-api-client/src/generated.ts`; no intermediate
+specification file is written.
 
 The API also applies pending embedded migrations before binding the HTTP server.
 The `db:migrate` task uses the same migration runner and PostgreSQL advisory lock.
