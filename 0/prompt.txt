@@ -1,0 +1,13 @@
+viewをsolidjs + openlayersで書き直したい。
+
+---
+
+viewerをsolidjs + openlayersで書き直したい。
+
+---
+
+Implement the plan.
+
+---
+
+APIのエンドポイント違うんじゃない？
