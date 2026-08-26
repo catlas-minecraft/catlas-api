@@ -3,7 +3,7 @@
   "checkpoint_id": "01M0YPN7XN05HF77H64SN9NKJV",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 6,
   "files_touched": [
     "package.json",
     "packages/catlas-api-client/package.json",
@@ -28,9 +28,12 @@
     "packages/catlas-viewer-ol/README.md",
     "packages/catlas-viewer-ol/index.html",
     "packages/catlas-viewer-ol/package.json",
+    "packages/catlas-viewer-ol/panda.config.ts",
     "packages/catlas-viewer-ol/public/favicon.svg",
     "packages/catlas-viewer-ol/src/app.test.tsx",
     "packages/catlas-viewer-ol/src/app.tsx",
+    "packages/catlas-viewer-ol/src/components/ui/button.tsx",
+    "packages/catlas-viewer-ol/src/components/ui/select.tsx",
     "packages/catlas-viewer-ol/src/i18n.ts",
     "packages/catlas-viewer-ol/src/main.tsx",
     "packages/catlas-viewer-ol/src/map/geometry.ts",
@@ -69,13 +72,20 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1515790,
+    "input_tokens": 2204551,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 37314048,
-    "output_tokens": 230279,
-    "api_call_count": 348
+    "cache_read_tokens": 61513216,
+    "output_tokens": 315150,
+    "api_call_count": 567
   }
 }
