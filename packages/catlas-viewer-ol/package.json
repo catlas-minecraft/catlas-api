@@ -1,0 +1,37 @@
+{
+  "name": "@catlas/viewer-ol",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "portless viewer-ol.catlas vp dev",
+    "prepare": "panda codegen && panda cssgen",
+    "predev": "panda codegen && panda cssgen",
+    "build": "panda codegen && panda cssgen && tsc && vp build",
+    "check": "vp check",
+    "test": "vp test",
+    "preview": "vp preview"
+  },
+  "dependencies": {
+    "@ark-ui/solid": "^5.39.0",
+    "@catlas/api-client": "workspace:^",
+    "@catlas/features": "workspace:^",
+    "@catlas/solid-ol": "workspace:^",
+    "@fontsource-variable/geist": "^5.2.9",
+    "@tanstack/solid-query": "^5.102.2",
+    "@tanstack/solid-router": "^1.168.3",
+    "lucide-solid": "^0.511.0",
+    "ol": "^10.10.0",
+    "solid-js": "^1.9.12"
+  },
+  "devDependencies": {
+    "@pandacss/dev": "^1.11.5",
+    "@park-ui/panda-preset": "^0.43.1",
+    "@tanstack/router-plugin": "^1.167.4",
+    "happy-dom": "^20.11.6",
+    "typescript": "~6.0.3",
+    "vite": "catalog:",
+    "vite-plugin-solid": "^2.11.10",
+    "vite-plus": "catalog:"
+  }
+}

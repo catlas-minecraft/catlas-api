@@ -9,7 +9,11 @@
   "scripts": {
     "codegen": "cargo run --quiet --locked -p catlas-api --bin print-openapi | openapi-typescript --output src/generated.ts"
   },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0"
+  },
   "devDependencies": {
-    "openapi-typescript": "^7.13.0"
+    "openapi-typescript": "^7.13.0",
+    "typescript": "~5.9.3"
   }
 }

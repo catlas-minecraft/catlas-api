@@ -5,7 +5,9 @@
     "packages/catlas-editor",
     "packages/catlas-features",
     "packages/catlas-leaflet",
+    "packages/catlas-solid-ol",
     "packages/catlas-viewer",
+    "packages/catlas-viewer-ol",
     "packages/domain",
     "packages/louis",
     "packages/schema"
@@ -39,10 +41,12 @@
     "effect": "^3.21.1",
     "glob": "^11.1.0",
     "portless": "catalog:",
+    "solid-js": "^1.9.12",
     "tslib": "^2.8.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "catalog:",
+    "vite-plugin-solid": "^2.11.10",
     "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.18"
   },
   "packageManager": "pnpm@10.14.0",

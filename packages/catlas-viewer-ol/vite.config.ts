@@ -1,23 +1,30 @@
 import { defineConfig } from "vite-plus";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import solid from "vite-plugin-solid";
 
 export default defineConfig({
-  staged: {
-    "*": "vp check --fix",
+  server: {
+    host: process.env.HOST,
+    port: process.env.PORT ? Number(process.env.PORT) : undefined,
+    proxy: {
+      "/api": "http://127.0.0.1:3000",
+      "/tiles": {
+        target: "http://viewer.catlas.localhost:1355",
+        changeOrigin: true,
+      },
+    },
   },
-  lint: {
-    ignorePatterns: ["packages/catlas-api-client/src/generated.ts", ".opencode/"],
-    options: { typeAware: true, typeCheck: true },
-  },
-  plugins: [solid()],
+  plugins: [
+    tanstackRouter({
+      target: "solid",
+      autoCodeSplitting: true,
+      quoteStyle: "double",
+      semicolons: true,
+    }),
+    solid(),
+  ],
   test: {
     environment: "happy-dom",
-    exclude: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/.direnv/**",
-      "**/.{idea,git,cache,output,temp}/**",
-    ],
     server: {
       deps: {
         inline: [
