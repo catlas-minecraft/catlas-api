@@ -3,7 +3,7 @@
   "checkpoint_id": "01M0YPN7XN05HF77H64SN9NKJV",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 6,
+  "checkpoints_count": 11,
   "files_touched": [
     "package.json",
     "packages/catlas-api-client/package.json",
@@ -79,13 +79,20 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 2204551,
+    "input_tokens": 2439734,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 61513216,
-    "output_tokens": 315150,
-    "api_call_count": 567
+    "cache_read_tokens": 67809664,
+    "output_tokens": 357833,
+    "api_call_count": 615
   }
 }
