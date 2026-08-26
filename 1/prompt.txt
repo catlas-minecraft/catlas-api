@@ -1,0 +1,13 @@
+catlas viwer olをtanstackに置き換えて
+
+---
+
+catlas viwer olをtanstack routerに置き換えて
+
+---
+
+Implement the plan.
+
+---
+
+開いたときにselectがurlのワールドと一致していない
