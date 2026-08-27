@@ -5,6 +5,8 @@ import {
   getViewportBbox,
   TILE_PIXEL_SIZE,
   TILE_WORLD_SIZE,
+  screenToWorld,
+  worldToScreen,
 } from "../src/lib/editor/util";
 
 describe("editor world scale", () => {
@@ -18,10 +20,16 @@ describe("editor world scale", () => {
   });
 
   test("requests viewport bounds in world-cell coordinates", () => {
-    const transform = d3.zoomIdentity.translate(512, 256).scale(1);
+    const transform = d3.zoomIdentity.translate(150, 50).scale(2);
 
-    expect(getViewportBbox(transform, { width: 1024, height: 512 })).toEqual([
-      -512, -256, 512, 256,
-    ]);
+    expect(getViewportBbox(transform, { width: 200, height: 100 })).toEqual([-75, -25, 25, 25]);
+  });
+
+  test("keeps positive world X to the right of the screen", () => {
+    const transform = d3.zoomIdentity.translate(100, 50).scale(2);
+    const point = { x: 12, z: -7 };
+
+    expect(worldToScreen(transform, point)).toEqual([124, 36]);
+    expect(screenToWorld(transform, [124, 36])).toEqual({ x: 12, y: 0, z: -7 });
   });
 });

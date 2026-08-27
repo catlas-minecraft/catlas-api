@@ -12,6 +12,7 @@ vp run --filter=@catlas/viewer-ol build
 ```
 
 The viewer uses Catlas world coordinates (`x`, `z`) as map coordinates
-`[-x, -z]`, a 512px tile grid, and the relative `/tiles/{x}.{y}.gif` tile
-contract. Feature data is requested from the shared `@catlas/api-client`
+`[x, -z]`, a 512px tile grid, and the relative `/tiles/{x}.{y}.gif` tile
+contract. X increases to the right; OpenLayers' Y-up map coordinates reflect
+Z only. Feature data is requested from the shared `@catlas/api-client`
 viewport service and rendered with OpenLayers `VectorLayer`s.

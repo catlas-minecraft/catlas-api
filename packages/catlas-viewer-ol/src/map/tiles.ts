@@ -16,6 +16,8 @@ export const createCatlasTileLayer = (urlTemplate = "/tiles/{x}.{y}.gif") => {
       resolutions: [1],
       tileSize: CATLAS_TILE_SIZE,
     }),
+    // The map projection keeps X positive to the right, so tile X is passed
+    // through without a world-coordinate reflection.
     url: (_z, x, y) => catlasTileUrl(urlTemplate, x, y),
     wrapX: false,
     interpolate: false,

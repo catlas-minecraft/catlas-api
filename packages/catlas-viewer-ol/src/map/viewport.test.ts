@@ -84,7 +84,7 @@ const viewport: Viewport = {
 };
 
 describe("viewport projection", () => {
-  test("keeps stable path anchors and reflects world coordinates", () => {
+  test("keeps stable path anchors and projects world coordinates", () => {
     expect(
       anchorForPath(
         [
@@ -113,7 +113,7 @@ describe("viewport projection", () => {
     expect(result.markers.map((marker) => marker.id)).toEqual([1]);
     expect(result.polylines[0]?.coordinates).toEqual([
       [0, 0],
-      [-10, 0],
+      [10, 0],
     ]);
   });
 

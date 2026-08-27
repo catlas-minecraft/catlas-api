@@ -18,7 +18,7 @@ export const CatlasMap = ({
     minZoom: 0,
     preferCanvas: true,
     crs: lExtend({}, lCrs.Simple, {
-      transformation: lTransformation(-1 / 2 ** zoom, 0, 1 / 2 ** zoom, 0),
+      transformation: lTransformation(1 / 2 ** zoom, 0, 1 / 2 ** zoom, 0),
     }),
     zoomControl: false,
     attributionControl: false,

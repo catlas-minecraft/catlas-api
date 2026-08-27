@@ -47,6 +47,8 @@ export class TileCanvasLayer {
     syncCanvas(this.#canvas, this.#context, size);
     this.#context.clearRect(0, 0, size.width, size.height);
 
+    // The editor scene uses world X to the right and world Z downward, so tile
+    // indices use the same sign convention as the rendered scene.
     const [minSceneX, minSceneZ] = transform.invert([0, 0]);
     const [maxSceneX, maxSceneZ] = transform.invert([size.width, size.height]);
     const minTileX = Math.floor(minSceneX / TILE_WORLD_SIZE);

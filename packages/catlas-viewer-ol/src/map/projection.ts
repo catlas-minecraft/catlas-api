@@ -19,12 +19,12 @@ export type MapCoordinate = [number, number];
 const reflect = (value: number): number => (value === 0 ? 0 : -value);
 
 export const worldToMapCoordinate = (point: Pick<Point, "x" | "z">): MapCoordinate => [
-  reflect(point.x),
+  point.x,
   reflect(point.z),
 ];
 
 export const mapToWorldCoordinate = ([x, y]: Coordinate): { x: number; z: number } => ({
-  x: reflect(x),
+  x,
   z: reflect(y),
 });
 
@@ -34,15 +34,10 @@ export const catlasZoomForResolution = (resolution: number): number =>
   CATLAS_NATIVE_ZOOM - Math.log2(resolution);
 
 export const mapExtentToWorldBbox = (extent: Extent): BBox => [
-  -extent[2],
+  extent[0],
   -extent[3],
-  -extent[0],
+  extent[2],
   -extent[1],
 ];
 
-export const worldBboxToMapExtent = (bbox: BBox): Extent => [
-  -bbox[2],
-  -bbox[3],
-  -bbox[0],
-  -bbox[1],
-];
+export const worldBboxToMapExtent = (bbox: BBox): Extent => [bbox[0], -bbox[3], bbox[2], -bbox[1]];

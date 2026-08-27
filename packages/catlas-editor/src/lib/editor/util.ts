@@ -30,7 +30,7 @@ export const getInitialTransform = ({ height, width }: Size) =>
 export const getZoomScaleExtent = (): [number, number] => [1 / 16, 32];
 
 export const worldToScreen = (transform: d3.ZoomTransform, point: Pick<Point3D, "x" | "z">) =>
-  transform.apply([-point.x, point.z]) as [number, number];
+  transform.apply([point.x, point.z]) as [number, number];
 
 export const screenToWorld = (
   transform: d3.ZoomTransform,
@@ -38,7 +38,7 @@ export const screenToWorld = (
   y = 0,
 ): Point3D => {
   const [sceneX, sceneZ] = transform.invert([screen[0], screen[1]]);
-  return { x: -sceneX, y, z: sceneZ };
+  return { x: sceneX, y, z: sceneZ };
 };
 
 export const getViewportBbox = (

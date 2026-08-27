@@ -3,7 +3,9 @@
 An iD-style world editor for Catlas game maps. The editor works in the XZ plane,
 keeps Y as an inspected property, and synchronizes entities through the Catlas API.
 Each map tile covers `512 x 512` world cells. At the initial zoom level, one cell is
-rendered as one CSS pixel, matching the native `512 x 512` tile image.
+rendered as one CSS pixel, matching the native `512 x 512` tile image. World X
+increases to the right and world Z increases downward; the tile layer uses the
+same screen-plane direction.
 
 ## Architecture
 

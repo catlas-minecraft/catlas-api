@@ -18,14 +18,14 @@ describe("Catlas OpenLayers coordinate contract", () => {
   });
 
   test("maps world x/z into the OpenLayers y-up coordinate system", () => {
-    expect(worldToMapCoordinate({ x: 12, z: -7 })).toEqual([-12, 7]);
-    expect(mapToWorldCoordinate([-12, 7])).toEqual({ x: 12, z: -7 });
+    expect(worldToMapCoordinate({ x: 12, z: -7 })).toEqual([12, 7]);
+    expect(mapToWorldCoordinate([12, 7])).toEqual({ x: 12, z: -7 });
   });
 
-  test("converts view extents and API bboxes with both axes reflected", () => {
-    const extent = [-512, -256, 512, 256];
-    expect(mapExtentToWorldBbox(extent)).toEqual([-512, -256, 512, 256]);
-    expect(worldBboxToMapExtent([-512, -256, 512, 256])).toEqual([-512, -256, 512, 256]);
+  test("converts view extents and API bboxes without reflecting X", () => {
+    const extent = [-100, -50, 300, 150];
+    expect(mapExtentToWorldBbox(extent)).toEqual([-100, -150, 300, 50]);
+    expect(worldBboxToMapExtent([-100, -150, 300, 50])).toEqual(extent);
   });
 
   test("keeps Catlas native zoom 3 at one map pixel per world unit", () => {
@@ -39,8 +39,8 @@ describe("Catlas OpenLayers coordinate contract", () => {
     expect(resolutionForCatlasZoom(CATLAS_MIN_ZOOM)).toBe(16);
   });
 
-  test("builds tile URLs using the signed tile coordinates", () => {
+  test("builds tile URLs using the map tile coordinates", () => {
     expect(CATLAS_TILE_SIZE).toBe(512);
-    expect(catlasTileUrl("/tiles/{x}.{y}.gif", -2, 4)).toBe("/tiles/-2.4.gif");
+    expect(catlasTileUrl("/tiles/{x}.{y}.gif", 2, 4)).toBe("/tiles/2.4.gif");
   });
 });
